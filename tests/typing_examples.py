@@ -11,12 +11,17 @@ from symphony_k.domain import (
     ActorId,
     ActorIdentity,
     ActorType,
+    CompletionPolicyRef,
     EffectId,
+    EntityVersion,
     EvaluationId,
+    Objective,
     ObjectiveId,
+    ObjectiveState,
     OutcomeId,
     RunId,
     TaskId,
+    can_objective_transition,
 )
 
 if TYPE_CHECKING:
@@ -45,3 +50,29 @@ if TYPE_CHECKING:
     requires_objective(str(value))  # type: ignore[arg-type]
     ActorIdentity(TaskId(value), ActorType.WORKER)  # type: ignore[arg-type]
     ActorIdentity(ActorId(value), "SYSTEM")  # type: ignore[arg-type]
+
+    policy = CompletionPolicyRef("definition", "revision")
+    designation = ActorIdentity(ActorId(value), ActorType.HUMAN_OPERATOR)
+    assert_type(
+        Objective(
+            ObjectiveId(value),
+            ObjectiveState.DRAFT,
+            EntityVersion(7),
+            "Bounded result",
+            ("Criterion",),
+            designation,
+            policy,
+        ),
+        Objective,
+    )
+    Objective(
+        TaskId(value),  # type: ignore[arg-type]
+        ObjectiveState.DRAFT,
+        EntityVersion(7),
+        "Result",
+        ("Criterion",),
+        designation,
+        policy,
+    )
+    can_objective_transition("DRAFT", ObjectiveState.ACTIVE)  # type: ignore[arg-type]
+    CompletionPolicyRef("definition", EntityVersion(1))  # type: ignore[arg-type]

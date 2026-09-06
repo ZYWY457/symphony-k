@@ -1,4 +1,4 @@
-"""Shared Domain Kernel value types; no lifecycle or authorization behavior."""
+"""Domain values and Objective topology; no authoritative transition execution."""
 
 from .actors import ActorIdentity, ActorType
 from .errors import (
@@ -14,15 +14,24 @@ from .errors import (
     UnauthorizedTransition,
 )
 from .ids import ActorId, EffectId, EvaluationId, ObjectiveId, OutcomeId, RunId, TaskId
+from .objective import (
+    OBJECTIVE_CREATION_STATE,
+    CompletionPolicyRef,
+    Objective,
+    ObjectiveState,
+    can_objective_transition,
+)
 from .time import Timestamp
 from .transitions import TransitionReason
 from .version import EntityVersion
 
 __all__ = [
+    "OBJECTIVE_CREATION_STATE",
     "ActorId",
     "ActorIdentity",
     "ActorType",
     "CompletionPolicyNotSatisfied",
+    "CompletionPolicyRef",
     "ConcurrencyConflict",
     "DomainError",
     "EffectId",
@@ -34,11 +43,14 @@ __all__ = [
     "InvalidRelationship",
     "InvalidTransition",
     "InvariantViolation",
+    "Objective",
     "ObjectiveId",
+    "ObjectiveState",
     "OutcomeId",
     "RunId",
     "TaskId",
     "Timestamp",
     "TransitionReason",
     "UnauthorizedTransition",
+    "can_objective_transition",
 ]
