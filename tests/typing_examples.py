@@ -11,15 +11,19 @@ from symphony_k.domain import (
     ActorId,
     ActorIdentity,
     ActorType,
+    ArtifactRef,
     CompletionPolicyRef,
     EffectId,
     EntityVersion,
     EvaluationId,
+    EvidenceRef,
     ExecutionProfileRef,
     Objective,
     ObjectiveId,
     ObjectiveState,
+    Outcome,
     OutcomeId,
+    OutcomeState,
     Run,
     RunId,
     RunState,
@@ -27,6 +31,7 @@ from symphony_k.domain import (
     TaskId,
     TaskState,
     can_objective_transition,
+    can_outcome_transition,
     can_run_transition,
     can_task_transition,
 )
@@ -160,3 +165,53 @@ if TYPE_CHECKING:
     )
     can_run_transition(TaskState.READY, RunState.RUNNING)  # type: ignore[arg-type]
     can_run_transition("PENDING", RunState.RUNNING)  # type: ignore[arg-type]
+
+    artifacts = frozenset({ArtifactRef("candidate")})
+    candidate = Outcome(
+        OutcomeId(value),
+        RunId(value),
+        OutcomeState.PROPOSED,
+        EntityVersion(7),
+        designation,
+        artifacts,
+    )
+    assert_type(candidate.outcome_id, OutcomeId)
+    assert_type(candidate.run_id, RunId)
+    assert_type(candidate.producer, ActorIdentity)
+    assert_type(candidate.artifact_refs, frozenset[ArtifactRef])
+    assert_type(candidate.evidence_refs, frozenset[EvidenceRef])
+
+    def requires_artifact(reference: ArtifactRef) -> ArtifactRef:
+        return reference
+
+    def requires_evidence(reference: EvidenceRef) -> EvidenceRef:
+        return reference
+
+    requires_artifact(EvidenceRef("same"))  # type: ignore[arg-type]
+    requires_evidence(ArtifactRef("same"))  # type: ignore[arg-type]
+    Outcome(
+        RunId(value),  # type: ignore[arg-type]
+        RunId(value),
+        OutcomeState.PROPOSED,
+        EntityVersion(7),
+        designation,
+        artifacts,
+    )
+    Outcome(
+        OutcomeId(value),
+        run,  # type: ignore[arg-type]
+        OutcomeState.PROPOSED,
+        EntityVersion(7),
+        designation,
+        artifacts,
+    )
+    Outcome(
+        OutcomeId(value),
+        RunId(value),
+        OutcomeState.PROPOSED,
+        EntityVersion(7),
+        ActorId(value),  # type: ignore[arg-type]
+        artifacts,
+    )
+    can_outcome_transition(RunState.COMPLETED, OutcomeState.ACCEPTED)  # type: ignore[arg-type]
+    can_outcome_transition("PROPOSED", OutcomeState.ACCEPTED)  # type: ignore[arg-type]

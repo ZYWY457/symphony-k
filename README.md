@@ -4,7 +4,7 @@ An outcome-oriented AI work orchestrator. See [AGENTS.md](AGENTS.md) for the
 repository documentation hierarchy and [ARCHITECTURE.md](ARCHITECTURE.md) for
 system boundaries. The current implementation includes Stage 1 M1 tooling,
 M2 shared value types, and M3 Objective/Task snapshots and structural lifecycle topology.
-M4A adds Run snapshots, execution provenance and the structural Run graph.
+M4 adds Run/Outcome snapshots, provenance and their structural lifecycle graphs.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -61,5 +61,14 @@ an opaque `ExecutionProfileRef`, explicit state/version and optional predecessor
 `RunId` provenance. `can_run_transition` checks eighteen structural edges;
 `RUN_CREATION_STATE` is PENDING. Retry continues the same Run; a distinct attempt
 uses a new RunId. Completion does not accept a result or complete a Task.
-There is no Outcome or recovery execution, and Worker authority enforcement
+There is no recovery execution, and Worker authority enforcement
 remains deferred to M7. See the [M4A plan](docs/exec-plans/completed/stage-01-m4a-run-v1.md).
+
+`Outcome` is an untrusted candidate snapshot with one originating `RunId`, a
+producing `ActorIdentity`, nonempty artifact references and optional evidence,
+lineage and validity references. `ArtifactRef` and `EvidenceRef` are distinct
+opaque values; their immutable sets neither load nor verify content.
+`can_outcome_transition` checks eleven structural edges and
+`OUTCOME_CREATION_STATE` is PROPOSED. Run completion cannot accept a candidate.
+Verification, acceptance authority and Evaluation remain deferred. See the
+[M4B plan](docs/exec-plans/completed/stage-01-m4b-outcome-v1.md).

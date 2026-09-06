@@ -215,8 +215,7 @@ def test_structural_wait_and_completion_do_not_validate_or_propagate(
     assert completed.version == waiting.version == EntityVersion(17)
     assert task.state is TaskState.CANCELLED and task.version.value == 3
     assert completed.execution_profile_ref is snapshot.execution_profile_ref
-    assert not hasattr(domain, "Outcome")
-    assert not hasattr(domain, "OutcomeState")
+    # M4B supplies Outcome independently; Run still has no candidate/acceptance fields.
     assert not hasattr(domain, "AttemptId")
     for name in (
         "start",
