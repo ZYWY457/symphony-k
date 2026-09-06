@@ -2,6 +2,7 @@
 git add .
 git commit -m "这里写你的修改说明"
 git push
+git push origin main
 说明：
 git add .：把所有修改的文件加入待提交列表
 git commit -m "..."：提交到本地仓库，引号里写修改说明

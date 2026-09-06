@@ -20,8 +20,11 @@ from symphony_k.domain import (
     ObjectiveState,
     OutcomeId,
     RunId,
+    Task,
     TaskId,
+    TaskState,
     can_objective_transition,
+    can_task_transition,
 )
 
 if TYPE_CHECKING:
@@ -76,3 +79,34 @@ if TYPE_CHECKING:
     )
     can_objective_transition("DRAFT", ObjectiveState.ACTIVE)  # type: ignore[arg-type]
     CompletionPolicyRef("definition", EntityVersion(1))  # type: ignore[arg-type]
+
+    assert_type(
+        Task(
+            TaskId(value),
+            TaskState.DRAFT,
+            EntityVersion(7),
+            "Bounded work",
+            ObjectiveId(value),
+            policy,
+        ),
+        Task,
+    )
+    Task(
+        TaskId(value),
+        TaskState.DRAFT,
+        EntityVersion(7),
+        "Work",
+        TaskId(value),  # type: ignore[arg-type]
+        policy,
+    )
+    Task(
+        TaskId(value),
+        TaskState.DRAFT,
+        EntityVersion(7),
+        "Work",
+        ObjectiveId(value),
+        policy,
+        frozenset({TaskId(value)}),  # type: ignore[arg-type]
+    )
+    can_task_transition(ObjectiveState.DRAFT, TaskState.READY)  # type: ignore[arg-type]
+    can_task_transition("DRAFT", TaskState.READY)  # type: ignore[arg-type]

@@ -9,6 +9,7 @@ from enum import Enum
 from typing import Final
 
 from .actors import ActorIdentity
+from .completion import CompletionPolicyRef as CompletionPolicyRef
 from .errors import InvalidDomainValue
 from .ids import ObjectiveId
 from .time import Timestamp
@@ -31,18 +32,6 @@ class ObjectiveState(Enum):
 def _require_text(value: str, field: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise InvalidDomainValue(f"{field} must contain non-whitespace text")
-
-
-@dataclass(frozen=True, slots=True)
-class CompletionPolicyRef:
-    """Opaque definition/version reference, never an evaluated policy result."""
-
-    policy_id: str
-    policy_version: str
-
-    def __post_init__(self) -> None:
-        _require_text(self.policy_id, "policy_id")
-        _require_text(self.policy_version, "policy_version")
 
 
 @dataclass(frozen=True, slots=True)

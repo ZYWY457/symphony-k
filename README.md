@@ -3,7 +3,7 @@
 An outcome-oriented AI work orchestrator. See [AGENTS.md](AGENTS.md) for the
 repository documentation hierarchy and [ARCHITECTURE.md](ARCHITECTURE.md) for
 system boundaries. The current implementation includes Stage 1 M1 tooling,
-M2 shared value types, and M3A Objective snapshots and structural lifecycle topology.
+M2 shared value types, and M3 Objective/Task snapshots and structural lifecycle topology.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -47,3 +47,10 @@ target without adding NONE to the enum. No query executes a transition, updates
 a version, evaluates guards, or generates events. See the
 [M3A plan](docs/exec-plans/completed/stage-01-m3a-objective-v1.md) for the field model
 and validation scope.
+
+`Task` is also an immutable snapshot with explicit state/version, one primary
+`ObjectiveId` and a `frozenset[ObjectiveId]` of secondary contributions. It stores
+no Objective objects and never propagates state. `can_task_transition` only
+checks the sixteen structural edges; `TASK_CREATION_STATE` is DRAFT. Both entities
+use `CompletionPolicyRef` from `domain/completion.py`, retaining the existing
+public import. See the [M3B plan](docs/exec-plans/completed/stage-01-m3b-task-v1.md).
