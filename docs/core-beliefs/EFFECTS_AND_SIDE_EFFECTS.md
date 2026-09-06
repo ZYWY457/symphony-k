@@ -57,6 +57,20 @@ Do not assume API success implies desired state.
 
 Collect an external receipt or independently re-read state when practical.
 
+## Occurrence, Authorization and Incident Observation
+
+`COMMITTED` is the factual occurrence of the external mutation, independently confirmed. It MUST NOT imply that permission existed or policy was followed. Missing, invalid or unknown authorization and other safety/policy findings are recorded separately with their evidence; later correction or resolution appends records without retroactively authorizing the original action.
+
+The Effect Controller's scoped observation/incident-ingestion action records reality and MUST NOT dispatch an external mutation. It can register a previously unregistered confirmed occurrence as COMMITTED, or a supported suspicion with uncertain occurrence as QUARANTINED. It can also reconcile PLANNED, SIMULATED, PENDING_COMMIT or QUARANTINED records when observations arrive. Prior execution authorization is not a guard on recording a fact. Recording authority, independently anchored occurrence evidence, external identity, deduplication and audit provenance remain required; worker claims alone cannot establish occurrence.
+
+Observation records include external target/operation identity, evidence references, observer and recording authority, observation time, occurrence time when known, incident correlation, and separately assessed authorization/policy findings. Unknown attribution or authorization is explicitly unknown, never invented. Previously unregistered observations may lack Task/Run association; retain the unlinked reason and append verified associations later. No unlinked incident can become executable merely through registration.
+
+Confirmed occurrence is recorded as COMMITTED even if a governance investigation remains open; confirmed occurrence facts persist through any later quarantine. QUARANTINED means departure from the normal automatic execution path for controlled reconciliation: uncertain occurrence, incident handling, unsafe remediation, rollback/compensation uncertainty or another recorded reconciliation condition. Quarantine is not an occurrence verdict or authorization finding.
+
+Preserve occurrence, incident and authorization truth separately in appended facts/metadata. A disproved suspicion may remain QUARANTINED with occurrence_status=DISPROVED and incident_status=CLOSED; factual occurrence is then known to be disproved, not unknown. Retention outside the automatic path does not require a new terminal state and cannot become an execution request without separate governed intent and full preparation checks. Metadata changes do not create lifecycle self-transitions.
+
+Normal execution still follows Prepare–Verify–Authorize–Commit with scoped credentials, idempotency, separation from the evaluator, and explicit human authorization before irreversible action. These exceptional observation paths acknowledge violations rather than permit them; recording cannot call the execution path or supply missing pre-action authorization.
+
 ## Reversibility
 
 Effects should be classified at least as:

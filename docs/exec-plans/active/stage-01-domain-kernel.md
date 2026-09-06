@@ -5,6 +5,10 @@
 **Constitution Baseline:** `constitution-v0.1`
 **Primary Goal:** Establish the authoritative domain model, state machines, transition authority, invariants, domain events, and persistence boundaries that every later subsystem must obey.
 
+**Design review baseline:** [Core State Machines](../../design-docs/state-machines.md) and [ADR-0005](../../adr/0005-core-state-machine-semantics.md) are proposed for human review before implementation. They do not constitute acceptance of this plan.
+
+**Human review correction:** Stage 1 core objects are limited to Objective, Task, Run, Outcome, Evaluation and Effect. TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9 (Planner); a proposal is planning input and never directly executable. The diagram below shows later-system context, not additional Stage 1 scope.
+
 ---
 
 ## 1. Objective
@@ -93,9 +97,10 @@ Implementation MUST comply with, in descending authority:
 2. `docs/core-beliefs/*`
 3. accepted ADRs
 4. `ARCHITECTURE.md`
-5. this Exec Plan
-6. individual implementation Issues
-7. individual Codex prompts
+5. approved design documents
+6. this Exec Plan
+7. individual implementation Issues
+8. individual Codex prompts
 
 A lower-level artifact MUST NOT override a higher-level rule.
 
@@ -129,6 +134,8 @@ At minimum:
 * relationship references;
 * completion policy references;
 * provenance metadata;
+* Evaluation conflict-set membership/correlation and arbitration references;
+* Effect observation provenance and separate authorization/governance findings;
 * override metadata;
 * immutable domain event representation.
 
@@ -177,6 +184,7 @@ The following MUST NOT be implemented during Stage 1:
 * any concrete `AgentDriver`;
 * Hermes/OpenClaw/Grok integration;
 * Planner implementation;
+* `TaskProposal` representation, lifecycle and governance implementation (Stage 9);
 * `TaskProposal` generation;
 * Agent Router;
 * model routing;
@@ -187,6 +195,7 @@ The following MUST NOT be implemented during Stage 1:
 * real Evaluator pipeline;
 * LLM judge;
 * Effect execution;
+* real incident-ingestion or reconciliation runtime (only domain records and transition guards belong to Stage 1);
 * Secret Broker;
 * network policy enforcement;
 * Checkpoint implementation;
@@ -373,7 +382,7 @@ Execution is active.
 Execution activity has stopped and one or more candidate Outcomes are awaiting verification.
 
 **RETRYING**
-The same execution strategy remains valid and another attempt is being prepared or initiated.
+The same execution strategy and attempt remain valid, and continuation of an interrupted Run is being prepared. A distinct execution attempt requires a new Run identity.
 
 **REASSIGNED**
 The current execution profile is no longer suitable and responsibility has been transferred to another execution profile or human.
@@ -469,7 +478,7 @@ PENDING
 RUNNING
 COMPLETED
 CONFLICTED
-OVERRIDDEN
+ARBITRATED
 INVALID
 ```
 
@@ -487,10 +496,14 @@ The evaluator produced a valid recorded verdict.
 **CONFLICTED**
 Material disagreement exists between relevant evaluation evidence or evaluators.
 
-**OVERRIDDEN**
-An authorized arbitration decision superseded the effective use of this Evaluation.
+An explicit conflict set records member IDs/versions, affected scope, evidence and correlation. Every participating Evaluation whose effective use is affected by unresolved disagreement MUST be projected as CONFLICTED, preserving all original content. Membership, newly affected projections and per-member events are version-checked and committed consistently; existing CONFLICTED members receive appended membership records without self-transitions.
 
-The original record MUST remain intact.
+**ARBITRATED**
+An authorized arbitration decision established the effective disposition of this Evaluation. Record arbitration_disposition separately, such as UPHELD, MODIFIED or REVERSED, together with the effective judgment and original Evaluation reference. An upheld verdict is ARBITRATED without implying an override; dispositions are metadata, not additional states.
+
+The original record MUST remain intact. Effective lifecycle status is derived from appended lifecycle and arbitration records; recorded evidence, verdict, and provenance are not edited in place.
+
+Conflict arbitration references the set/version and all affected members with their dispositions. A member cannot resume effective use while another applicable conflict remains unresolved. Invalidating a defective member preserves its membership history and does not silently resolve the remaining members.
 
 **INVALID**
 The Evaluation itself is unusable because of corrupted evidence, invalid methodology, verifier failure, or other provenance defect.
@@ -523,7 +536,7 @@ COMMITTED
 ROLLED_BACK
 COMPENSATING
 COMPENSATED
-UNRESOLVED
+QUARANTINED
 ```
 
 ### Semantics
@@ -538,7 +551,7 @@ The expected effect has been tested or prepared without committing real-world mu
 Required validation has passed and the Effect is waiting for commit authorization or execution.
 
 **COMMITTED**
-The external mutation was actually executed.
+The external mutation is independently confirmed to have occurred, regardless of whether it was authorized. Authorization/policy violations and unknown authorization are separately recorded governance/safety findings, not reasons to suppress occurrence or leave it uncertain.
 
 **ROLLED_BACK**
 A genuinely reversible Effect was restored to its prior state.
@@ -551,8 +564,16 @@ The compensating action completed.
 
 This MUST NOT be represented as if the original Effect never occurred.
 
-**UNRESOLVED**
-The Effect cannot currently be safely rolled back or compensated.
+**QUARANTINED**
+The Effect has left the normal automatic execution path because of uncertain occurrence, incident handling, unsafe remediation state, rollback/compensation uncertainty, or another condition requiring controlled reconciliation. Entry context and evidence MUST be retained, and reconciliation MUST prevent duplicate mutation before retry. Occurrence, incident and authorization truth are separately appended facts/metadata, not inferred from this state.
+
+A disproved suspicion may remain QUARANTINED with occurrence_status=DISPROVED and incident_status=CLOSED, explicitly recording known non-occurrence and incident closure. No execution eligibility or additional lifecycle state follows from these metadata values.
+
+### Observation and Execution Boundary
+
+The Effect Controller may record independently confirmed or suspected unregistered occurrences through observation-only NONE -> COMMITTED or NONE -> QUARANTINED creation. Existing PLANNED/SIMULATED records have the corresponding observation-only edges; PENDING_COMMIT/QUARANTINED -> COMMITTED also records facts without requiring prior execution authorization to exist. Every observation requires scoped recording authority, external identity, evidence/provenance, deduplication and separately recorded governance findings. It emits EffectCommitted or EffectQuarantined with the actual prior state; creation does not fabricate a prior planning event.
+
+Observation never dispatches a mutation or grants retroactive permission. Normal execution still requires Prepare–Verify–Authorize–Commit, evaluator/committer separation and explicit human authorization before irreversible action. A known unauthorized occurrence is COMMITTED even while governance investigation remains open. A suspected occurrence later disproved retains a non-occurrence finding and cannot become executable without separately governed intent, verified Task attribution and all preparation/authorization guards.
 
 ---
 
@@ -586,6 +607,8 @@ Outcome  → exactly one originating Run
 Evaluation targets MUST be explicit.
 
 Effect provenance MUST be explicit.
+
+Planned Effects require one accountable Task; an optional originating Run must belong to it. Incident observations may temporarily lack a verified Task/Run association, with external identity, observation evidence and an explicit unlinked reason recorded instead. Verified associations are appended later; historical unknown attribution must not be overwritten or replaced by invented ownership. Unlinked observation records confer no execution eligibility.
 
 No relationship may depend only on free-form text.
 
@@ -704,6 +727,8 @@ Worker MUST NOT directly cause authoritative Effect state transitions through th
 
 Actual commit authority belongs to an Effect Controller or explicitly authorized human/system boundary.
 
+Effect Controller observation authority records confirmed/suspected reality separately from execution authority. Missing prior authorization cannot prevent factual recording, and recording an unauthorized mutation does not authorize its execution. Workers/evaluators submit evidence only; they cannot mutate authoritative Effect state.
+
 ---
 
 # 16. Constitutional Invariants
@@ -730,7 +755,7 @@ The actor responsible for execution MUST NOT be the sole authority validating th
 
 ## INV-004 — Effect Commit and Effect Verification Separation
 
-The component committing an Effect MUST NOT be the sole verifier of that Effect.
+An evaluator MUST NOT commit the Effect it evaluates, even when other verifiers also exist. Commit and verification authority must remain separate for that Effect.
 
 ---
 
@@ -1007,7 +1032,7 @@ EvaluationRequested
 EvaluationStarted
 EvaluationCompleted
 EvaluationConflicted
-EvaluationOverridden
+EvaluationArbitrated
 EvaluationInvalidated
 
 EffectPlanned
@@ -1017,7 +1042,7 @@ EffectCommitted
 EffectRolledBack
 EffectCompensationStarted
 EffectCompensated
-EffectUnresolved
+EffectQuarantined
 
 PolicyOverrideRecorded
 BreakGlassRecorded
@@ -1167,7 +1192,7 @@ Examples that MUST be structurally protected:
 ```text
 Run requires Task
 Outcome requires originating Run
-Task requires Primary Objective before READY
+Task requires exactly one Primary Objective, including in DRAFT
 entity IDs are unique
 ```
 
@@ -1318,6 +1343,9 @@ Acceptance:
 
 * original Evaluation is preserved after override;
 * override creates a separate auditable record;
+* a material conflict projects every affected participant as CONFLICTED with an explicit set/correlation, preserving original content;
+* resolving one member or set does not silently release other unresolved conflicts;
+* UPHELD, MODIFIED and REVERSED arbitration dispositions are recorded separately from ARBITRATED state, without editing the original Evaluation;
 * physical delete is unavailable through normal repository API.
 
 ---
@@ -1333,9 +1361,13 @@ Deliver:
 
 Acceptance:
 
-* `COMMITTED → COMPENSATED` cannot erase original commit history;
+* the `COMMITTED → COMPENSATING → COMPENSATED` path cannot erase original commit history;
 * `COMPENSATED` and `ROLLED_BACK` remain distinct;
 * Worker cannot authoritatively commit Effect state.
+
+Domain fixtures must also demonstrate that confirmed unauthorized occurrences are COMMITTED with separate governance findings, unregistered confirmed/suspected incidents are recordable without fabricated planning/ownership history, and observation transitions cannot dispatch actions or bypass normal execution authorization.
+
+A disproved suspicion may remain QUARANTINED with occurrence_status=DISPROVED and incident_status=CLOSED; fixtures must not infer continuing unknown occurrence from the lifecycle state alone.
 
 No real external actions are executed in Stage 1.
 
@@ -1531,6 +1563,8 @@ Codex MUST NOT treat this Exec Plan as permission to implement the entire Stage 
 # 34. Proposed Issue Decomposition
 
 Stage 1 SHOULD initially be decomposed into bounded Issues approximately as follows:
+
+The list below is the original provisional decomposition, not the current GitHub numbering. Actual [Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) is the documentation-only state-machine review, whose output requires human review before implementation begins. The provisional bootstrap item below does not authorize code in that review Issue.
 
 ```text
 #1  Bootstrap Python project and test tooling

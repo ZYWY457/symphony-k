@@ -1,0 +1,43 @@
+日常更新文件
+git add .
+git commit -m "这里写你的修改说明"
+git push
+说明：
+git add .：把所有修改的文件加入待提交列表
+git commit -m "..."：提交到本地仓库，引号里写修改说明
+git push：推送到 GitHub
+
+在其他电脑上使用这个仓库
+首次克隆（下载）仓库:
+# 1. 进入你想存放代码的目录
+cd D:\你的\路径
+# 2. 克隆仓库
+git clone https://github.com/ZYWY457/symphony-k.git
+# 3. 进入仓库目录
+cd symphony-k
+
+后续使用:
+# 修改文件后
+git add .
+git commit -m "修改说明"
+git push
+# 如果别人也修改了代码，先拉取最新代码
+git pull
+
+常用配置命令
+查看当前状态:
+# 查看哪些文件被修改了
+git status
+# 查看最近的提交记录
+git log --oneline
+# 查看远程仓库地址
+git remote -v
+
+撤销操作:
+# 撤销所有未提交的修改（危险！会丢失未保存的改动）
+git checkout .
+# 从暂存区移除文件（但保留修改）
+git reset HEAD .
+# 撤销上一次的提交（但保留修改）
+git reset --soft HEAD~1
+

@@ -117,7 +117,9 @@ Deterministic evidence may carry more weight than multiple correlated LLM judgme
 
 ## Conflict and Arbitration
 
-Conflicting Evaluations produce a `CONFLICTED` state or equivalent arbitration requirement.
+Materially conflicting Evaluations MUST be linked by a persisted conflict-set identity and correlation, with member IDs/versions, affected target/acceptance scope, disagreement and evidence references. Every participant whose effective use is affected by the unresolved conflict MUST be projected as `CONFLICTED`, not only the Evaluation that discovered the disagreement. Original content and evidence remain intact.
+
+Record membership, affected projections and per-member lifecycle events consistently with version checks; acceptance must not read a partly updated conflict set. Already-CONFLICTED members receive appended membership records without self-transitions. A PENDING Evaluation with no result is not a conflicting verdict; INVALID/ARBITRATED historical content may be referenced as evidence but is not reinstated as an effective verdict.
 
 Resolution may include:
 
@@ -128,6 +130,8 @@ Resolution may include:
 - human arbitration.
 
 Overrides are appended, never silently rewritten.
+
+Arbitration references the conflict-set version, all affected members and the disposition/effective judgment for each. A member remains CONFLICTED while any applicable conflict set is unresolved; resolving one member or set cannot silently unblock another. Fully addressed members may become ARBITRATED by appended arbitration, or INVALID on proven defect, preserving original records. ARBITRATED does not imply a changed verdict: separately record arbitration_disposition (for example UPHELD, MODIFIED or REVERSED) and the effective judgment for each member. These are metadata values, not lifecycle states. Further challenges to an effective arbitration decision use new linked records, not edits to the old judgment.
 
 ## Evidence Package
 

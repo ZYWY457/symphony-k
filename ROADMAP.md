@@ -26,7 +26,6 @@ Exit criteria:
 Implement:
 
 - Objective,
-- TaskProposal,
 - Task,
 - Run,
 - Outcome,
@@ -36,6 +35,8 @@ Implement:
 - persistence abstraction,
 - audit event model,
 - concurrency/version semantics.
+
+The Stage 1 core domain objects are limited to Objective, Task, Run, Outcome, Evaluation and Effect. TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9, not Stage 1.
 
 Exit criteria:
 
@@ -181,6 +182,7 @@ Exit criteria:
 
 Implement:
 
+- TaskProposal representation and lifecycle as non-executable planning input,
 - Objective-to-TaskProposal planning,
 - bounded DAG generation,
 - planning depth limits,
@@ -192,6 +194,8 @@ Exit criteria:
 
 - Planner cannot directly launch arbitrary work,
 - generated proposals pass through governance before becoming Tasks.
+
+A TaskProposal is never directly executable; governance creates separate executable Task work.
 
 ## Stage 10 — Learning and Reputation
 

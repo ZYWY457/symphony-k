@@ -79,12 +79,16 @@ States:
 - `RUNNING`
 - `COMPLETED`
 - `CONFLICTED`
-- `OVERRIDDEN`
+- `ARBITRATED`
 - `INVALID`
 
 Evaluation records are append-only in historical meaning.
 
 An override MUST be represented by an additional arbitration or override record referencing the prior Evaluation. The previous Evaluation is not rewritten or deleted.
+
+`ARBITRATED` means arbitration established the effective disposition; it does not imply the original verdict was changed. The appended arbitration record MUST separately record arbitration_disposition, such as UPHELD, MODIFIED or REVERSED, and the effective judgment. Original content and evidence remain immutable. Dispositions are metadata, not additional lifecycle states.
+
+Material conflicts MUST record an explicit conflict set, member/version references, affected scope, evidence and correlation. Every participating Evaluation whose effective use is affected MUST be projected as `CONFLICTED` while the conflict is unresolved. Membership, projections and per-member transition events must be consistent and version-checked. Already-CONFLICTED members receive appended membership records, not duplicate lifecycle transitions. Arbitration remains append-only and must account for all affected members and any other unresolved conflict sets.
 
 ## 6. Effect State
 
@@ -97,11 +101,17 @@ States:
 - `ROLLED_BACK`
 - `COMPENSATING`
 - `COMPENSATED`
-- `UNRESOLVED`
+- `QUARANTINED`
 
 Effect commit authority is separate from worker execution and validation authority.
 
+`COMMITTED` records confirmed external occurrence, not authorization. An independently confirmed unauthorized mutation MUST be recordable as COMMITTED with separate governance/safety findings. Scoped Effect Controller observation authority may register previously unregistered confirmed/suspected occurrences as COMMITTED/QUARANTINED, and reconcile existing PLANNED, SIMULATED, PENDING_COMMIT or QUARANTINED records. Observation transitions MUST NOT execute an external action or grant authorization; the normal execution path and irreversible-action human authorization remain mandatory.
+
 An Effect that occurred in the external world remains historically real even if later compensated.
+
+`QUARANTINED` means the Effect has left the normal automatic execution path because of uncertain occurrence, incident handling, unsafe remediation, rollback/compensation uncertainty, or another condition requiring controlled reconciliation. Preserve entry context and evidence; occurrence, incident and authorization truth are separately appended facts/metadata, not inferred from quarantine. Reconciliation MUST precede any retry that could duplicate an external mutation.
+
+A disproved suspected occurrence may remain QUARANTINED with occurrence_status=DISPROVED and incident_status=CLOSED. This explicitly records known non-occurrence and incident closure without falsely implying that occurrence is still unknown. These fields and separate authorization findings confer no execution eligibility and introduce no additional lifecycle states.
 
 ## 7. Ownership and Mapping
 

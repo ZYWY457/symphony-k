@@ -103,13 +103,23 @@ An Outcome is not truth and is not equivalent to Objective satisfaction. It rema
 
 An immutable validation record concerning a Run, Outcome, Effect, or related evidence.
 
-An Evaluation records evidence, methods, judgments, conflicts, and provenance. It is not itself an unquestionable fact.
+An Evaluation records evidence, methods, judgments, conflicts, and provenance. It is not itself an unquestionable fact. Its recorded content remains immutable; effective lifecycle status is a projection of appended lifecycle and arbitration records, never an in-place rewrite of a prior verdict.
+
+Material disagreement is recorded as an explicit conflict set with member/version references, affected scope and evidence. Every participating Evaluation whose effective use is affected by an unresolved conflict is projected as `CONFLICTED`; membership and projections must be consistent. Arbitration appends correlated decisions without erasing original content or releasing unrelated conflicts.
+
+`ARBITRATED` means an arbitration decision governs effective use. The appended record separately states arbitration_disposition (for example UPHELD, MODIFIED or REVERSED) and the effective judgment; an upheld original verdict does not imply an override.
 
 ### Effect
 
 A planned or executed change to the external world.
 
 Examples include sending a message, changing a remote system, publishing content, charging money, deleting a cloud resource, deploying to production, or committing another externally visible side effect.
+
+`COMMITTED` denotes independently confirmed occurrence, regardless of authorization. Governance/safety findings are separate records. The Effect Controller may register independently observed incidents directly as COMMITTED, or as QUARANTINED when occurrence is uncertain, including previously unregistered Effects. This recording authority cannot dispatch external actions or retroactively authorize them. Normal execution retains the Prepare–Verify–Authorize–Commit path and mandatory human authorization for irreversible action.
+
+Planned Effects require Task ownership; incident observations may be temporarily unlinked to a Task/Run when attribution is unknown. External identity, evidence, observation provenance and the unlinked reason remain explicit; verified associations are appended later. Missing attribution never justifies fabricating provenance or suppressing a fact, and incident registration creates no execution eligibility.
+
+`QUARANTINED` means the Effect has left the normal automatic execution path for controlled reconciliation, including uncertain occurrence, incident handling or unsafe/uncertain remediation. Occurrence, incident and authorization truth are separate appended facts/metadata. A disproved suspicion may remain QUARANTINED with occurrence_status=DISPROVED and incident_status=CLOSED; that does not imply continuing factual uncertainty or authorize execution.
 
 ## 3. Relationships
 
@@ -140,7 +150,7 @@ Objective completion is controlled by an `ObjectiveCompletionPolicy` which may r
 - absence of unresolved critical risks,
 - explicit human acceptance.
 
-Progress percentages are advisory only unless explicitly defined as authoritative by policy.
+Progress percentages are advisory only. Satisfaction requires explicit Completion Policy evaluation and acceptance authority, never Task completion percentage alone.
 
 ## 4. Agent Boundary
 
@@ -179,6 +189,8 @@ Planner output is a `TaskProposal`.
 A TaskProposal is not executable until it passes the applicable governance path, including policy, budget, risk, permission, and other required checks.
 
 The Planner MUST NOT obtain unlimited authority to create work, expand an Objective, allocate unlimited budget, or launch workers directly.
+
+TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9 (Planner). Stage 1 is limited to Objective, Task, Run, Outcome, Evaluation and Effect. A proposal is never directly executable; governance creates separate Task work.
 
 ## 6. Execution Profiles
 
