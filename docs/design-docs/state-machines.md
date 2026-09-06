@@ -1,18 +1,20 @@
 # Core Domain State Machines
 
-**Version:** 0.2 review baseline, 2026-09-06; revised following human architecture review
+**Version:** 0.2 Stage 1 design baseline, accepted 2026-09-06
 
 Final terminology cleanup preserves this baseline's 43 states and 99-edge topology. Evaluation arbitration uses ARBITRATED / EvaluationArbitrated; Effect quarantine uses QUARANTINED / EffectQuarantined.
 
-**Status:** Design review complete; proposed freeze awaiting human review before implementation.
+**Status:** Accepted by explicit human architecture review.
 
-**Scope:** [Stage 1 / Issue #1](https://github.com/ZYWY457/symphony-k/issues/1), documentation only. The [Stage 1 Exec Plan](../exec-plans/active/stage-01-domain-kernel.md) remains **Draft**. This document does not accept that plan.
+**Scope:** [Stage 1 / Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) produced this design specification without implementation. The human decision **"Human Architecture Review: ACCEPTED"** now accepts this baseline, [ADR-0005](../adr/0005-core-state-machine-semantics.md), and the [Stage 1 Exec Plan](../exec-plans/active/stage-01-domain-kernel.md). Implementation is authorized only within that plan and the accepted repository hierarchy. Plan acceptance is not a declaration that Stage 1 implementation is complete.
+
+**Approved baseline:** 43 core states; 99 legal transition edges; ARBITRATED Evaluation and QUARANTINED Effect semantics; Effect occurrence separate from authorization/governance truth; Evaluation conflict-set semantics; TaskProposal deferred to Stage 9; no constitutional amendment required.
 
 ## 1. Governing Sources and Review Boundary
 
 Read in the hierarchy established by [CONSTITUTION.md](../../CONSTITUTION.md) section 3: Constitution v0.1; all seven [core-belief documents](../README.md); accepted [ADRs 0001–0004](../adr/README.md); [ARCHITECTURE.md](../../ARCHITECTURE.md); approved designs; Exec Plan; Issue. [AGENTS.md](../../AGENTS.md), [VISION.md](../../VISION.md), and [ROADMAP.md](../../ROADMAP.md) provide navigation, intent, and staging context.
 
-The architectural interpretations below are recorded in [ADR-0005](../adr/0005-core-state-machine-semantics.md), **Proposed**, not an accepted override of higher-level documents. No constitutional change is needed. This review specifies domain behavior without implementing entities, storage, a transition engine, verification, recovery, Effects, agents, or UI.
+The architectural interpretations below are recorded in accepted [ADR-0005](../adr/0005-core-state-machine-semantics.md) and remain subordinate to higher-level documents. No constitutional change is needed. This specification defines domain behavior; acceptance authorizes bounded Stage 1 implementation, not later-stage execution, verification, recovery, Effects, agents or UI runtimes.
 
 ## 2. Rules Shared by Every Table
 
@@ -294,7 +296,7 @@ These are design-level checks and future test cases, not claims that a runtime t
 | Append-only Evaluation history, distinct Effect remedies, consistent ownership | Sections 7–9. |
 | No unresolved contradiction with Constitution | Detected Conflicts below identifies lower-level conflicts and their constitutional resolutions; Constitution is unchanged. |
 | Complete requested document, findings and minimal consistency patches | This document, ADR-0005 and the referenced consistency changes; no production or later-stage implementation. |
-| Human gate preserved | Exec Plan remains Draft; design and ADR await human review before implementation. |
+| Human gate satisfied | Explicit human architecture acceptance on 2026-09-06 accepts the design, ADR and Exec Plan; implementation remains bounded by Stage 1 scope. |
 
 ### Verification performed for this review
 
@@ -319,11 +321,11 @@ The earlier review's topology changes below use the current terminology. The fin
 
 ## Open Questions
 
-1. **Human design approval:** ADR-0005 and this baseline require human review, particularly same-attempt RETRYING, terminal REASSIGNED, Evaluation projections, and context-sensitive QUARANTINED. This is an approval gate, not an unresolved constitutional exception.
+1. **Human design approval resolved:** Explicit human architecture review on 2026-09-06 accepted ADR-0005, this baseline and the Stage 1 Exec Plan. No design approval remains pending for this baseline; Stage 1 completion and exit review remain future gates.
 2. **Resolved stage scope:** Human review assigned all TaskProposal representation/lifecycle/generation/governance implementation to Stage 9. There is no remaining Stage 1 scope discrepancy.
 3. **Later operational detail:** Commit dispatch/reconciliation, compensation chains, verification cancellation/timeouts, and trusted checkpoint representations need later-stage design. Existing state rules conservatively deny unsafe transitions in the meantime. Whether operational experience warrants extra Effect process states needs a separate ADR; no new state is required to express this baseline.
 
-No unresolved constitutional contradiction remains in the proposed matrices. Approval of these design choices and acceptance of Stage 1 remain separate human decisions.
+No unresolved constitutional contradiction remains in the accepted matrices. The design and Exec Plan are accepted; Stage 1 implementation must still satisfy the plan's completion criteria and exit review.
 
 ## Detected Conflicts
 
@@ -343,7 +345,7 @@ No unresolved constitutional contradiction remains in the proposed matrices. App
 
 ## Recommended Changes
 
-- Review and approve or revise ADR-0005 and these tables before implementation; retain the Stage 1 human acceptance gate.
+- Implement assigned Stage 1 work against accepted ADR-0005 and these tables, preserving the plan's scope, completion criteria and exit review.
 - Keep the minimal accompanying Architecture, State and Authority, and Exec Plan consistency corrections. No Constitution edit or weakening of a higher-level rule is proposed.
 - In later assigned kernel Issues, expand grouped edges into deterministic legal-edge tests, test representative denied edges and identity-based authority attacks, and verify atomic audit/version behavior. The tables are the review oracle, not evidence of implemented enforcement.
 - Keep TaskProposal in Stage 9 as directed by human review; defer runtime mechanics and additional state proposals to the relevant later-stage ADRs and Exec Plans.

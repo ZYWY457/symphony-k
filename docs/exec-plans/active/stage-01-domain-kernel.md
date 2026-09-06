@@ -1,11 +1,13 @@
 # Stage 01 — Domain Kernel
 
-**Status:** Draft
+**Status:** Accepted
 **Stage:** 01
 **Constitution Baseline:** `constitution-v0.1`
 **Primary Goal:** Establish the authoritative domain model, state machines, transition authority, invariants, domain events, and persistence boundaries that every later subsystem must obey.
 
-**Design review baseline:** [Core State Machines](../../design-docs/state-machines.md) and [ADR-0005](../../adr/0005-core-state-machine-semantics.md) are proposed for human review before implementation. They do not constitute acceptance of this plan.
+**Accepted design baseline:** [Core State Machines v0.2](../../design-docs/state-machines.md) and [ADR-0005](../../adr/0005-core-state-machine-semantics.md).
+
+**Human acceptance:** 2026-09-06, explicit decision **"Human Architecture Review: ACCEPTED"**. Approved: 43 core states, 99 legal transition edges, ARBITRATED Evaluation semantics, QUARANTINED Effect semantics, Effect occurrence separate from authorization/governance truth, Evaluation conflict sets, TaskProposal deferred to Stage 9, and no constitutional amendment. This authorizes Stage 1 implementation under the accepted repository hierarchy only. It neither authorizes work outside this plan nor declares its implementation or exit criteria complete.
 
 **Human review correction:** Stage 1 core objects are limited to Objective, Task, Run, Outcome, Evaluation and Effect. TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9 (Planner); a proposal is planning input and never directly executable. The diagram below shows later-system context, not additional Stage 1 scope.
 
@@ -1564,7 +1566,7 @@ Codex MUST NOT treat this Exec Plan as permission to implement the entire Stage 
 
 Stage 1 SHOULD initially be decomposed into bounded Issues approximately as follows:
 
-The list below is the original provisional decomposition, not the current GitHub numbering. Actual [Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) is the documentation-only state-machine review, whose output requires human review before implementation begins. The provisional bootstrap item below does not authorize code in that review Issue.
+The list below is the original provisional decomposition, not the current GitHub numbering. Actual [Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) is the documentation-only state-machine review, whose output was accepted by human architecture review on 2026-09-06. The provisional bootstrap item below does not authorize code in that review Issue; implementation proceeds as bounded Stage 1 work under this accepted plan.
 
 ```text
 #1  Bootstrap Python project and test tooling

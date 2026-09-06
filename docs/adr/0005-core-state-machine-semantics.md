@@ -2,17 +2,19 @@
 
 ## Status
 
-Proposed for human review, 2026-09-06. No implementation or Stage 1 acceptance is authorized by this record.
+Accepted by explicit human architecture review, 2026-09-06.
 
-Revised following human architecture review: occurrence is independent of authorization; TaskProposal is assigned to Stage 9; material Evaluation conflicts are recorded as correlated sets. Status remains Proposed.
+Revised following human architecture review: occurrence is independent of authorization; TaskProposal is assigned to Stage 9; material Evaluation conflicts are recorded as correlated sets.
+
+Approval record: the human decision **"Human Architecture Review: ACCEPTED"** approves the v0.2 state-machine baseline with 43 core states, 99 legal transition edges, ARBITRATED Evaluation semantics, QUARANTINED Effect semantics, separate occurrence/authorization truth, Evaluation conflict sets, and TaskProposal deferred to Stage 9. No constitutional amendment is required. This accepts the design and authorizes implementation only within the accepted Stage 1 Exec Plan and repository hierarchy; it does not declare Stage 1 implementation complete.
 
 ## Context
 
-[Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) requests a design review before implementation. The core beliefs enumerate states but do not enumerate edges. The Stage 1 plan leaves attempt identity, terminal behavior, Evaluation immutability, and uncertain Effect commits ambiguous. These affect state ownership and history semantics, so this ADR records the proposed interpretation before implementation.
+[Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) requested a design review before implementation. The core beliefs enumerate states but do not enumerate edges. The initial Stage 1 plan left attempt identity, terminal behavior, Evaluation immutability, and uncertain Effect commits ambiguous. These affect state ownership and history semantics, so this ADR records the reviewed and accepted interpretation before implementation.
 
 ## Decision
 
-Use the closed transition tables in [state-machines.md](../design-docs/state-machines.md) as the proposed v0.2 state-machine review baseline, subject to human review and higher-level documents.
+Use the closed transition tables in [state-machines.md](../design-docs/state-machines.md) as the accepted v0.2 Stage 1 design baseline, subject to higher-level documents.
 
 1. Retain the six entities and all 43 existing states. Unlisted transitions are forbidden; scoped authority, guards, concurrency checks, and atomic audit append are mandatory.
 2. `RETRYING` prepares continuation of the same interrupted Run with its identity and strategy intact. A new execution attempt, including Rewind that discards an execution path, gets a new Run. `REASSIGNED` closes the old Run once a successor or human handoff is durably recorded. Recovery decisions are applied by scheduler/run-controller authority.
@@ -33,7 +35,7 @@ Use the closed transition tables in [state-machines.md](../design-docs/state-mac
 - Related-entity decisions require a consistent view and durable links. External execution cannot be made atomic merely by a database transaction.
 - Conflict-set membership, affected projections and per-member lifecycle events must be consistent and version-checked. Observation ingestion must deduplicate external occurrences and retain violations even when occurrence is confirmed.
 - Pre-commit cancellation and verification timeout use recorded decisions and existing states for this baseline. No new state is silently invented.
-- Human review must approve the design before implementation. No constitutional amendment is proposed or required by these choices.
+- Human architecture review has approved this design and the Stage 1 Exec Plan. Implementation remains bounded by that plan; Stage 1 completion criteria and its exit review still apply. No constitutional amendment is required by these choices.
 
 ## Alternatives Considered
 
