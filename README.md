@@ -2,8 +2,8 @@
 
 An outcome-oriented AI work orchestrator. See [AGENTS.md](AGENTS.md) for the
 repository documentation hierarchy and [ARCHITECTURE.md](ARCHITECTURE.md) for
-system boundaries. The current implementation is the Stage 1 M1 package and
-tooling bootstrap; domain behavior is not implemented yet.
+system boundaries. The current implementation includes Stage 1 M1 tooling and
+M2 shared value types; lifecycle entities and behavior are not implemented yet.
 
 ## Development
 
@@ -31,5 +31,9 @@ Use `uv run ruff format .` to apply formatting. Tool configuration lives in
 table. The package has no runtime dependencies and uses the standard Hatchling
 build backend. uv is a development tool, not a runtime dependency.
 
-Package source lives in `src/symphony_k/`; `domain/` is the future Domain Kernel
-boundary. Tests currently verify only that both packages import successfully.
+Package source lives in `src/symphony_k/`. The `symphony_k.domain` public API
+provides typed IDs, actor identity/category, UTC timestamps, versions, transition
+reasons and domain errors. Representation choices and scope are documented in
+the [M2 plan](docs/exec-plans/completed/stage-01-m2-shared-types-v1.md).
+Tests cover imports and value semantics; `tests/typing_examples.py` also checks
+nominal ID separation under strict mypy. No runtime dependency is required.
