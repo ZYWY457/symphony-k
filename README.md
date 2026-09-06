@@ -4,6 +4,7 @@ An outcome-oriented AI work orchestrator. See [AGENTS.md](AGENTS.md) for the
 repository documentation hierarchy and [ARCHITECTURE.md](ARCHITECTURE.md) for
 system boundaries. The current implementation includes Stage 1 M1 tooling,
 M2 shared value types, and M3 Objective/Task snapshots and structural lifecycle topology.
+M4A adds Run snapshots, execution provenance and the structural Run graph.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -54,3 +55,11 @@ no Objective objects and never propagates state. `can_task_transition` only
 checks the sixteen structural edges; `TASK_CREATION_STATE` is DRAFT. Both entities
 use `CompletionPolicyRef` from `domain/completion.py`, retaining the existing
 public import. See the [M3B plan](docs/exec-plans/completed/stage-01-m3b-task-v1.md).
+
+`RunId` identifies one concrete execution attempt. `Run` retains one `TaskId`,
+an opaque `ExecutionProfileRef`, explicit state/version and optional predecessor
+`RunId` provenance. `can_run_transition` checks eighteen structural edges;
+`RUN_CREATION_STATE` is PENDING. Retry continues the same Run; a distinct attempt
+uses a new RunId. Completion does not accept a result or complete a Task.
+There is no Outcome or recovery execution, and Worker authority enforcement
+remains deferred to M7. See the [M4A plan](docs/exec-plans/completed/stage-01-m4a-run-v1.md).

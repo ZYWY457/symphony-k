@@ -15,15 +15,19 @@ from symphony_k.domain import (
     EffectId,
     EntityVersion,
     EvaluationId,
+    ExecutionProfileRef,
     Objective,
     ObjectiveId,
     ObjectiveState,
     OutcomeId,
+    Run,
     RunId,
+    RunState,
     Task,
     TaskId,
     TaskState,
     can_objective_transition,
+    can_run_transition,
     can_task_transition,
 )
 
@@ -110,3 +114,49 @@ if TYPE_CHECKING:
     )
     can_task_transition(ObjectiveState.DRAFT, TaskState.READY)  # type: ignore[arg-type]
     can_task_transition("DRAFT", TaskState.READY)  # type: ignore[arg-type]
+
+    profile = ExecutionProfileRef("profile", "revision")
+    run = Run(RunId(value), TaskId(value), RunState.PENDING, EntityVersion(7), profile)
+    assert_type(run, Run)
+    assert_type(run.task_id, TaskId)
+    assert_type(run.predecessor_run_id, RunId | None)
+
+    def requires_run_id(identity: RunId) -> RunId:
+        return identity
+
+    requires_run_id(ObjectiveId(value))  # type: ignore[arg-type]
+    requires_run_id(TaskId(value))  # type: ignore[arg-type]
+    requires_run_id(value)  # type: ignore[arg-type]
+    requires_run_id(str(value))  # type: ignore[arg-type]
+    Run(
+        TaskId(value),  # type: ignore[arg-type]
+        TaskId(value),
+        RunState.PENDING,
+        EntityVersion(7),
+        profile,
+    )
+    task_snapshot = Task(
+        TaskId(value),
+        TaskState.DRAFT,
+        EntityVersion(7),
+        "Work",
+        ObjectiveId(value),
+        policy,
+    )
+    Run(
+        RunId(value),
+        task_snapshot,  # type: ignore[arg-type]
+        RunState.PENDING,
+        EntityVersion(7),
+        profile,
+    )
+    Run(
+        RunId(value),
+        TaskId(value),
+        RunState.PENDING,
+        EntityVersion(7),
+        profile,
+        TaskId(value),  # type: ignore[arg-type]
+    )
+    can_run_transition(TaskState.READY, RunState.RUNNING)  # type: ignore[arg-type]
+    can_run_transition("PENDING", RunState.RUNNING)  # type: ignore[arg-type]
