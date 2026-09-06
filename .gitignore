@@ -1,0 +1,26 @@
+# Local environments and Python build artifacts
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Tool caches and coverage output
+.uv-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Local editor, OS and environment files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.env
+.env.local
