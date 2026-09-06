@@ -40,6 +40,38 @@ Before making changes, read the documents relevant to the task:
 14. Planner output is a `TaskProposal`, not an executable `Task`.
 15. No new top-level domain concept or cross-cutting dependency may be added without an ADR.
 
+## Remote Repository Mutation Boundary
+
+Repository-local work and remote repository effects are separate authorities.
+
+Unless the current Issue or an explicit human instruction authorizes otherwise:
+
+* an agent MAY edit files within the approved Issue scope;
+* an agent MAY run local validation commands;
+* an agent MAY create a local git commit when requested;
+* an agent MUST NOT run `git push`;
+* an agent MUST NOT create, update, merge, or close a pull request;
+* an agent MUST NOT merge into `main`;
+* an agent MUST NOT create or delete remote branches or tags;
+* an agent MUST NOT publish releases;
+* an agent MUST NOT force-push or rewrite remote history;
+* an agent MUST NOT close or mutate GitHub Issues except when explicitly authorized.
+
+A successful local commit is not authorization for a remote mutation.
+
+If remote publication is not explicitly authorized, stop after the validated local commit and report its exact hash.
+
+If a remote mutation occurs, the final execution report MUST state:
+
+* the exact remote action performed;
+* repository and branch;
+* commit or object affected;
+* whether the action was explicitly authorized;
+* the resulting remote reference.
+
+Do not report a remote mutation as absent merely because it occurred after an earlier execution segment or after recovery from an interrupted session.
+
+
 ## Development Discipline
 
 For substantial changes:
