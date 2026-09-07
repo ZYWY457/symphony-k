@@ -4,6 +4,7 @@ Targeted ignores are negative assertions: strict mypy rejects an unused ignore
 if these invalid argument combinations ever become type-compatible.
 """
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, assert_type
 from uuid import UUID
 
@@ -13,10 +14,17 @@ from symphony_k.domain import (
     ActorType,
     ArtifactRef,
     CompletionPolicyRef,
+    ConflictSetVersion,
+    CorrelationId,
     EffectId,
     EntityVersion,
     Evaluation,
     EvaluationConfidence,
+    EvaluationConflictMemberRef,
+    EvaluationConflictScopeRef,
+    EvaluationConflictSetId,
+    EvaluationConflictSetRecord,
+    EvaluationConflictSetRef,
     EvaluationId,
     EvaluationMethodRef,
     EvaluationResult,
@@ -37,7 +45,9 @@ from symphony_k.domain import (
     Task,
     TaskId,
     TaskState,
+    Timestamp,
     can_evaluation_transition,
+    can_extend_evaluation_conflict_set,
     can_objective_transition,
     can_outcome_transition,
     can_run_transition,
@@ -55,8 +65,10 @@ if TYPE_CHECKING:
     assert_type(RunId.new(), RunId)
     assert_type(OutcomeId.new(), OutcomeId)
     assert_type(EvaluationId.new(), EvaluationId)
+    assert_type(EvaluationConflictSetId.new(), EvaluationConflictSetId)
     assert_type(EffectId.new(), EffectId)
     assert_type(ActorId.new(), ActorId)
+    assert_type(CorrelationId.new(), CorrelationId)
     assert_type(ObjectiveId.from_string(str(value)), ObjectiveId)
     assert_type(requires_objective(ObjectiveId(value)), ObjectiveId)
 
@@ -64,8 +76,10 @@ if TYPE_CHECKING:
     requires_objective(RunId(value))  # type: ignore[arg-type]
     requires_objective(OutcomeId(value))  # type: ignore[arg-type]
     requires_objective(EvaluationId(value))  # type: ignore[arg-type]
+    requires_objective(EvaluationConflictSetId(value))  # type: ignore[arg-type]
     requires_objective(EffectId(value))  # type: ignore[arg-type]
     requires_objective(ActorId(value))  # type: ignore[arg-type]
+    requires_objective(CorrelationId(value))  # type: ignore[arg-type]
     requires_objective(value)  # type: ignore[arg-type]
     requires_objective(str(value))  # type: ignore[arg-type]
     ActorIdentity(TaskId(value), ActorType.WORKER)  # type: ignore[arg-type]
@@ -269,3 +283,78 @@ if TYPE_CHECKING:
         artifact_only,  # type: ignore[arg-type]
     )
     can_evaluation_transition(OutcomeState.VALIDATING, EvaluationState.COMPLETED)  # type: ignore[arg-type]
+
+    def requires_conflict_set_id(
+        identity: EvaluationConflictSetId,
+    ) -> EvaluationConflictSetId:
+        return identity
+
+    def requires_correlation_id(identity: CorrelationId) -> CorrelationId:
+        return identity
+
+    def requires_conflict_version(version: ConflictSetVersion) -> ConflictSetVersion:
+        return version
+
+    conflict_set_id = EvaluationConflictSetId(value)
+    correlation_id = CorrelationId(value)
+    conflict_version = ConflictSetVersion(17)
+    assert_type(requires_conflict_set_id(conflict_set_id), EvaluationConflictSetId)
+    assert_type(requires_correlation_id(correlation_id), CorrelationId)
+    assert_type(requires_conflict_version(conflict_version), ConflictSetVersion)
+    requires_conflict_set_id(EvaluationId(value))  # type: ignore[arg-type]
+    requires_conflict_set_id(CorrelationId(value))  # type: ignore[arg-type]
+    requires_correlation_id(EvaluationConflictSetId(value))  # type: ignore[arg-type]
+    requires_correlation_id(EvaluationId(value))  # type: ignore[arg-type]
+    requires_conflict_version(EntityVersion(17))  # type: ignore[arg-type]
+
+    conflict_member = EvaluationConflictMemberRef(EvaluationId(value), EntityVersion(7))
+    conflict_scope = EvaluationConflictScopeRef("acceptance scope")
+    conflict_ref = EvaluationConflictSetRef(conflict_set_id, conflict_version)
+    assert_type(conflict_member.evaluation_id, EvaluationId)
+    assert_type(conflict_member.observed_version, EntityVersion)
+    assert_type(conflict_ref.version, ConflictSetVersion)
+    EvaluationConflictMemberRef(
+        EvaluationConflictSetId(value),  # type: ignore[arg-type]
+        EntityVersion(7),
+    )
+    EvaluationConflictMemberRef(
+        EvaluationId(value),
+        ConflictSetVersion(7),  # type: ignore[arg-type]
+    )
+    EvaluationConflictSetRef(
+        CorrelationId(value),  # type: ignore[arg-type]
+        conflict_version,
+    )
+    EvaluationConflictSetRef(
+        conflict_set_id,
+        EntityVersion(17),  # type: ignore[arg-type]
+    )
+
+    conflict_record = EvaluationConflictSetRecord(
+        conflict_set_id,
+        conflict_version,
+        None,
+        frozenset({conflict_member}),
+        conflict_scope,
+        "Material disagreement",
+        frozenset({EvidenceRef("opposing evidence")}),
+        designation,
+        Timestamp(datetime(2026, 9, 7, tzinfo=UTC)),
+        correlation_id,
+    )
+    assert_type(conflict_record.members, frozenset[EvaluationConflictMemberRef])
+    assert_type(
+        can_extend_evaluation_conflict_set(conflict_record, conflict_record), bool
+    )
+    EvaluationConflictSetRecord(
+        EvaluationId(value),  # type: ignore[arg-type]
+        conflict_version,
+        None,
+        frozenset({conflict_member}),
+        conflict_scope,
+        "Material disagreement",
+        frozenset({EvidenceRef("opposing evidence")}),
+        designation,
+        Timestamp(datetime(2026, 9, 7, tzinfo=UTC)),
+        correlation_id,
+    )

@@ -20,3 +20,16 @@ class EntityVersion:
     def next(self) -> EntityVersion:
         """Return an incremented value without mutating this version."""
         return EntityVersion(self.value + 1)
+
+
+@dataclass(frozen=True, slots=True)
+class ConflictSetVersion:
+    """An explicitly supplied version of a supporting Evaluation conflict set."""
+
+    value: int
+
+    def __post_init__(self) -> None:
+        if type(self.value) is not int or self.value < 0:
+            raise InvalidDomainValue(
+                "Conflict-set version must be a non-negative integer"
+            )

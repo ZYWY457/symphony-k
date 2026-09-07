@@ -63,6 +63,11 @@ class EvaluationId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EvaluationConflictSetId(_UuidId):
+    """Stable identity of one logical Evaluation conflict across versions."""
+
+
+@dataclass(frozen=True, slots=True)
 class EffectId(_UuidId):
     """Identity of an Effect."""
 
@@ -70,3 +75,8 @@ class EffectId(_UuidId):
 @dataclass(frozen=True, slots=True)
 class ActorId(_UuidId):
     """Identity of a principal, independent of its operating category."""
+
+
+@dataclass(frozen=True, slots=True)
+class CorrelationId(_UuidId):
+    """Cross-record correlation identity that grants no lifecycle authority."""

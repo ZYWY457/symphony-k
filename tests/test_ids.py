@@ -7,7 +7,9 @@ import pytest
 
 from symphony_k.domain import (
     ActorId,
+    CorrelationId,
     EffectId,
+    EvaluationConflictSetId,
     EvaluationId,
     InvalidDomainValue,
     ObjectiveId,
@@ -23,8 +25,10 @@ type IdClass = (
     | type[RunId]
     | type[OutcomeId]
     | type[EvaluationId]
+    | type[EvaluationConflictSetId]
     | type[EffectId]
     | type[ActorId]
+    | type[CorrelationId]
 )
 
 ID_CLASSES: tuple[IdClass, ...] = (
@@ -33,8 +37,10 @@ ID_CLASSES: tuple[IdClass, ...] = (
     RunId,
     OutcomeId,
     EvaluationId,
+    EvaluationConflictSetId,
     EffectId,
     ActorId,
+    CorrelationId,
 )
 UUID_TEXT = "12345678-1234-4234-8234-123456789abc"
 VALUE = UUID(UUID_TEXT)

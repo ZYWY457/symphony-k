@@ -6,6 +6,8 @@ system boundaries. The current implementation includes Stage 1 M1 tooling,
 M2 shared value types, and M3 Objective/Task snapshots and structural lifecycle topology.
 M4 adds Run/Outcome snapshots, provenance and their structural lifecycle graphs.
 M5A adds the Evaluation core, immutable original result content and typed targets.
+M5B adds immutable versioned Evaluation conflict-set records, typed member/scope
+references, correlation identity and a pure append-only extension check.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -79,6 +81,17 @@ verifier and immutable original `EvaluationResult`. Entity targets use a typed
 RunId/OutcomeId/EffectId plus observed EntityVersion; anchored EvidenceRef targets
 have no invented entity version. Verdict and confidence retain opaque text,
 without a global verdict taxonomy or numerical confidence scale. The ten-edge
-query is structural only. Conflict sets, arbitration/invalidation records,
-verification runtime, authority and physical-delete enforcement remain deferred.
-See the [M5A plan](docs/exec-plans/completed/stage-01-m5a-evaluation-v1.md).
+query is structural only. Evaluation transition execution,
+arbitration/invalidation records, verification runtime, authority and
+physical-delete enforcement remain deferred. See the
+[M5A plan](docs/exec-plans/completed/stage-01-m5a-evaluation-v1.md).
+
+`EvaluationConflictSetRecord` is immutable supporting provenance rather than a
+seventh entity or lifecycle aggregate. Each version records one or more typed
+Evaluation member/version references, an opaque affected scope, disagreement,
+evidence, recorder/time provenance and a distinct correlation identity. A
+single member requires external conflict evidence; repeated Evaluation IDs are
+rejected. `can_extend_evaluation_conflict_set` checks forward, explicitly linked
+append-only membership/evidence structure without mutating records, executing
+Evaluation transitions or persisting history. See the
+[M5B plan](docs/exec-plans/completed/stage-01-m5b-evaluation-conflict-sets-v1.md).
