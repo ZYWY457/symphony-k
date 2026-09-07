@@ -5,6 +5,7 @@ repository documentation hierarchy and [ARCHITECTURE.md](ARCHITECTURE.md) for
 system boundaries. The current implementation includes Stage 1 M1 tooling,
 M2 shared value types, and M3 Objective/Task snapshots and structural lifecycle topology.
 M4 adds Run/Outcome snapshots, provenance and their structural lifecycle graphs.
+M5A adds the Evaluation core, immutable original result content and typed targets.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -70,5 +71,14 @@ lineage and validity references. `ArtifactRef` and `EvidenceRef` are distinct
 opaque values; their immutable sets neither load nor verify content.
 `can_outcome_transition` checks eleven structural edges and
 `OUTCOME_CREATION_STATE` is PROPOSED. Run completion cannot accept a candidate.
-Verification, acceptance authority and Evaluation remain deferred. See the
+Verification and acceptance authority remain deferred. See the
 [M4B plan](docs/exec-plans/completed/stage-01-m4b-outcome-v1.md).
+
+`Evaluation` retains an explicit target, opaque method reference, optional
+verifier and immutable original `EvaluationResult`. Entity targets use a typed
+RunId/OutcomeId/EffectId plus observed EntityVersion; anchored EvidenceRef targets
+have no invented entity version. Verdict and confidence retain opaque text,
+without a global verdict taxonomy or numerical confidence scale. The ten-edge
+query is structural only. Conflict sets, arbitration/invalidation records,
+verification runtime, authority and physical-delete enforcement remain deferred.
+See the [M5A plan](docs/exec-plans/completed/stage-01-m5a-evaluation-v1.md).

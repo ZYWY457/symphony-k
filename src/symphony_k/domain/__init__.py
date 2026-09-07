@@ -15,6 +15,19 @@ from .errors import (
     InvariantViolation,
     UnauthorizedTransition,
 )
+from .evaluation import (
+    EVALUATION_CREATION_STATE,
+    Evaluation,
+    EvaluationState,
+    can_evaluation_transition,
+)
+from .evaluation_result import (
+    EvaluationConfidence,
+    EvaluationMethodRef,
+    EvaluationResult,
+    EvaluationVerdict,
+)
+from .evaluation_target import EvaluationTargetRef
 from .execution_profile import ExecutionProfileRef
 from .ids import ActorId, EffectId, EvaluationId, ObjectiveId, OutcomeId, RunId, TaskId
 from .objective import (
@@ -36,6 +49,7 @@ from .transitions import TransitionReason
 from .version import EntityVersion
 
 __all__ = [
+    "EVALUATION_CREATION_STATE",
     "OBJECTIVE_CREATION_STATE",
     "OUTCOME_CREATION_STATE",
     "RUN_CREATION_STATE",
@@ -51,7 +65,14 @@ __all__ = [
     "EffectId",
     "EntityNotFound",
     "EntityVersion",
+    "Evaluation",
+    "EvaluationConfidence",
     "EvaluationId",
+    "EvaluationMethodRef",
+    "EvaluationResult",
+    "EvaluationState",
+    "EvaluationTargetRef",
+    "EvaluationVerdict",
     "EvidenceRef",
     "ExecutionProfileRef",
     "ImmutableRecordViolation",
@@ -74,6 +95,7 @@ __all__ = [
     "Timestamp",
     "TransitionReason",
     "UnauthorizedTransition",
+    "can_evaluation_transition",
     "can_objective_transition",
     "can_outcome_transition",
     "can_run_transition",

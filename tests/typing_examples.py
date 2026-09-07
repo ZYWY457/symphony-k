@@ -15,7 +15,14 @@ from symphony_k.domain import (
     CompletionPolicyRef,
     EffectId,
     EntityVersion,
+    Evaluation,
+    EvaluationConfidence,
     EvaluationId,
+    EvaluationMethodRef,
+    EvaluationResult,
+    EvaluationState,
+    EvaluationTargetRef,
+    EvaluationVerdict,
     EvidenceRef,
     ExecutionProfileRef,
     Objective,
@@ -30,6 +37,7 @@ from symphony_k.domain import (
     Task,
     TaskId,
     TaskState,
+    can_evaluation_transition,
     can_objective_transition,
     can_outcome_transition,
     can_run_transition,
@@ -215,3 +223,49 @@ if TYPE_CHECKING:
     )
     can_outcome_transition(RunState.COMPLETED, OutcomeState.ACCEPTED)  # type: ignore[arg-type]
     can_outcome_transition("PROPOSED", OutcomeState.ACCEPTED)  # type: ignore[arg-type]
+
+    entity_target = EvaluationTargetRef(RunId(value), EntityVersion(7))
+    outcome_target = EvaluationTargetRef(OutcomeId(value), EntityVersion(7))
+    effect_target = EvaluationTargetRef(EffectId(value), EntityVersion(7))
+    evidence_target = EvaluationTargetRef(EvidenceRef("anchor"))
+    assert_type(entity_target, EvaluationTargetRef)
+    if isinstance(entity_target.reference, RunId):
+        assert_type(entity_target.reference, RunId)
+    if isinstance(outcome_target.reference, OutcomeId):
+        assert_type(outcome_target.reference, OutcomeId)
+    if isinstance(effect_target.reference, EffectId):
+        assert_type(effect_target.reference, EffectId)
+    if isinstance(evidence_target.reference, EvidenceRef):
+        assert_type(evidence_target.reference, EvidenceRef)
+    EvaluationTargetRef(RunId(value))  # type: ignore[call-overload]
+    EvaluationTargetRef(EvidenceRef("anchor"), EntityVersion(7))  # type: ignore[call-overload]
+    EvaluationTargetRef(TaskId(value), EntityVersion(7))  # type: ignore[call-overload]
+    EvaluationTargetRef(ArtifactRef("anchor"))  # type: ignore[call-overload]
+    EvaluationTargetRef(value, EntityVersion(7))  # type: ignore[call-overload]
+
+    judgment = EvaluationVerdict("Supplied judgment")
+    confidence = EvaluationConfidence("Supplied confidence representation")
+    original_result = EvaluationResult(
+        judgment, confidence, "Reasoning", frozenset({EvidenceRef("evidence")})
+    )
+    evaluation = Evaluation(
+        EvaluationId(value),
+        EvaluationState.COMPLETED,
+        EntityVersion(7),
+        entity_target,
+        EvaluationMethodRef("method", "revision"),
+        designation,
+        original_result,
+    )
+    assert_type(evaluation.target, EvaluationTargetRef)
+    assert_type(evaluation.result, EvaluationResult | None)
+    EvaluationResult(confidence, confidence, "Reasoning")  # type: ignore[arg-type]
+    EvaluationResult(judgment, judgment, "Reasoning")  # type: ignore[arg-type]
+    artifact_only = frozenset({ArtifactRef("evidence")})
+    EvaluationResult(
+        judgment,
+        confidence,
+        "Reasoning",
+        artifact_only,  # type: ignore[arg-type]
+    )
+    can_evaluation_transition(OutcomeState.VALIDATING, EvaluationState.COMPLETED)  # type: ignore[arg-type]
