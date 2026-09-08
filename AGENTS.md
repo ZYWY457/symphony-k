@@ -87,3 +87,44 @@ For substantial changes:
 ## Current Implementation Bias
 
 The initial control plane is expected to use Python, a simple persistence layer, and Docker as the first sandbox provider. These are implementation choices, not permanent product identity. Interfaces MUST preserve future substitution.
+
+## Execution Substrate Preflight
+
+Before making any repository modification, an implementation worker MUST verify that the execution substrate required by the Issue is operational.
+
+At minimum, the worker MUST successfully execute lightweight repository/toolchain preflight commands sufficient to establish that:
+
+* the repository command runner can start;
+* Git commands can execute;
+* the repository root can be resolved;
+* the required language/toolchain launcher is callable.
+
+A typical Python repository preflight is:
+
+```text
+git status --short
+git rev-parse --show-toplevel
+python --version
+uv --version
+```
+
+If command execution fails before repository modification begins:
+
+* STOP the Run;
+* do not modify workspace files;
+* report the failure as execution-infrastructure failure;
+* do not fabricate validation evidence;
+* do not create a commit;
+* do not perform remote mutation.
+
+If command execution becomes unavailable after workspace modification has already occurred:
+
+* preserve the workspace;
+* report exactly which verification gates could not run;
+* treat produced changes as an unverified candidate only;
+* do not claim task completion;
+* do not commit or publish the candidate unless an explicitly authorized recovery workflow independently performs the required verification.
+
+Successful reasoning or file editing is not equivalent to successful execution.
+
+A candidate that has not passed its required validation gates is not a verified Outcome.
