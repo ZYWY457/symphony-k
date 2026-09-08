@@ -93,6 +93,16 @@ class EffectAttributionId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EffectAuthorizationFindingId(_UuidId):
+    """Identity of one immutable Effect authorization finding record."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectGovernanceFindingId(_UuidId):
+    """Identity of one immutable Effect governance finding record."""
+
+
+@dataclass(frozen=True, slots=True)
 class ActorId(_UuidId):
     """Identity of a principal, independent of its operating category."""
 
