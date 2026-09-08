@@ -90,6 +90,8 @@ from symphony_k.domain import (
     TaskId,
     TaskState,
     Timestamp,
+    TransitionAuthorityDecision,
+    TransitionAuthorityStatus,
     TransitionContext,
     TransitionReason,
     TransitionRequest,
@@ -881,7 +883,19 @@ if TYPE_CHECKING:
         correlation_id,
         causation_id,
     )
-    transition_context = TransitionContext((StaticTransitionGuard(),))
+    transition_authority = TransitionAuthorityDecision(
+        designation,
+        DomainEntityType.OBJECTIVE,
+        ObjectiveId(value),
+        EntityVersion(7),
+        ObjectiveState.DRAFT,
+        ObjectiveState.ACTIVE,
+        TransitionAuthorityStatus.AUTHORIZED,
+        correlation_id,
+    )
+    transition_context = TransitionContext(
+        (StaticTransitionGuard(),), transition_authority
+    )
     objective_transition_result = transition_entity(
         transition_objective,
         objective_transition_request,
@@ -899,6 +913,24 @@ if TYPE_CHECKING:
     assert_type(objective_transition_result.event.metadata, DomainEventMetadata)
     assert_type(objective_transition_result.event.entity_type, DomainEntityType)
     assert_type(objective_transition_result.event.event_type, DomainEventType)
+    assert_type(transition_authority.actor, ActorIdentity)
+    assert_type(
+        transition_authority.entity_id,
+        ObjectiveId | TaskId | RunId | OutcomeId | EvaluationId | EffectId,
+    )
+    assert_type(transition_authority.observed_entity_version, EntityVersion)
+    assert_type(transition_authority.correlation_id, CorrelationId)
+    assert_type(transition_authority.decision, TransitionAuthorityStatus)
+    TransitionAuthorityDecision(
+        designation,
+        DomainEntityType.EFFECT,
+        EffectExecutionAuthorizationId(value),  # type: ignore[arg-type]
+        EntityVersion(7),
+        EffectState.PLANNED,
+        EffectState.SIMULATED,
+        TransitionAuthorityStatus.AUTHORIZED,
+        correlation_id,
+    )
     task_transition_request = TransitionRequest(
         event_id,
         TaskState.READY,

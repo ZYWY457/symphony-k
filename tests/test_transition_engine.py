@@ -28,6 +28,9 @@ from symphony_k.domain import (
     DomainEventMetadata,
     DomainEventType,
     Effect,
+    EffectAuthorizationFindingRecord,
+    EffectExecutionAuthorizationRecord,
+    EffectGovernanceFindingRecord,
     EffectId,
     EffectPayloadRef,
     EffectState,
@@ -42,6 +45,7 @@ from symphony_k.domain import (
     ExecutionProfileRef,
     InvalidDomainValue,
     InvalidTransition,
+    InvariantViolation,
     Objective,
     ObjectiveId,
     ObjectiveState,
@@ -56,6 +60,8 @@ from symphony_k.domain import (
     TaskId,
     TaskState,
     Timestamp,
+    TransitionAuthorityDecision,
+    TransitionAuthorityStatus,
     TransitionContext,
     TransitionReason,
     TransitionRequest,
@@ -82,8 +88,8 @@ def instant() -> Timestamp:
 
 
 @dataclass(frozen=True, slots=True)
-class AllowingFoundationGuard:
-    """Test-only guard showing the required M7B+ extension contract."""
+class PassingSemanticGuard:
+    """Test-only semantic guard; passing it grants no authority."""
 
     def validate(
         self,
@@ -94,19 +100,19 @@ class AllowingFoundationGuard:
 
 
 @dataclass(frozen=True, slots=True)
-class RejectingAuthorityGuard:
+class RejectingSemanticGuard:
     def validate(
         self,
         entity: LifecycleEntity,
         request: TransitionRequest[LifecycleState],
     ) -> None:
-        raise UnauthorizedTransition(
-            f"{request.actor.actor_type.value} lacks authority for "
-            f"{type(entity).__name__}"
+        raise InvariantViolation(
+            f"Semantic prerequisites reject {type(entity).__name__}"
         )
 
 
-ALLOW_CONTEXT = TransitionContext((AllowingFoundationGuard(),))
+PASSING_GUARD = PassingSemanticGuard()
+MISSING_AUTHORITY_CONTEXT = TransitionContext((PASSING_GUARD,))
 
 
 def transition_request[StateT: LifecycleState](
@@ -124,6 +130,34 @@ def transition_request[StateT: LifecycleState](
         instant(),
         CORRELATION_ID,
         causation_id,
+    )
+
+
+def authorized_context(
+    entity: LifecycleEntity,
+    request: TransitionRequest[LifecycleState],
+    *,
+    guards: tuple[engine_module.TransitionGuard, ...] = (PASSING_GUARD,),
+) -> TransitionContext:
+    return TransitionContext(guards, authority_decision(entity, request))
+
+
+def authority_decision(
+    entity: LifecycleEntity,
+    request: TransitionRequest[LifecycleState],
+    *,
+    status: TransitionAuthorityStatus = TransitionAuthorityStatus.AUTHORIZED,
+) -> TransitionAuthorityDecision:
+    entity_type, entity_id, source_state = engine_module._entity_details(entity)
+    return TransitionAuthorityDecision(
+        request.actor,
+        entity_type,
+        entity_id,
+        entity.version,
+        source_state,
+        request.target_state,
+        status,
+        request.correlation_id,
     )
 
 
@@ -243,10 +277,11 @@ def test_success_returns_new_snapshot_and_exactly_one_matching_event(
     event_type: DomainEventType,
 ) -> None:
     before = tuple(getattr(snapshot, field.name) for field in fields(snapshot))
+    request = transition_request(target)
     result = transition_entity(
         snapshot,  # type: ignore[arg-type]
-        transition_request(target),  # type: ignore[arg-type]
-        ALLOW_CONTEXT,
+        request,  # type: ignore[arg-type]
+        authorized_context(snapshot, request),
     )
     assert isinstance(result, TransitionResult)
     assert tuple(field.name for field in fields(result)) == ("entity", "event")
@@ -271,8 +306,10 @@ def test_success_returns_new_snapshot_and_exactly_one_matching_event(
 
 
 def objective_event() -> DomainEvent:
+    snapshot = objective()
+    request = transition_request(ObjectiveState.ACTIVE)
     return transition_entity(
-        objective(), transition_request(ObjectiveState.ACTIVE), ALLOW_CONTEXT
+        snapshot, request, authorized_context(snapshot, request)
     ).event
 
 
@@ -365,11 +402,13 @@ def test_transition_request_rejects_raw_or_wrong_typed_values(
 
 def test_request_context_and_result_are_immutable_supporting_records() -> None:
     request = transition_request(ObjectiveState.ACTIVE)
-    result = transition_entity(objective(), request, ALLOW_CONTEXT)
+    snapshot = objective()
+    context = authorized_context(snapshot, request)
+    result = transition_entity(snapshot, request, context)
     with pytest.raises(FrozenInstanceError):
         request.expected_version = EntityVersion(99)  # type: ignore[misc]
     with pytest.raises(FrozenInstanceError):
-        ALLOW_CONTEXT.guards = ()  # type: ignore[misc]
+        context.guards = ()  # type: ignore[misc]
     with pytest.raises(FrozenInstanceError):
         result.entity = objective()  # type: ignore[misc]
     with pytest.raises(InvalidDomainValue):
@@ -421,7 +460,7 @@ def test_nonmatching_expected_version_rejects_without_mutation(
         transition_entity(
             snapshot,
             transition_request(ObjectiveState.ACTIVE, expected_version=expected),
-            ALLOW_CONTEXT,
+            MISSING_AUTHORITY_CONTEXT,
         )
     assert (snapshot.state, snapshot.version) == before
 
@@ -432,7 +471,9 @@ def test_same_state_and_unsupported_edges_reject_without_result(
 ) -> None:
     snapshot = objective()
     with pytest.raises(InvalidTransition):
-        transition_entity(snapshot, transition_request(target), ALLOW_CONTEXT)
+        transition_entity(
+            snapshot, transition_request(target), MISSING_AUTHORITY_CONTEXT
+        )
     assert snapshot.state is ObjectiveState.DRAFT
     assert snapshot.version == VERSION
 
@@ -443,20 +484,21 @@ def test_cross_entity_state_rejects_as_invalid_transition() -> None:
         transition_entity(
             snapshot,
             transition_request(TaskState.READY),  # type: ignore[arg-type]
-            ALLOW_CONTEXT,
+            MISSING_AUTHORITY_CONTEXT,
         )
     assert snapshot.state is ObjectiveState.DRAFT
 
 
-def test_guard_rejection_produces_no_snapshot_or_event() -> None:
+def test_authority_success_does_not_bypass_rejecting_semantic_guard() -> None:
     snapshot = run()
-    rejecting_context = TransitionContext((RejectingAuthorityGuard(),))
-    with pytest.raises(UnauthorizedTransition):
-        transition_entity(
-            snapshot,
-            transition_request(RunState.RUNNING),
-            rejecting_context,
-        )
+    request = transition_request(RunState.RUNNING)
+    rejecting_context = authorized_context(
+        snapshot,
+        request,
+        guards=(RejectingSemanticGuard(),),
+    )
+    with pytest.raises(InvariantViolation):
+        transition_entity(snapshot, request, rejecting_context)
     assert snapshot.state is RunState.PENDING
     assert snapshot.version == VERSION
 
@@ -468,6 +510,176 @@ def test_context_requires_explicit_typed_guards_and_has_no_permissive_default() 
         TransitionContext((object(),))  # type: ignore[arg-type]
     definitions = {field.name: field for field in fields(TransitionContext)}
     assert definitions["guards"].default is MISSING
+    assert definitions["authority_decision"].default is None
+    with pytest.raises(InvalidDomainValue):
+        TransitionContext((PASSING_GUARD,), object())  # type: ignore[arg-type]
+
+
+def test_authority_decision_is_frozen_typed_and_has_minimal_status_inventory() -> None:
+    snapshot = objective()
+    request = transition_request(ObjectiveState.ACTIVE)
+    decision = authority_decision(snapshot, request)
+    assert tuple(TransitionAuthorityStatus) == (
+        TransitionAuthorityStatus.AUTHORIZED,
+        TransitionAuthorityStatus.DENIED,
+        TransitionAuthorityStatus.UNRESOLVED,
+    )
+    assert tuple(field.name for field in fields(decision)) == (
+        "actor",
+        "entity_type",
+        "entity_id",
+        "observed_entity_version",
+        "prior_state",
+        "target_state",
+        "decision",
+        "correlation_id",
+    )
+    with pytest.raises(FrozenInstanceError):
+        decision.decision = TransitionAuthorityStatus.DENIED  # type: ignore[misc]
+    for field_name, invalid in (
+        ("actor", ActorId(VALUE)),
+        ("entity_type", "OBJECTIVE"),
+        ("entity_id", TaskId(VALUE)),
+        ("observed_entity_version", 17),
+        ("prior_state", "DRAFT"),
+        ("target_state", "ACTIVE"),
+        ("decision", "AUTHORIZED"),
+        ("correlation_id", EventId(VALUE)),
+    ):
+        with pytest.raises(InvalidDomainValue):
+            replace(decision, **{field_name: invalid})  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "status",
+    [TransitionAuthorityStatus.DENIED, TransitionAuthorityStatus.UNRESOLVED],
+)
+def test_non_authorized_decisions_reject_without_partial_transition(
+    status: TransitionAuthorityStatus,
+) -> None:
+    snapshot = objective()
+    request = transition_request(ObjectiveState.ACTIVE)
+    context = TransitionContext(
+        (PASSING_GUARD,), authority_decision(snapshot, request, status=status)
+    )
+    before = (snapshot.state, snapshot.version)
+    with pytest.raises(UnauthorizedTransition):
+        transition_entity(snapshot, request, context)
+    assert (snapshot.state, snapshot.version) == before
+
+
+def test_missing_authority_rejects_before_a_passing_semantic_guard() -> None:
+    calls: list[str] = []
+
+    @dataclass(frozen=True, slots=True)
+    class RecordingSemanticGuard:
+        def validate(
+            self,
+            entity: LifecycleEntity,
+            request: TransitionRequest[LifecycleState],
+        ) -> None:
+            calls.append(f"{type(entity).__name__}:{request.target_state.value}")
+
+    snapshot = objective()
+    request = transition_request(ObjectiveState.ACTIVE)
+    before = (snapshot.state, snapshot.version)
+    with pytest.raises(UnauthorizedTransition):
+        transition_entity(
+            snapshot, request, TransitionContext((RecordingSemanticGuard(),))
+        )
+    assert calls == []
+    assert (snapshot.state, snapshot.version) == before
+
+
+def test_exact_authority_reaches_semantic_guards_and_preserves_actor_provenance() -> (
+    None
+):
+    calls: list[ActorIdentity] = []
+
+    @dataclass(frozen=True, slots=True)
+    class RecordingSemanticGuard:
+        def validate(
+            self,
+            entity: LifecycleEntity,
+            request: TransitionRequest[LifecycleState],
+        ) -> None:
+            calls.append(request.actor)
+
+    snapshot = objective()
+    request = transition_request(ObjectiveState.ACTIVE)
+    decision = authority_decision(snapshot, request)
+    result = transition_entity(
+        snapshot,
+        request,
+        TransitionContext((RecordingSemanticGuard(),), decision),
+    )
+    assert calls == [request.actor]
+    assert request.actor == decision.actor == result.event.actor
+    assert result.event.entity_version == result.entity.version
+
+
+def test_every_incompatible_authority_binding_rejects_without_mutation() -> None:
+    snapshot = objective()
+    request = transition_request(ObjectiveState.ACTIVE)
+    exact = authority_decision(snapshot, request)
+    incompatible = (
+        replace(exact, actor=ActorIdentity(ActorId(OTHER), ActorType.SYSTEM)),
+        replace(
+            exact,
+            entity_type=DomainEntityType.TASK,
+            entity_id=TaskId(VALUE),
+            prior_state=TaskState.DRAFT,
+            target_state=TaskState.READY,
+        ),
+        replace(exact, entity_id=ObjectiveId(OTHER)),
+        replace(exact, observed_entity_version=EntityVersion(16)),
+        replace(exact, observed_entity_version=EntityVersion(18)),
+        replace(exact, prior_state=ObjectiveState.BLOCKED),
+        replace(exact, target_state=ObjectiveState.BLOCKED),
+        replace(exact, correlation_id=CorrelationId(OTHER)),
+    )
+    before = (snapshot.state, snapshot.version)
+    for candidate in incompatible:
+        with pytest.raises(UnauthorizedTransition):
+            transition_entity(
+                snapshot, request, TransitionContext((PASSING_GUARD,), candidate)
+            )
+        assert (snapshot.state, snapshot.version) == before
+
+
+@pytest.mark.parametrize(
+    "actor_type",
+    [ActorType.SYSTEM, ActorType.HUMAN_OPERATOR, ActorType.WORKER],
+)
+def test_actor_categories_receive_no_implicit_superuser_authority(
+    actor_type: ActorType,
+) -> None:
+    snapshot = objective()
+    request = replace(
+        transition_request(ObjectiveState.ACTIVE), actor=actor(actor_type)
+    )
+    with pytest.raises(UnauthorizedTransition):
+        transition_entity(snapshot, request, MISSING_AUTHORITY_CONTEXT)
+
+
+def test_transition_authority_is_distinct_from_m6_effect_records() -> None:
+    authority_type = TransitionAuthorityDecision
+    assert (
+        len(
+            {
+                authority_type,
+                EffectExecutionAuthorizationRecord,
+                EffectAuthorizationFindingRecord,
+                EffectGovernanceFindingRecord,
+            }
+        )
+        == 4
+    )
+    authority_fields = {field.name for field in fields(authority_type)}
+    assert "prior_state" in authority_fields
+    assert "target_state" in authority_fields
+    assert "authorization_id" not in authority_fields
+    assert "finding_id" not in authority_fields
 
 
 def test_engine_delegates_to_the_canonical_topology_helper(
@@ -485,9 +697,9 @@ def test_engine_delegates_to_the_canonical_topology_helper(
         "can_objective_transition",
         recording_helper,
     )
-    transition_entity(
-        objective(), transition_request(ObjectiveState.ACTIVE), ALLOW_CONTEXT
-    )
+    snapshot = objective()
+    request = transition_request(ObjectiveState.ACTIVE)
+    transition_entity(snapshot, request, authorized_context(snapshot, request))
     assert calls
     assert set(calls) == {(ObjectiveState.DRAFT, ObjectiveState.ACTIVE)}
 
@@ -512,7 +724,7 @@ def test_every_entity_family_depends_on_its_canonical_topology_helper(
         transition_entity(
             snapshot,  # type: ignore[arg-type]
             transition_request(target),  # type: ignore[arg-type]
-            ALLOW_CONTEXT,
+            MISSING_AUTHORITY_CONTEXT,
         )
     assert not any(name.endswith("_TRANSITIONS") for name in vars(engine_module))
 
@@ -521,18 +733,19 @@ def test_existing_snapshot_invariant_rejection_is_typed_and_has_no_partial_resul
     None
 ):
     snapshot = replace(evaluation(), state=EvaluationState.RUNNING)
+    request = transition_request(EvaluationState.COMPLETED)
     with pytest.raises(InvalidDomainValue):
         transition_entity(
             snapshot,
-            transition_request(EvaluationState.COMPLETED),
-            ALLOW_CONTEXT,
+            request,
+            authorized_context(snapshot, request),
         )
     assert snapshot.state is EvaluationState.RUNNING
     assert snapshot.result is None
     assert snapshot.version == VERSION
 
 
-def test_transition_foundation_has_no_m7b_or_m8_runtime_boundaries() -> None:
+def test_transition_authority_has_no_m7b2_or_m8_runtime_boundaries() -> None:
     for name in (
         "Repository",
         "UnitOfWork",
@@ -543,14 +756,17 @@ def test_transition_foundation_has_no_m7b_or_m8_runtime_boundaries() -> None:
         "CompletionPolicyEvaluator",
         "PolicyEngine",
         "PermissionEngine",
+        "AuthorityMatrix",
+        "ActorTransitionAuthorityMatrix",
+        "AllowAllAuthority",
         "EffectExecutor",
         "execute_effect",
         "resolve_evaluation",
         "failover",
     ):
         assert not hasattr(engine_module, name)
-    result = transition_entity(
-        effect(), transition_request(EffectState.SIMULATED), ALLOW_CONTEXT
-    )
+    snapshot = effect()
+    request = transition_request(EffectState.SIMULATED)
+    result = transition_entity(snapshot, request, authorized_context(snapshot, request))
     assert result.entity.state is EffectState.SIMULATED
     assert effect().state is EffectState.PLANNED

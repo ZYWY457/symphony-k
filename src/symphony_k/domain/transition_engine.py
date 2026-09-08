@@ -1,9 +1,10 @@
 """Pure authoritative lifecycle-transition mechanics for immutable snapshots.
 
-M7A validates caller-supplied versions and canonical structural topology, then
-returns a new snapshot and one DomainEvent. Authority and semantic rules are
-supplied through an explicit guard boundary and remain incomplete until M7B–M7E.
-This module performs no loading, persistence, transaction, or external action.
+M7A validates caller-supplied versions and canonical structural topology. M7B1
+requires a separate exact-bound authority decision before ordinary semantic
+guards, then returns a new snapshot and one DomainEvent. Positive authority rules
+remain deferred. This module performs no loading, persistence, transaction, or
+external action.
 """
 
 from collections.abc import Mapping
@@ -20,7 +21,12 @@ from . import run as run_domain
 from . import task as task_domain
 from .actors import ActorIdentity
 from .effect import Effect, EffectState
-from .errors import ConcurrencyConflict, InvalidDomainValue, InvalidTransition
+from .errors import (
+    ConcurrencyConflict,
+    InvalidDomainValue,
+    InvalidTransition,
+    UnauthorizedTransition,
+)
 from .evaluation import Evaluation, EvaluationState
 from .ids import (
     CausationId,
@@ -59,6 +65,14 @@ class DomainEntityType(Enum):
     OUTCOME = "OUTCOME"
     EVALUATION = "EVALUATION"
     EFFECT = "EFFECT"
+
+
+class TransitionAuthorityStatus(Enum):
+    """Closed result of trusted authority evaluation for one exact attempt."""
+
+    AUTHORIZED = "AUTHORIZED"
+    DENIED = "DENIED"
+    UNRESOLVED = "UNRESOLVED"
 
 
 class DomainEventType(Enum):
@@ -207,6 +221,54 @@ def _entity_type_for_id(identity: LifecycleEntityId) -> DomainEntityType:
     if isinstance(identity, EvaluationId):
         return DomainEntityType.EVALUATION
     return DomainEntityType.EFFECT
+
+
+@dataclass(frozen=True, slots=True)
+class TransitionAuthorityDecision:
+    """Explicit authority result bound to one exact lifecycle transition attempt."""
+
+    actor: ActorIdentity
+    entity_type: DomainEntityType
+    entity_id: LifecycleEntityId
+    observed_entity_version: EntityVersion
+    prior_state: LifecycleState
+    target_state: LifecycleState
+    decision: TransitionAuthorityStatus
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.actor, ActorIdentity):
+            raise InvalidDomainValue("actor must be an ActorIdentity")
+        if not isinstance(self.entity_type, DomainEntityType):
+            raise InvalidDomainValue("entity_type must be a DomainEntityType")
+        if not isinstance(
+            self.entity_id,
+            (ObjectiveId, TaskId, RunId, OutcomeId, EvaluationId, EffectId),
+        ):
+            raise InvalidDomainValue("entity_id must be a core entity ID")
+        if _entity_type_for_id(self.entity_id) is not self.entity_type:
+            raise InvalidDomainValue("entity_id must match entity_type")
+        if not isinstance(self.observed_entity_version, EntityVersion):
+            raise InvalidDomainValue("observed_entity_version must be an EntityVersion")
+        if not _is_lifecycle_state(self.prior_state):
+            raise InvalidDomainValue("prior_state must be a lifecycle state")
+        if not _is_lifecycle_state(self.target_state):
+            raise InvalidDomainValue("target_state must be a lifecycle state")
+        if (
+            _entity_type_for_state(self.prior_state) is not self.entity_type
+            or _entity_type_for_state(self.target_state) is not self.entity_type
+        ):
+            raise InvalidDomainValue(
+                "prior_state and target_state must match entity_type"
+            )
+        if self.prior_state is self.target_state:
+            raise InvalidDomainValue(
+                "Authority decision cannot describe a self-transition"
+            )
+        if not isinstance(self.decision, TransitionAuthorityStatus):
+            raise InvalidDomainValue("decision must be a TransitionAuthorityStatus")
+        if not isinstance(self.correlation_id, CorrelationId):
+            raise InvalidDomainValue("correlation_id must be a CorrelationId")
 
 
 def _entity_details(
@@ -446,7 +508,7 @@ class TransitionRequest[StateT_co: LifecycleState]:
 
 @runtime_checkable
 class TransitionGuard(Protocol):
-    """Pure extension boundary for later typed authority and semantic guards."""
+    """Pure extension boundary for semantic and invariant guards only."""
 
     def validate(
         self,
@@ -459,15 +521,50 @@ class TransitionGuard(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class TransitionContext:
-    """Explicit nonempty guard chain; M7A supplies no permissive default."""
+    """One explicit authority decision plus a nonempty semantic guard chain."""
 
     guards: tuple[TransitionGuard, ...]
+    authority_decision: TransitionAuthorityDecision | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
             raise InvalidDomainValue("guards must be a nonempty tuple")
         if any(not isinstance(guard, TransitionGuard) for guard in self.guards):
             raise InvalidDomainValue("Every guard must implement TransitionGuard")
+        if self.authority_decision is not None and not isinstance(
+            self.authority_decision, TransitionAuthorityDecision
+        ):
+            raise InvalidDomainValue(
+                "authority_decision must be a TransitionAuthorityDecision or None"
+            )
+
+
+def _require_authorized_transition(
+    entity_type: DomainEntityType,
+    entity_id: LifecycleEntityId,
+    source_state: LifecycleState,
+    request: TransitionRequest[LifecycleState],
+    decision: TransitionAuthorityDecision | None,
+) -> None:
+    """Reject unless one explicit AUTHORIZED decision matches the exact attempt."""
+    if decision is None:
+        raise UnauthorizedTransition("Transition authority decision is required")
+    if decision.decision is not TransitionAuthorityStatus.AUTHORIZED:
+        raise UnauthorizedTransition(
+            f"Transition authority decision is {decision.decision.value}"
+        )
+    if not (
+        decision.actor == request.actor
+        and decision.entity_type is entity_type
+        and decision.entity_id == entity_id
+        and decision.observed_entity_version == request.expected_version
+        and decision.prior_state is source_state
+        and decision.target_state is request.target_state
+        and decision.correlation_id == request.correlation_id
+    ):
+        raise UnauthorizedTransition(
+            "Transition authority decision does not match the exact request snapshot"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -568,6 +665,14 @@ def transition_entity(
             f"Unsupported {entity_type.value} transition "
             f"{source_state.value} -> {request.target_state.value}"
         )
+
+    _require_authorized_transition(
+        entity_type,
+        entity_id,
+        source_state,
+        request,
+        context.authority_decision,
+    )
 
     for guard in context.guards:
         guard.validate(entity, request)
