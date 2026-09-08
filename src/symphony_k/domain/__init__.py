@@ -16,6 +16,11 @@ from .effect import (
     PlannedEffectOrigin,
     can_effect_transition,
 )
+from .effect_attribution import (
+    EffectAttributionRecord,
+    can_attach_effect_attribution,
+    can_follow_effect_attribution,
+)
 from .effect_observation import (
     EffectObservationRecord,
     EffectOccurrenceStatus,
@@ -73,6 +78,7 @@ from .execution_profile import ExecutionProfileRef
 from .ids import (
     ActorId,
     CorrelationId,
+    EffectAttributionId,
     EffectId,
     EffectObservationId,
     EvaluationArbitrationId,
@@ -121,6 +127,8 @@ __all__ = [
     "CorrelationId",
     "DomainError",
     "Effect",
+    "EffectAttributionId",
+    "EffectAttributionRecord",
     "EffectDeduplicationRef",
     "EffectExternalOperationRef",
     "EffectId",
@@ -181,8 +189,10 @@ __all__ = [
     "can_extend_evaluation_conflict_set",
     "can_evaluation_transition",
     "can_attach_effect_observation",
+    "can_attach_effect_attribution",
     "can_effect_transition",
     "can_follow_effect_observation",
+    "can_follow_effect_attribution",
     "can_invalidate_evaluation",
     "derive_evaluation_effective_use",
     "can_objective_transition",

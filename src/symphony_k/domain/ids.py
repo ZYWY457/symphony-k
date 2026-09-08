@@ -88,6 +88,11 @@ class EffectObservationId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EffectAttributionId(_UuidId):
+    """Identity of one immutable supporting Effect attribution record."""
+
+
+@dataclass(frozen=True, slots=True)
 class ActorId(_UuidId):
     """Identity of a principal, independent of its operating category."""
 
