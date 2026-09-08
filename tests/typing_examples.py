@@ -18,8 +18,12 @@ from symphony_k.domain import (
     ConflictSetVersion,
     CorrelationId,
     Effect,
+    EffectDeduplicationRef,
     EffectExternalOperationRef,
     EffectId,
+    EffectObservationId,
+    EffectObservationRecord,
+    EffectOccurrenceStatus,
     EffectPayloadRef,
     EffectState,
     EffectTargetRef,
@@ -62,9 +66,11 @@ from symphony_k.domain import (
     TaskState,
     Timestamp,
     can_arbitrate_evaluation_conflict_set,
+    can_attach_effect_observation,
     can_effect_transition,
     can_evaluation_transition,
     can_extend_evaluation_conflict_set,
+    can_follow_effect_observation,
     can_invalidate_evaluation,
     can_objective_transition,
     can_outcome_transition,
@@ -88,6 +94,7 @@ if TYPE_CHECKING:
     assert_type(EvaluationConflictSetId.new(), EvaluationConflictSetId)
     assert_type(EvaluationInvalidationId.new(), EvaluationInvalidationId)
     assert_type(EffectId.new(), EffectId)
+    assert_type(EffectObservationId.new(), EffectObservationId)
     assert_type(ActorId.new(), ActorId)
     assert_type(CorrelationId.new(), CorrelationId)
     assert_type(ObjectiveId.from_string(str(value)), ObjectiveId)
@@ -101,6 +108,7 @@ if TYPE_CHECKING:
     requires_objective(EvaluationConflictSetId(value))  # type: ignore[arg-type]
     requires_objective(EvaluationInvalidationId(value))  # type: ignore[arg-type]
     requires_objective(EffectId(value))  # type: ignore[arg-type]
+    requires_objective(EffectObservationId(value))  # type: ignore[arg-type]
     requires_objective(ActorId(value))  # type: ignore[arg-type]
     requires_objective(CorrelationId(value))  # type: ignore[arg-type]
     requires_objective(value)  # type: ignore[arg-type]
@@ -515,6 +523,68 @@ if TYPE_CHECKING:
     assert_type(planned_effect, Effect)
     assert_type(observed_effect.origin, PlannedEffectOrigin | ObservedEffectOrigin)
     assert_type(observed_effect.payload_ref, EffectPayloadRef | None)
+    observation = EffectObservationRecord(
+        EffectObservationId(value),
+        EffectId(value),
+        EntityVersion(7),
+        external_operation_ref,
+        EffectDeduplicationRef("provider key"),
+        EffectOccurrenceStatus.CONFIRMED,
+        effect_target_ref,
+        None,
+        frozenset({EvidenceRef("observation evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        None,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        CorrelationId(value),
+    )
+    assert_type(observation.observation_id, EffectObservationId)
+    assert_type(observation.deduplication_ref, EffectDeduplicationRef)
+    assert_type(
+        can_attach_effect_observation(observed_effect, observation),
+        bool,
+    )
+    assert_type(can_follow_effect_observation(observation, observation), bool)
+    EffectObservationRecord(
+        EffectId(value),  # type: ignore[arg-type]
+        EffectId(value),
+        EntityVersion(7),
+        external_operation_ref,
+        EffectDeduplicationRef("provider key"),
+        EffectOccurrenceStatus.CONFIRMED,
+        effect_target_ref,
+        None,
+        frozenset({EvidenceRef("observation evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        None,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        CorrelationId(value),
+    )
+    EffectObservationRecord(
+        EffectObservationId(value),
+        EffectId(value),
+        EntityVersion(7),
+        external_operation_ref,
+        EffectDeduplicationRef("provider key"),
+        EffectOccurrenceStatus.CONFIRMED,
+        effect_target_ref,
+        None,
+        frozenset({EvidenceRef("observation evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        None,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        EffectId(value),  # type: ignore[arg-type]
+    )
+    can_attach_effect_observation(
+        observed_effect,
+        observed_effect,  # type: ignore[arg-type]
+    )
     EffectTargetRef(effect_payload_ref)  # type: ignore[arg-type]
     EffectPayloadRef(effect_target_ref)  # type: ignore[arg-type]
     EffectExternalOperationRef(effect_target_ref)  # type: ignore[arg-type]

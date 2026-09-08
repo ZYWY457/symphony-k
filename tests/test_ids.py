@@ -9,6 +9,7 @@ from symphony_k.domain import (
     ActorId,
     CorrelationId,
     EffectId,
+    EffectObservationId,
     EvaluationArbitrationId,
     EvaluationConflictSetId,
     EvaluationId,
@@ -31,6 +32,7 @@ type IdClass = (
     | type[EvaluationConflictSetId]
     | type[EvaluationInvalidationId]
     | type[EffectId]
+    | type[EffectObservationId]
     | type[ActorId]
     | type[CorrelationId]
 )
@@ -45,6 +47,7 @@ ID_CLASSES: tuple[IdClass, ...] = (
     EvaluationConflictSetId,
     EvaluationInvalidationId,
     EffectId,
+    EffectObservationId,
     ActorId,
     CorrelationId,
 )

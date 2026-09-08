@@ -6,6 +6,7 @@ from .completion import CompletionPolicyRef
 from .effect import (
     EFFECT_CREATION_STATES,
     Effect,
+    EffectDeduplicationRef,
     EffectExternalOperationRef,
     EffectOrigin,
     EffectPayloadRef,
@@ -14,6 +15,12 @@ from .effect import (
     ObservedEffectOrigin,
     PlannedEffectOrigin,
     can_effect_transition,
+)
+from .effect_observation import (
+    EffectObservationRecord,
+    EffectOccurrenceStatus,
+    can_attach_effect_observation,
+    can_follow_effect_observation,
 )
 from .errors import (
     CompletionPolicyNotSatisfied,
@@ -67,6 +74,7 @@ from .ids import (
     ActorId,
     CorrelationId,
     EffectId,
+    EffectObservationId,
     EvaluationArbitrationId,
     EvaluationConflictSetId,
     EvaluationId,
@@ -112,9 +120,13 @@ __all__ = [
     "ConcurrencyConflict",
     "CorrelationId",
     "DomainError",
-    "EffectId",
     "Effect",
+    "EffectDeduplicationRef",
     "EffectExternalOperationRef",
+    "EffectId",
+    "EffectObservationId",
+    "EffectObservationRecord",
+    "EffectOccurrenceStatus",
     "EffectOrigin",
     "EffectPayloadRef",
     "EffectState",
@@ -168,7 +180,9 @@ __all__ = [
     "can_arbitrate_evaluation_conflict_set",
     "can_extend_evaluation_conflict_set",
     "can_evaluation_transition",
+    "can_attach_effect_observation",
     "can_effect_transition",
+    "can_follow_effect_observation",
     "can_invalidate_evaluation",
     "derive_evaluation_effective_use",
     "can_objective_transition",

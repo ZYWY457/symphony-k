@@ -69,6 +69,19 @@ class EffectExternalOperationRef:
 
 
 @dataclass(frozen=True, slots=True)
+class EffectDeduplicationRef:
+    """Opaque external deduplication identity; it performs no deduplication."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, str) or not self.value.strip():
+            raise InvalidDomainValue(
+                "Effect deduplication reference must contain non-whitespace text"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class PlannedEffectOrigin:
     """Immutable creation provenance for governed intent, not execution authority."""
 
