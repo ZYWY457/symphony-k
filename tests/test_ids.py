@@ -10,11 +10,14 @@ from symphony_k.domain import (
     CorrelationId,
     EffectCompensationCompletionId,
     EffectCompensationPlanId,
+    EffectExecutionAuthorizationId,
     EffectId,
     EffectIncidentId,
     EffectIncidentRecordId,
     EffectObservationId,
+    EffectPreparationRecordId,
     EffectRollbackRecordId,
+    EffectVerificationRecordId,
     EvaluationArbitrationId,
     EvaluationConflictSetId,
     EvaluationId,
@@ -37,6 +40,9 @@ type IdClass = (
     | type[EvaluationConflictSetId]
     | type[EvaluationInvalidationId]
     | type[EffectId]
+    | type[EffectPreparationRecordId]
+    | type[EffectVerificationRecordId]
+    | type[EffectExecutionAuthorizationId]
     | type[EffectRollbackRecordId]
     | type[EffectCompensationPlanId]
     | type[EffectCompensationCompletionId]
@@ -57,6 +63,9 @@ ID_CLASSES: tuple[IdClass, ...] = (
     EvaluationConflictSetId,
     EvaluationInvalidationId,
     EffectId,
+    EffectPreparationRecordId,
+    EffectVerificationRecordId,
+    EffectExecutionAuthorizationId,
     EffectRollbackRecordId,
     EffectCompensationPlanId,
     EffectCompensationCompletionId,

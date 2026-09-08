@@ -25,6 +25,8 @@ from symphony_k.domain import (
     EffectCompensationPlanId,
     EffectCompensationPlanRecord,
     EffectDeduplicationRef,
+    EffectExecutionAuthorizationId,
+    EffectExecutionAuthorizationRecord,
     EffectExternalOperationRef,
     EffectGovernanceFindingId,
     EffectId,
@@ -36,10 +38,14 @@ from symphony_k.domain import (
     EffectObservationRecord,
     EffectOccurrenceStatus,
     EffectPayloadRef,
+    EffectPreparationRecord,
+    EffectPreparationRecordId,
     EffectRollbackRecord,
     EffectRollbackRecordId,
     EffectState,
     EffectTargetRef,
+    EffectVerificationRecord,
+    EffectVerificationRecordId,
     EntityVersion,
     Evaluation,
     EvaluationArbitrationId,
@@ -81,7 +87,9 @@ from symphony_k.domain import (
     can_arbitrate_evaluation_conflict_set,
     can_attach_effect_incident_record,
     can_attach_effect_observation,
+    can_attach_effect_preparation_record,
     can_attach_effect_rollback_record,
+    can_authorize_effect_preparation,
     can_complete_effect_compensation_plan,
     can_effect_transition,
     can_evaluation_transition,
@@ -93,6 +101,8 @@ from symphony_k.domain import (
     can_outcome_transition,
     can_run_transition,
     can_task_transition,
+    can_use_effect_verification_for_authorization,
+    can_verify_effect_preparation,
     derive_evaluation_effective_use,
 )
 
@@ -817,6 +827,167 @@ if TYPE_CHECKING:
         designation,
         Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
         correlation_id,
+    )
+
+    def requires_preparation_id(
+        identity: EffectPreparationRecordId,
+    ) -> EffectPreparationRecordId:
+        return identity
+
+    def requires_verification_id(
+        identity: EffectVerificationRecordId,
+    ) -> EffectVerificationRecordId:
+        return identity
+
+    def requires_execution_authorization_id(
+        identity: EffectExecutionAuthorizationId,
+    ) -> EffectExecutionAuthorizationId:
+        return identity
+
+    preparation_id = EffectPreparationRecordId(value)
+    verification_id = EffectVerificationRecordId(value)
+    execution_authorization_id = EffectExecutionAuthorizationId(value)
+    assert_type(requires_preparation_id(preparation_id), EffectPreparationRecordId)
+    assert_type(requires_verification_id(verification_id), EffectVerificationRecordId)
+    assert_type(
+        requires_execution_authorization_id(execution_authorization_id),
+        EffectExecutionAuthorizationId,
+    )
+    requires_preparation_id(EffectId(value))  # type: ignore[arg-type]
+    requires_preparation_id(EffectObservationId(value))  # type: ignore[arg-type]
+    requires_preparation_id(CorrelationId(value))  # type: ignore[arg-type]
+    requires_verification_id(preparation_id)  # type: ignore[arg-type]
+    requires_verification_id(EffectAuthorizationFindingId(value))  # type: ignore[arg-type]
+    requires_execution_authorization_id(verification_id)  # type: ignore[arg-type]
+    requires_execution_authorization_id(EffectAuthorizationFindingId(value))  # type: ignore[arg-type]
+
+    prepared_effect = Effect(
+        EffectId(value),
+        EffectState.SIMULATED,
+        EntityVersion(7),
+        PlannedEffectOrigin(TaskId(value), designation),
+        EffectTargetRef("target"),
+        EffectPayloadRef("payload"),
+    )
+    preparation_record = EffectPreparationRecord(
+        preparation_id,
+        EffectId(value),
+        EntityVersion(7),
+        "Prepared exact payload",
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    verification_record = EffectVerificationRecord(
+        verification_id,
+        preparation_id,
+        EffectId(value),
+        EntityVersion(7),
+        "Verified exact prepared payload",
+        frozenset({EvidenceRef("verification evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    execution_authorization_record = EffectExecutionAuthorizationRecord(
+        execution_authorization_id,
+        preparation_id,
+        EffectId(value),
+        EntityVersion(7),
+        frozenset({verification_id}),
+        "Authorized exact prepared and verified payload",
+        frozenset({EvidenceRef("authorization evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    assert_type(preparation_record.preparation_id, EffectPreparationRecordId)
+    assert_type(verification_record.verification_id, EffectVerificationRecordId)
+    assert_type(
+        execution_authorization_record.authorization_id,
+        EffectExecutionAuthorizationId,
+    )
+    assert_type(
+        execution_authorization_record.verification_ids,
+        frozenset[EffectVerificationRecordId],
+    )
+    assert_type(
+        can_attach_effect_preparation_record(prepared_effect, preparation_record), bool
+    )
+    assert_type(
+        can_verify_effect_preparation(preparation_record, verification_record), bool
+    )
+    assert_type(
+        can_authorize_effect_preparation(
+            preparation_record, execution_authorization_record
+        ),
+        bool,
+    )
+    assert_type(
+        can_use_effect_verification_for_authorization(
+            verification_record, execution_authorization_record
+        ),
+        bool,
+    )
+    EffectPreparationRecord(
+        EffectId(value),  # type: ignore[arg-type]
+        EffectId(value),
+        EntityVersion(7),
+        "Prepared exact payload",
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    EffectVerificationRecord(
+        EffectAuthorizationFindingId(value),  # type: ignore[arg-type]
+        preparation_id,
+        EffectId(value),
+        EntityVersion(7),
+        "Verified exact prepared payload",
+        frozenset({EvidenceRef("verification evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    EffectExecutionAuthorizationRecord(
+        EffectAuthorizationFindingId(value),  # type: ignore[arg-type]
+        preparation_id,
+        EffectId(value),
+        EntityVersion(7),
+        frozenset({verification_id}),
+        "Authorized exact prepared and verified payload",
+        frozenset({EvidenceRef("authorization evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    can_attach_effect_preparation_record(
+        prepared_effect,
+        verification_record,  # type: ignore[arg-type]
+    )
+    can_verify_effect_preparation(
+        preparation_record,
+        execution_authorization_record,  # type: ignore[arg-type]
+    )
+    can_authorize_effect_preparation(
+        preparation_record,
+        verification_record,  # type: ignore[arg-type]
+    )
+    can_use_effect_verification_for_authorization(
+        verification_record,
+        EffectAuthorizationFindingId(value),  # type: ignore[arg-type]
     )
 
     def requires_incident_id(identity: EffectIncidentId) -> EffectIncidentId:

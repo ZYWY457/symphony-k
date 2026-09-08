@@ -88,6 +88,21 @@ class EffectObservationId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EffectPreparationRecordId(_UuidId):
+    """Identity of one immutable Effect preparation record."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectVerificationRecordId(_UuidId):
+    """Identity of one immutable successful Effect verification record."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectExecutionAuthorizationId(_UuidId):
+    """Identity of one immutable prospective execution-authorization decision."""
+
+
+@dataclass(frozen=True, slots=True)
 class EffectAttributionId(_UuidId):
     """Identity of one immutable supporting Effect attribution record."""
 
