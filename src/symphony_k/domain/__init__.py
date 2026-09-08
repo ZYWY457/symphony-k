@@ -21,6 +21,13 @@ from .evaluation import (
     EvaluationState,
     can_evaluation_transition,
 )
+from .evaluation_arbitration import (
+    ArbitrationDisposition,
+    EvaluationArbitrationMemberDecision,
+    EvaluationArbitrationPolicyRef,
+    EvaluationArbitrationRecord,
+    can_arbitrate_evaluation_conflict_set,
+)
 from .evaluation_conflict import (
     EvaluationConflictMemberRef,
     EvaluationConflictScopeRef,
@@ -40,6 +47,7 @@ from .ids import (
     ActorId,
     CorrelationId,
     EffectId,
+    EvaluationArbitrationId,
     EvaluationConflictSetId,
     EvaluationId,
     ObjectiveId,
@@ -74,6 +82,7 @@ __all__ = [
     "ActorId",
     "ActorIdentity",
     "ActorType",
+    "ArbitrationDisposition",
     "ArtifactRef",
     "CompletionPolicyNotSatisfied",
     "CompletionPolicyRef",
@@ -85,6 +94,10 @@ __all__ = [
     "EntityNotFound",
     "EntityVersion",
     "Evaluation",
+    "EvaluationArbitrationId",
+    "EvaluationArbitrationMemberDecision",
+    "EvaluationArbitrationPolicyRef",
+    "EvaluationArbitrationRecord",
     "EvaluationConfidence",
     "EvaluationConflictMemberRef",
     "EvaluationConflictScopeRef",
@@ -119,6 +132,7 @@ __all__ = [
     "Timestamp",
     "TransitionReason",
     "UnauthorizedTransition",
+    "can_arbitrate_evaluation_conflict_set",
     "can_extend_evaluation_conflict_set",
     "can_evaluation_transition",
     "can_objective_transition",

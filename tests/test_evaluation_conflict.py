@@ -438,7 +438,6 @@ def test_m5b_does_not_add_membership_or_future_behavior_to_evaluation() -> None:
         "ConflictSetState",
         "ConflictSetController",
         "ArbitrationRecord",
-        "ArbitrationDisposition",
         "EvaluationConflicted",
         "EvaluationRepository",
     ):

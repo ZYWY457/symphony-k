@@ -12,6 +12,7 @@ from symphony_k.domain import (
     ActorId,
     ActorIdentity,
     ActorType,
+    ArbitrationDisposition,
     ArtifactRef,
     CompletionPolicyRef,
     ConflictSetVersion,
@@ -19,6 +20,10 @@ from symphony_k.domain import (
     EffectId,
     EntityVersion,
     Evaluation,
+    EvaluationArbitrationId,
+    EvaluationArbitrationMemberDecision,
+    EvaluationArbitrationPolicyRef,
+    EvaluationArbitrationRecord,
     EvaluationConfidence,
     EvaluationConflictMemberRef,
     EvaluationConflictScopeRef,
@@ -46,6 +51,7 @@ from symphony_k.domain import (
     TaskId,
     TaskState,
     Timestamp,
+    can_arbitrate_evaluation_conflict_set,
     can_evaluation_transition,
     can_extend_evaluation_conflict_set,
     can_objective_transition,
@@ -65,6 +71,7 @@ if TYPE_CHECKING:
     assert_type(RunId.new(), RunId)
     assert_type(OutcomeId.new(), OutcomeId)
     assert_type(EvaluationId.new(), EvaluationId)
+    assert_type(EvaluationArbitrationId.new(), EvaluationArbitrationId)
     assert_type(EvaluationConflictSetId.new(), EvaluationConflictSetId)
     assert_type(EffectId.new(), EffectId)
     assert_type(ActorId.new(), ActorId)
@@ -76,6 +83,7 @@ if TYPE_CHECKING:
     requires_objective(RunId(value))  # type: ignore[arg-type]
     requires_objective(OutcomeId(value))  # type: ignore[arg-type]
     requires_objective(EvaluationId(value))  # type: ignore[arg-type]
+    requires_objective(EvaluationArbitrationId(value))  # type: ignore[arg-type]
     requires_objective(EvaluationConflictSetId(value))  # type: ignore[arg-type]
     requires_objective(EffectId(value))  # type: ignore[arg-type]
     requires_objective(ActorId(value))  # type: ignore[arg-type]
@@ -354,6 +362,69 @@ if TYPE_CHECKING:
         conflict_scope,
         "Material disagreement",
         frozenset({EvidenceRef("opposing evidence")}),
+        designation,
+        Timestamp(datetime(2026, 9, 7, tzinfo=UTC)),
+        correlation_id,
+    )
+
+    def requires_arbitration_id(
+        identity: EvaluationArbitrationId,
+    ) -> EvaluationArbitrationId:
+        return identity
+
+    arbitration_id = EvaluationArbitrationId(value)
+    assert_type(requires_arbitration_id(arbitration_id), EvaluationArbitrationId)
+    requires_arbitration_id(EvaluationId(value))  # type: ignore[arg-type]
+    requires_arbitration_id(EvaluationConflictSetId(value))  # type: ignore[arg-type]
+    requires_arbitration_id(CorrelationId(value))  # type: ignore[arg-type]
+
+    arbitration_decision = EvaluationArbitrationMemberDecision(
+        EvaluationId(value),
+        EntityVersion(7),
+        ArbitrationDisposition.UPHELD,
+        judgment,
+        judgment,
+    )
+    arbitration_record = EvaluationArbitrationRecord(
+        arbitration_id,
+        conflict_ref,
+        frozenset({arbitration_decision}),
+        "Rationale",
+        frozenset({EvidenceRef("arbitration evidence")}),
+        EvaluationArbitrationPolicyRef("policy", "revision"),
+        designation,
+        Timestamp(datetime(2026, 9, 7, tzinfo=UTC)),
+        correlation_id,
+    )
+    assert_type(arbitration_decision.observed_version, EntityVersion)
+    assert_type(
+        arbitration_record.decisions, frozenset[EvaluationArbitrationMemberDecision]
+    )
+    assert_type(
+        can_arbitrate_evaluation_conflict_set(conflict_record, arbitration_record),
+        bool,
+    )
+    EvaluationArbitrationMemberDecision(
+        EvaluationConflictSetId(value),  # type: ignore[arg-type]
+        EntityVersion(7),
+        ArbitrationDisposition.UPHELD,
+        judgment,
+        judgment,
+    )
+    EvaluationArbitrationMemberDecision(
+        EvaluationId(value),
+        ConflictSetVersion(7),  # type: ignore[arg-type]
+        ArbitrationDisposition.UPHELD,
+        judgment,
+        judgment,
+    )
+    EvaluationArbitrationRecord(
+        EvaluationId(value),  # type: ignore[arg-type]
+        conflict_ref,
+        frozenset({arbitration_decision}),
+        "Rationale",
+        frozenset({EvidenceRef("arbitration evidence")}),
+        EvaluationArbitrationPolicyRef("policy", "revision"),
         designation,
         Timestamp(datetime(2026, 9, 7, tzinfo=UTC)),
         correlation_id,

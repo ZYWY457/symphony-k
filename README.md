@@ -8,6 +8,9 @@ M4 adds Run/Outcome snapshots, provenance and their structural lifecycle graphs.
 M5A adds the Evaluation core, immutable original result content and typed targets.
 M5B adds immutable versioned Evaluation conflict-set records, typed member/scope
 references, correlation identity and a pure append-only extension check.
+M5C1 adds immutable direct and exact conflict-set-linked arbitration decisions,
+explicit dispositions/effective judgements, decision provenance and a pure structural
+compatibility check.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -95,3 +98,14 @@ rejected. `can_extend_evaluation_conflict_set` checks forward, explicitly linked
 append-only membership/evidence structure without mutating records, executing
 Evaluation transitions or persisting history. See the
 [M5B plan](docs/exec-plans/completed/stage-01-m5b-evaluation-conflict-sets-v1.md).
+
+`EvaluationArbitrationRecord` is a separate immutable supporting record. Direct
+arbitration contains exactly one member decision; conflict-linked arbitration binds an
+exact `EvaluationConflictSetRef` and is checked for exact identity/correlation/member
+coverage with equal-or-later observed Evaluation versions. `UPHELD`, `MODIFIED`, and
+`REVERSED` describe the decision separately from `EvaluationState.ARBITRATED`, while
+the prior/effective judgements, policy reference, evidence, rationale, actor, time,
+correlation, and optional prior-arbitration lineage retain provenance. No API derives a
+global effective judgement, resolves conflicts, mutates Evaluation content/state, or
+persists history. See the
+[M5C1 plan](docs/exec-plans/completed/stage-01-m5c1-evaluation-arbitration-v1.md).
