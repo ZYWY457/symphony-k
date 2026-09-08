@@ -30,6 +30,7 @@ from symphony_k.domain import (
     EvaluationConflictSetId,
     EvaluationConflictSetRecord,
     EvaluationConflictSetRef,
+    EvaluationEffectiveUseView,
     EvaluationId,
     EvaluationInvalidationId,
     EvaluationInvalidationRecord,
@@ -61,6 +62,7 @@ from symphony_k.domain import (
     can_outcome_transition,
     can_run_transition,
     can_task_transition,
+    derive_evaluation_effective_use,
 )
 
 if TYPE_CHECKING:
@@ -469,6 +471,24 @@ if TYPE_CHECKING:
         designation,
         Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
         correlation_id,
+    )
+
+    effective_view = derive_evaluation_effective_use(
+        evaluation,
+        applicable_conflict_sets=frozenset({conflict_record}),
+        arbitration_records=frozenset({arbitration_record}),
+        invalidation_records=frozenset({invalidation_record}),
+    )
+    assert_type(effective_view, EvaluationEffectiveUseView)
+    assert_type(effective_view.effective_judgement, EvaluationVerdict | None)
+    assert_type(
+        effective_view.applicable_conflicts, frozenset[EvaluationConflictSetRef]
+    )
+    derive_evaluation_effective_use(
+        evaluation,
+        applicable_conflict_sets=frozenset({arbitration_record}),  # type: ignore[arg-type]
+        arbitration_records=frozenset({arbitration_record}),
+        invalidation_records=frozenset({invalidation_record}),
     )
     EvaluationInvalidationRecord(
         invalidation_id,

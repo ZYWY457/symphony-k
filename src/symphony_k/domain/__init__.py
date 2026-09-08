@@ -35,6 +35,10 @@ from .evaluation_conflict import (
     EvaluationConflictSetRef,
     can_extend_evaluation_conflict_set,
 )
+from .evaluation_effective_use import (
+    EvaluationEffectiveUseView,
+    derive_evaluation_effective_use,
+)
 from .evaluation_invalidation import (
     EvaluationInvalidationRecord,
     can_invalidate_evaluation,
@@ -109,6 +113,7 @@ __all__ = [
     "EvaluationConflictSetId",
     "EvaluationConflictSetRecord",
     "EvaluationConflictSetRef",
+    "EvaluationEffectiveUseView",
     "EvaluationId",
     "EvaluationInvalidationId",
     "EvaluationInvalidationRecord",
@@ -143,6 +148,7 @@ __all__ = [
     "can_extend_evaluation_conflict_set",
     "can_evaluation_transition",
     "can_invalidate_evaluation",
+    "derive_evaluation_effective_use",
     "can_objective_transition",
     "can_outcome_transition",
     "can_run_transition",

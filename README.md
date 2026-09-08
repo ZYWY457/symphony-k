@@ -13,6 +13,9 @@ explicit dispositions/effective judgements, decision provenance and a pure struc
 compatibility check.
 M5C2 adds immutable, evidence-backed Evaluation invalidation records and an exact
 snapshot structural compatibility check.
+M5C3 adds a pure derived effective-use view with explicit arbitration lineage,
+ambiguity detection, exact current conflict-version coverage, multi-conflict blocking,
+invalidation interaction, and lifecycle-aware eligibility.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -119,3 +122,14 @@ PENDING, RUNNING, COMPLETED or CONFLICTED snapshots. It does not inspect verdict
 authenticate authority, mutate Evaluation state/version, or derive conflict/arbitration
 consequences. See the
 [M5C2 plan](docs/exec-plans/completed/stage-01-m5c2-evaluation-invalidation-v1.md).
+
+`derive_evaluation_effective_use` consumes one Evaluation and caller-supplied immutable
+current conflict records plus complete relevant arbitration/invalidation history. It
+derives `EvaluationEffectiveUseView` without selecting repository records or changing
+lifecycle state. Arbitration precedence comes only from Evaluation-specific
+`prior_arbitration_id` links; missing lineage and cycles are rejected, while multiple
+independent terminal decisions are reported as ambiguous. Every exact supplied current
+ConflictSet version must be addressed before ARBITRATED use is eligible, and INVALID
+never yields an effective judgement. The resolver cannot prove that its caller supplied
+complete repository history. See the
+[M5C3 plan](docs/exec-plans/completed/stage-01-m5c3-evaluation-effective-use-v1.md).
