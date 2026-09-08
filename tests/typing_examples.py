@@ -17,7 +17,12 @@ from symphony_k.domain import (
     CompletionPolicyRef,
     ConflictSetVersion,
     CorrelationId,
+    Effect,
+    EffectExternalOperationRef,
     EffectId,
+    EffectPayloadRef,
+    EffectState,
+    EffectTargetRef,
     EntityVersion,
     Evaluation,
     EvaluationArbitrationId,
@@ -44,9 +49,11 @@ from symphony_k.domain import (
     Objective,
     ObjectiveId,
     ObjectiveState,
+    ObservedEffectOrigin,
     Outcome,
     OutcomeId,
     OutcomeState,
+    PlannedEffectOrigin,
     Run,
     RunId,
     RunState,
@@ -55,6 +62,7 @@ from symphony_k.domain import (
     TaskState,
     Timestamp,
     can_arbitrate_evaluation_conflict_set,
+    can_effect_transition,
     can_evaluation_transition,
     can_extend_evaluation_conflict_set,
     can_invalidate_evaluation,
@@ -472,6 +480,76 @@ if TYPE_CHECKING:
         Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
         correlation_id,
     )
+
+    effect_target_ref = EffectTargetRef("target")
+    effect_payload_ref = EffectPayloadRef("payload")
+    external_operation_ref = EffectExternalOperationRef("operation")
+    planned_effect_origin = PlannedEffectOrigin(
+        TaskId(value), designation, RunId(value)
+    )
+    observed_effect_origin = ObservedEffectOrigin(
+        external_operation_ref,
+        frozenset({EvidenceRef("observation")}),
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        None,
+        None,
+        "Attribution unknown",
+    )
+    planned_effect = Effect(
+        EffectId(value),
+        EffectState.PLANNED,
+        EntityVersion(7),
+        planned_effect_origin,
+        effect_target_ref,
+        effect_payload_ref,
+    )
+    observed_effect = Effect(
+        EffectId(value),
+        EffectState.COMMITTED,
+        EntityVersion(7),
+        observed_effect_origin,
+        effect_target_ref,
+        None,
+    )
+    assert_type(planned_effect, Effect)
+    assert_type(observed_effect.origin, PlannedEffectOrigin | ObservedEffectOrigin)
+    assert_type(observed_effect.payload_ref, EffectPayloadRef | None)
+    EffectTargetRef(effect_payload_ref)  # type: ignore[arg-type]
+    EffectPayloadRef(effect_target_ref)  # type: ignore[arg-type]
+    EffectExternalOperationRef(effect_target_ref)  # type: ignore[arg-type]
+    EffectTargetRef(EvidenceRef("evidence"))  # type: ignore[arg-type]
+    EffectPayloadRef(EvidenceRef("evidence"))  # type: ignore[arg-type]
+    EffectExternalOperationRef(EvidenceRef("evidence"))  # type: ignore[arg-type]
+    EvidenceRef(effect_target_ref)  # type: ignore[arg-type]
+    PlannedEffectOrigin(RunId(value), designation)  # type: ignore[arg-type]
+    PlannedEffectOrigin(TaskId(value), ActorId(value))  # type: ignore[arg-type]
+    ObservedEffectOrigin(
+        effect_target_ref,  # type: ignore[arg-type]
+        frozenset({EvidenceRef("observation")}),
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        None,
+        None,
+        "Attribution unknown",
+    )
+    Effect(
+        TaskId(value),  # type: ignore[arg-type]
+        EffectState.PLANNED,
+        EntityVersion(7),
+        planned_effect_origin,
+        effect_target_ref,
+        effect_payload_ref,
+    )
+    Effect(
+        EffectId(value),
+        EffectState.PLANNED,
+        EntityVersion(7),
+        planned_effect_origin,
+        effect_payload_ref,  # type: ignore[arg-type]
+        effect_payload_ref,
+    )
+    can_effect_transition(OutcomeState.PROPOSED, EffectState.COMMITTED)  # type: ignore[arg-type]
 
     effective_view = derive_evaluation_effective_use(
         evaluation,

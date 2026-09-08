@@ -3,6 +3,18 @@
 from .actors import ActorIdentity, ActorType
 from .candidate_refs import ArtifactRef, EvidenceRef
 from .completion import CompletionPolicyRef
+from .effect import (
+    EFFECT_CREATION_STATES,
+    Effect,
+    EffectExternalOperationRef,
+    EffectOrigin,
+    EffectPayloadRef,
+    EffectState,
+    EffectTargetRef,
+    ObservedEffectOrigin,
+    PlannedEffectOrigin,
+    can_effect_transition,
+)
 from .errors import (
     CompletionPolicyNotSatisfied,
     ConcurrencyConflict,
@@ -83,6 +95,7 @@ from .transitions import TransitionReason
 from .version import ConflictSetVersion, EntityVersion
 
 __all__ = [
+    "EFFECT_CREATION_STATES",
     "EVALUATION_CREATION_STATE",
     "OBJECTIVE_CREATION_STATE",
     "OUTCOME_CREATION_STATE",
@@ -100,6 +113,12 @@ __all__ = [
     "CorrelationId",
     "DomainError",
     "EffectId",
+    "Effect",
+    "EffectExternalOperationRef",
+    "EffectOrigin",
+    "EffectPayloadRef",
+    "EffectState",
+    "EffectTargetRef",
     "EntityNotFound",
     "EntityVersion",
     "Evaluation",
@@ -135,6 +154,8 @@ __all__ = [
     "Outcome",
     "OutcomeId",
     "OutcomeState",
+    "ObservedEffectOrigin",
+    "PlannedEffectOrigin",
     "Run",
     "RunId",
     "RunState",
@@ -147,6 +168,7 @@ __all__ = [
     "can_arbitrate_evaluation_conflict_set",
     "can_extend_evaluation_conflict_set",
     "can_evaluation_transition",
+    "can_effect_transition",
     "can_invalidate_evaluation",
     "derive_evaluation_effective_use",
     "can_objective_transition",
