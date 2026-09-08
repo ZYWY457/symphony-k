@@ -103,6 +103,16 @@ class EffectGovernanceFindingId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EffectIncidentId(_UuidId):
+    """Stable identity of one conceptual Effect incident."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectIncidentRecordId(_UuidId):
+    """Identity of one immutable historical Effect incident record."""
+
+
+@dataclass(frozen=True, slots=True)
 class ActorId(_UuidId):
     """Identity of a principal, independent of its operating category."""
 

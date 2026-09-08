@@ -18,9 +18,16 @@ from symphony_k.domain import (
     ConflictSetVersion,
     CorrelationId,
     Effect,
+    EffectAttributionId,
+    EffectAuthorizationFindingId,
     EffectDeduplicationRef,
     EffectExternalOperationRef,
+    EffectGovernanceFindingId,
     EffectId,
+    EffectIncidentId,
+    EffectIncidentRecord,
+    EffectIncidentRecordId,
+    EffectIncidentStatus,
     EffectObservationId,
     EffectObservationRecord,
     EffectOccurrenceStatus,
@@ -66,10 +73,12 @@ from symphony_k.domain import (
     TaskState,
     Timestamp,
     can_arbitrate_evaluation_conflict_set,
+    can_attach_effect_incident_record,
     can_attach_effect_observation,
     can_effect_transition,
     can_evaluation_transition,
     can_extend_evaluation_conflict_set,
+    can_follow_effect_incident_record,
     can_follow_effect_observation,
     can_invalidate_evaluation,
     can_objective_transition,
@@ -646,6 +655,79 @@ if TYPE_CHECKING:
         frozenset({EvidenceRef("invalidation evidence")}),
         designation,
         Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+    )
+
+    def requires_incident_id(identity: EffectIncidentId) -> EffectIncidentId:
+        return identity
+
+    def requires_incident_record_id(
+        identity: EffectIncidentRecordId,
+    ) -> EffectIncidentRecordId:
+        return identity
+
+    incident_id = EffectIncidentId(value)
+    incident_record_id = EffectIncidentRecordId(value)
+    assert_type(requires_incident_id(incident_id), EffectIncidentId)
+    assert_type(requires_incident_record_id(incident_record_id), EffectIncidentRecordId)
+    requires_incident_id(EffectId(value))  # type: ignore[arg-type]
+    requires_incident_id(EffectObservationId(value))  # type: ignore[arg-type]
+    requires_incident_id(EffectAttributionId(value))  # type: ignore[arg-type]
+    requires_incident_id(EffectAuthorizationFindingId(value))  # type: ignore[arg-type]
+    requires_incident_id(EffectGovernanceFindingId(value))  # type: ignore[arg-type]
+    requires_incident_id(CorrelationId(value))  # type: ignore[arg-type]
+    requires_incident_id(value)  # type: ignore[arg-type]
+    requires_incident_record_id(incident_id)  # type: ignore[arg-type]
+    requires_incident_record_id(EffectId(value))  # type: ignore[arg-type]
+
+    incident_record = EffectIncidentRecord(
+        incident_record_id,
+        incident_id,
+        EffectId(value),
+        EntityVersion(7),
+        EffectIncidentStatus.CLOSED,
+        "Historical closure finding",
+        frozenset({EvidenceRef("incident evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    assert_type(incident_record.record_id, EffectIncidentRecordId)
+    assert_type(incident_record.incident_id, EffectIncidentId)
+    assert_type(
+        can_attach_effect_incident_record(observed_effect, incident_record), bool
+    )
+    assert_type(
+        can_follow_effect_incident_record(incident_record, incident_record), bool
+    )
+    EffectIncidentRecord(
+        incident_id,  # type: ignore[arg-type]
+        incident_id,
+        EffectId(value),
+        EntityVersion(7),
+        EffectIncidentStatus.OPEN,
+        "Finding",
+        frozenset({EvidenceRef("incident evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    EffectIncidentRecord(
+        incident_record_id,
+        incident_record_id,  # type: ignore[arg-type]
+        EffectId(value),
+        EntityVersion(7),
+        EffectIncidentStatus.OPEN,
+        "Finding",
+        frozenset({EvidenceRef("incident evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
         correlation_id,
     )
     EvaluationInvalidationRecord(
