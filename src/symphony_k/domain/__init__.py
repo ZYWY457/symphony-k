@@ -112,6 +112,7 @@ from .evaluation_target import EvaluationTargetRef
 from .execution_profile import ExecutionProfileRef
 from .ids import (
     ActorId,
+    CausationId,
     CorrelationId,
     EffectAttributionId,
     EffectAuthorizationFindingId,
@@ -130,6 +131,7 @@ from .ids import (
     EvaluationConflictSetId,
     EvaluationId,
     EvaluationInvalidationId,
+    EventId,
     ObjectiveId,
     OutcomeId,
     RunId,
@@ -150,6 +152,17 @@ from .outcome import (
 from .run import RUN_CREATION_STATE, Run, RunState, can_run_transition
 from .task import TASK_CREATION_STATE, Task, TaskState, can_task_transition
 from .time import Timestamp
+from .transition_engine import (
+    DomainEntityType,
+    DomainEvent,
+    DomainEventMetadata,
+    DomainEventType,
+    TransitionContext,
+    TransitionGuard,
+    TransitionRequest,
+    TransitionResult,
+    transition_entity,
+)
 from .transitions import TransitionReason
 from .version import ConflictSetVersion, EntityVersion
 
@@ -165,12 +178,17 @@ __all__ = [
     "ActorType",
     "ArbitrationDisposition",
     "ArtifactRef",
+    "CausationId",
     "CompletionPolicyNotSatisfied",
     "CompletionPolicyRef",
     "ConflictSetVersion",
     "ConcurrencyConflict",
     "CorrelationId",
     "DomainError",
+    "DomainEntityType",
+    "DomainEvent",
+    "DomainEventMetadata",
+    "DomainEventType",
     "Effect",
     "EffectAttributionId",
     "EffectAttributionRecord",
@@ -230,6 +248,7 @@ __all__ = [
     "EvaluationTargetRef",
     "EvaluationVerdict",
     "EvidenceRef",
+    "EventId",
     "ExecutionProfileRef",
     "ImmutableRecordViolation",
     "InvalidDomainValue",
@@ -251,7 +270,11 @@ __all__ = [
     "TaskId",
     "TaskState",
     "Timestamp",
+    "TransitionContext",
+    "TransitionGuard",
     "TransitionReason",
+    "TransitionRequest",
+    "TransitionResult",
     "UnauthorizedTransition",
     "can_arbitrate_evaluation_conflict_set",
     "can_extend_evaluation_conflict_set",
@@ -279,4 +302,5 @@ __all__ = [
     "can_outcome_transition",
     "can_run_transition",
     "can_task_transition",
+    "transition_entity",
 ]

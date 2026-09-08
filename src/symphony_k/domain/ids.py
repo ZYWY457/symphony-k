@@ -143,6 +143,16 @@ class EffectCompensationCompletionId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EventId(_UuidId):
+    """Identity of one immutable authoritative domain event."""
+
+
+@dataclass(frozen=True, slots=True)
+class CausationId(_UuidId):
+    """Identity of the request or record that caused a domain event."""
+
+
+@dataclass(frozen=True, slots=True)
 class ActorId(_UuidId):
     """Identity of a principal, independent of its operating category."""
 

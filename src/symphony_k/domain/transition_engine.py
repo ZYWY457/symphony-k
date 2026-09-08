@@ -1,0 +1,590 @@
+"""Pure authoritative lifecycle-transition mechanics for immutable snapshots.
+
+M7A validates caller-supplied versions and canonical structural topology, then
+returns a new snapshot and one DomainEvent. Authority and semantic rules are
+supplied through an explicit guard boundary and remain incomplete until M7B–M7E.
+This module performs no loading, persistence, transaction, or external action.
+"""
+
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
+from enum import Enum
+from types import MappingProxyType
+from typing import Final, Protocol, overload, runtime_checkable
+
+from . import effect as effect_domain
+from . import evaluation as evaluation_domain
+from . import objective as objective_domain
+from . import outcome as outcome_domain
+from . import run as run_domain
+from . import task as task_domain
+from .actors import ActorIdentity
+from .effect import Effect, EffectState
+from .errors import ConcurrencyConflict, InvalidDomainValue, InvalidTransition
+from .evaluation import Evaluation, EvaluationState
+from .ids import (
+    CausationId,
+    CorrelationId,
+    EffectId,
+    EvaluationId,
+    EventId,
+    ObjectiveId,
+    OutcomeId,
+    RunId,
+    TaskId,
+)
+from .objective import Objective, ObjectiveState
+from .outcome import Outcome, OutcomeState
+from .run import Run, RunState
+from .task import Task, TaskState
+from .time import Timestamp
+from .transitions import TransitionReason
+from .version import EntityVersion
+
+type LifecycleEntity = Objective | Task | Run | Outcome | Evaluation | Effect
+type LifecycleState = (
+    ObjectiveState | TaskState | RunState | OutcomeState | EvaluationState | EffectState
+)
+type LifecycleEntityId = (
+    ObjectiveId | TaskId | RunId | OutcomeId | EvaluationId | EffectId
+)
+
+
+class DomainEntityType(Enum):
+    """Closed identity of the six lifecycle-bearing core entity families."""
+
+    OBJECTIVE = "OBJECTIVE"
+    TASK = "TASK"
+    RUN = "RUN"
+    OUTCOME = "OUTCOME"
+    EVALUATION = "EVALUATION"
+    EFFECT = "EFFECT"
+
+
+class DomainEventType(Enum):
+    """Closed authoritative lifecycle-event family from the accepted design."""
+
+    OBJECTIVE_CREATED = "ObjectiveCreated"
+    OBJECTIVE_ACTIVATED = "ObjectiveActivated"
+    OBJECTIVE_BLOCKED = "ObjectiveBlocked"
+    OBJECTIVE_SATISFIED = "ObjectiveSatisfied"
+    OBJECTIVE_FAILED = "ObjectiveFailed"
+    OBJECTIVE_CANCELLED = "ObjectiveCancelled"
+    OBJECTIVE_EXPIRED = "ObjectiveExpired"
+    OBJECTIVE_ARCHIVED = "ObjectiveArchived"
+
+    TASK_CREATED = "TaskCreated"
+    TASK_READIED = "TaskReadied"
+    TASK_STARTED = "TaskStarted"
+    TASK_BLOCKED = "TaskBlocked"
+    TASK_COMPLETED = "TaskCompleted"
+    TASK_FAILED = "TaskFailed"
+    TASK_CANCELLED = "TaskCancelled"
+
+    RUN_CREATED = "RunCreated"
+    RUN_STARTED = "RunStarted"
+    RUN_WAITING_FOR_VERIFICATION = "RunWaitingForVerification"
+    RUN_RETRYING = "RunRetrying"
+    RUN_REASSIGNED = "RunReassigned"
+    RUN_COMPLETED = "RunCompleted"
+    RUN_FAILED = "RunFailed"
+    RUN_ABORTED = "RunAborted"
+
+    OUTCOME_PROPOSED = "OutcomeProposed"
+    OUTCOME_VALIDATION_STARTED = "OutcomeValidationStarted"
+    OUTCOME_ACCEPTED = "OutcomeAccepted"
+    OUTCOME_REJECTED = "OutcomeRejected"
+    OUTCOME_SUPERSEDED = "OutcomeSuperseded"
+    OUTCOME_EXPIRED = "OutcomeExpired"
+
+    EVALUATION_REQUESTED = "EvaluationRequested"
+    EVALUATION_STARTED = "EvaluationStarted"
+    EVALUATION_COMPLETED = "EvaluationCompleted"
+    EVALUATION_CONFLICTED = "EvaluationConflicted"
+    EVALUATION_ARBITRATED = "EvaluationArbitrated"
+    EVALUATION_INVALIDATED = "EvaluationInvalidated"
+
+    EFFECT_PLANNED = "EffectPlanned"
+    EFFECT_SIMULATED = "EffectSimulated"
+    EFFECT_PENDING_COMMIT = "EffectPendingCommit"
+    EFFECT_COMMITTED = "EffectCommitted"
+    EFFECT_ROLLED_BACK = "EffectRolledBack"
+    EFFECT_COMPENSATION_STARTED = "EffectCompensationStarted"
+    EFFECT_COMPENSATED = "EffectCompensated"
+    EFFECT_QUARANTINED = "EffectQuarantined"
+
+
+_EVENT_TYPE_BY_STATE: Final[Mapping[LifecycleState, DomainEventType]] = (
+    MappingProxyType(
+        {
+            ObjectiveState.DRAFT: DomainEventType.OBJECTIVE_CREATED,
+            ObjectiveState.ACTIVE: DomainEventType.OBJECTIVE_ACTIVATED,
+            ObjectiveState.BLOCKED: DomainEventType.OBJECTIVE_BLOCKED,
+            ObjectiveState.SATISFIED: DomainEventType.OBJECTIVE_SATISFIED,
+            ObjectiveState.FAILED: DomainEventType.OBJECTIVE_FAILED,
+            ObjectiveState.CANCELLED: DomainEventType.OBJECTIVE_CANCELLED,
+            ObjectiveState.EXPIRED: DomainEventType.OBJECTIVE_EXPIRED,
+            ObjectiveState.ARCHIVED: DomainEventType.OBJECTIVE_ARCHIVED,
+            TaskState.DRAFT: DomainEventType.TASK_CREATED,
+            TaskState.READY: DomainEventType.TASK_READIED,
+            TaskState.IN_PROGRESS: DomainEventType.TASK_STARTED,
+            TaskState.BLOCKED: DomainEventType.TASK_BLOCKED,
+            TaskState.COMPLETED: DomainEventType.TASK_COMPLETED,
+            TaskState.FAILED: DomainEventType.TASK_FAILED,
+            TaskState.CANCELLED: DomainEventType.TASK_CANCELLED,
+            RunState.PENDING: DomainEventType.RUN_CREATED,
+            RunState.RUNNING: DomainEventType.RUN_STARTED,
+            RunState.WAITING_FOR_VERIFICATION: (
+                DomainEventType.RUN_WAITING_FOR_VERIFICATION
+            ),
+            RunState.RETRYING: DomainEventType.RUN_RETRYING,
+            RunState.REASSIGNED: DomainEventType.RUN_REASSIGNED,
+            RunState.COMPLETED: DomainEventType.RUN_COMPLETED,
+            RunState.FAILED: DomainEventType.RUN_FAILED,
+            RunState.ABORTED: DomainEventType.RUN_ABORTED,
+            OutcomeState.PROPOSED: DomainEventType.OUTCOME_PROPOSED,
+            OutcomeState.VALIDATING: DomainEventType.OUTCOME_VALIDATION_STARTED,
+            OutcomeState.ACCEPTED: DomainEventType.OUTCOME_ACCEPTED,
+            OutcomeState.REJECTED: DomainEventType.OUTCOME_REJECTED,
+            OutcomeState.SUPERSEDED: DomainEventType.OUTCOME_SUPERSEDED,
+            OutcomeState.EXPIRED: DomainEventType.OUTCOME_EXPIRED,
+            EvaluationState.PENDING: DomainEventType.EVALUATION_REQUESTED,
+            EvaluationState.RUNNING: DomainEventType.EVALUATION_STARTED,
+            EvaluationState.COMPLETED: DomainEventType.EVALUATION_COMPLETED,
+            EvaluationState.CONFLICTED: DomainEventType.EVALUATION_CONFLICTED,
+            EvaluationState.ARBITRATED: DomainEventType.EVALUATION_ARBITRATED,
+            EvaluationState.INVALID: DomainEventType.EVALUATION_INVALIDATED,
+            EffectState.PLANNED: DomainEventType.EFFECT_PLANNED,
+            EffectState.SIMULATED: DomainEventType.EFFECT_SIMULATED,
+            EffectState.PENDING_COMMIT: DomainEventType.EFFECT_PENDING_COMMIT,
+            EffectState.COMMITTED: DomainEventType.EFFECT_COMMITTED,
+            EffectState.ROLLED_BACK: DomainEventType.EFFECT_ROLLED_BACK,
+            EffectState.COMPENSATING: DomainEventType.EFFECT_COMPENSATION_STARTED,
+            EffectState.COMPENSATED: DomainEventType.EFFECT_COMPENSATED,
+            EffectState.QUARANTINED: DomainEventType.EFFECT_QUARANTINED,
+        }
+    )
+)
+
+
+def _is_lifecycle_state(value: object) -> bool:
+    return isinstance(
+        value,
+        (
+            ObjectiveState,
+            TaskState,
+            RunState,
+            OutcomeState,
+            EvaluationState,
+            EffectState,
+        ),
+    )
+
+
+def _entity_type_for_state(state: LifecycleState) -> DomainEntityType:
+    if isinstance(state, ObjectiveState):
+        return DomainEntityType.OBJECTIVE
+    if isinstance(state, TaskState):
+        return DomainEntityType.TASK
+    if isinstance(state, RunState):
+        return DomainEntityType.RUN
+    if isinstance(state, OutcomeState):
+        return DomainEntityType.OUTCOME
+    if isinstance(state, EvaluationState):
+        return DomainEntityType.EVALUATION
+    return DomainEntityType.EFFECT
+
+
+def _entity_type_for_id(identity: LifecycleEntityId) -> DomainEntityType:
+    if isinstance(identity, ObjectiveId):
+        return DomainEntityType.OBJECTIVE
+    if isinstance(identity, TaskId):
+        return DomainEntityType.TASK
+    if isinstance(identity, RunId):
+        return DomainEntityType.RUN
+    if isinstance(identity, OutcomeId):
+        return DomainEntityType.OUTCOME
+    if isinstance(identity, EvaluationId):
+        return DomainEntityType.EVALUATION
+    return DomainEntityType.EFFECT
+
+
+def _entity_details(
+    entity: LifecycleEntity,
+) -> tuple[DomainEntityType, LifecycleEntityId, LifecycleState]:
+    if isinstance(entity, Objective):
+        return DomainEntityType.OBJECTIVE, entity.objective_id, entity.state
+    if isinstance(entity, Task):
+        return DomainEntityType.TASK, entity.task_id, entity.state
+    if isinstance(entity, Run):
+        return DomainEntityType.RUN, entity.run_id, entity.state
+    if isinstance(entity, Outcome):
+        return DomainEntityType.OUTCOME, entity.outcome_id, entity.state
+    if isinstance(entity, Evaluation):
+        return DomainEntityType.EVALUATION, entity.evaluation_id, entity.state
+    return DomainEntityType.EFFECT, entity.effect_id, entity.state
+
+
+def _replace_entity_state(
+    entity: LifecycleEntity,
+    target: LifecycleState,
+    version: EntityVersion,
+) -> LifecycleEntity:
+    """Create a same-family replacement, changing only state and version."""
+    if isinstance(entity, Objective) and isinstance(target, ObjectiveState):
+        return replace(entity, state=target, version=version)
+    if isinstance(entity, Task) and isinstance(target, TaskState):
+        return replace(entity, state=target, version=version)
+    if isinstance(entity, Run) and isinstance(target, RunState):
+        return replace(entity, state=target, version=version)
+    if isinstance(entity, Outcome) and isinstance(target, OutcomeState):
+        return replace(entity, state=target, version=version)
+    if isinstance(entity, Evaluation) and isinstance(target, EvaluationState):
+        return replace(entity, state=target, version=version)
+    if isinstance(entity, Effect) and isinstance(target, EffectState):
+        return replace(entity, state=target, version=version)
+    raise InvalidTransition("Target state belongs to a different entity family")
+
+
+def _can_transition(
+    entity_type: DomainEntityType,
+    source: LifecycleState,
+    target: LifecycleState,
+) -> bool:
+    """Delegate to the canonical entity topology; no edge set exists here."""
+    if entity_type is DomainEntityType.OBJECTIVE:
+        return (
+            isinstance(source, ObjectiveState)
+            and isinstance(target, ObjectiveState)
+            and objective_domain.can_objective_transition(source, target)
+        )
+    if entity_type is DomainEntityType.TASK:
+        return (
+            isinstance(source, TaskState)
+            and isinstance(target, TaskState)
+            and task_domain.can_task_transition(source, target)
+        )
+    if entity_type is DomainEntityType.RUN:
+        return (
+            isinstance(source, RunState)
+            and isinstance(target, RunState)
+            and run_domain.can_run_transition(source, target)
+        )
+    if entity_type is DomainEntityType.OUTCOME:
+        return (
+            isinstance(source, OutcomeState)
+            and isinstance(target, OutcomeState)
+            and outcome_domain.can_outcome_transition(source, target)
+        )
+    if entity_type is DomainEntityType.EVALUATION:
+        return (
+            isinstance(source, EvaluationState)
+            and isinstance(target, EvaluationState)
+            and evaluation_domain.can_evaluation_transition(source, target)
+        )
+    return (
+        isinstance(source, EffectState)
+        and isinstance(target, EffectState)
+        and effect_domain.can_effect_transition(source, target)
+    )
+
+
+def _is_creation_target(entity_type: DomainEntityType, target: LifecycleState) -> bool:
+    if entity_type is DomainEntityType.OBJECTIVE:
+        return target is objective_domain.OBJECTIVE_CREATION_STATE
+    if entity_type is DomainEntityType.TASK:
+        return target is task_domain.TASK_CREATION_STATE
+    if entity_type is DomainEntityType.RUN:
+        return target is run_domain.RUN_CREATION_STATE
+    if entity_type is DomainEntityType.OUTCOME:
+        return target is outcome_domain.OUTCOME_CREATION_STATE
+    if entity_type is DomainEntityType.EVALUATION:
+        return target is evaluation_domain.EVALUATION_CREATION_STATE
+    return (
+        isinstance(target, EffectState)
+        and target in effect_domain.EFFECT_CREATION_STATES
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class DomainEventMetadata:
+    """Immutable lifecycle meaning; None means pre-creation absence, not a state."""
+
+    prior_state: LifecycleState | None
+    new_state: LifecycleState
+    annotations: frozenset[tuple[str, str]] = frozenset()
+
+    def __post_init__(self) -> None:
+        if self.prior_state is not None and not _is_lifecycle_state(self.prior_state):
+            raise InvalidDomainValue("prior_state must be a lifecycle state or None")
+        if not _is_lifecycle_state(self.new_state):
+            raise InvalidDomainValue("new_state must be a lifecycle state")
+        if self.prior_state is not None:
+            if type(self.prior_state) is not type(self.new_state):
+                raise InvalidDomainValue(
+                    "prior_state and new_state must belong to the same entity family"
+                )
+            if self.prior_state is self.new_state:
+                raise InvalidDomainValue(
+                    "Lifecycle event metadata cannot self-transition"
+                )
+        if not isinstance(self.annotations, frozenset):
+            raise InvalidDomainValue("annotations must be a frozenset")
+        keys: list[str] = []
+        for annotation in self.annotations:
+            if (
+                not isinstance(annotation, tuple)
+                or len(annotation) != 2
+                or not all(
+                    isinstance(value, str) and value.strip() for value in annotation
+                )
+            ):
+                raise InvalidDomainValue(
+                    "Every annotation must contain two non-whitespace strings"
+                )
+            keys.append(annotation[0])
+        if len(keys) != len(set(keys)):
+            raise InvalidDomainValue("Annotation keys must be unique")
+
+
+@dataclass(frozen=True, slots=True)
+class DomainEvent:
+    """One immutable authoritative lifecycle event; persistence belongs to M8."""
+
+    event_id: EventId
+    event_type: DomainEventType
+    entity_type: DomainEntityType
+    entity_id: LifecycleEntityId
+    entity_version: EntityVersion
+    actor: ActorIdentity
+    timestamp: Timestamp
+    correlation_id: CorrelationId
+    causation_id: CausationId | None
+    reason: TransitionReason
+    metadata: DomainEventMetadata
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.event_id, EventId):
+            raise InvalidDomainValue("event_id must be an EventId")
+        if not isinstance(self.event_type, DomainEventType):
+            raise InvalidDomainValue("event_type must be a DomainEventType")
+        if not isinstance(self.entity_type, DomainEntityType):
+            raise InvalidDomainValue("entity_type must be a DomainEntityType")
+        if not isinstance(
+            self.entity_id,
+            (ObjectiveId, TaskId, RunId, OutcomeId, EvaluationId, EffectId),
+        ):
+            raise InvalidDomainValue("entity_id must be a core entity ID")
+        if _entity_type_for_id(self.entity_id) is not self.entity_type:
+            raise InvalidDomainValue("entity_id must match entity_type")
+        if not isinstance(self.entity_version, EntityVersion):
+            raise InvalidDomainValue("entity_version must be an EntityVersion")
+        if not isinstance(self.actor, ActorIdentity):
+            raise InvalidDomainValue("actor must be an ActorIdentity")
+        if not isinstance(self.timestamp, Timestamp):
+            raise InvalidDomainValue("timestamp must be a Timestamp")
+        if not isinstance(self.correlation_id, CorrelationId):
+            raise InvalidDomainValue("correlation_id must be a CorrelationId")
+        if self.causation_id is not None and not isinstance(
+            self.causation_id, CausationId
+        ):
+            raise InvalidDomainValue("causation_id must be a CausationId or None")
+        if not isinstance(self.reason, TransitionReason):
+            raise InvalidDomainValue("reason must be a TransitionReason")
+        if not isinstance(self.metadata, DomainEventMetadata):
+            raise InvalidDomainValue("metadata must be DomainEventMetadata")
+        if _entity_type_for_state(self.metadata.new_state) is not self.entity_type:
+            raise InvalidDomainValue("metadata state must match entity_type")
+        if _EVENT_TYPE_BY_STATE[self.metadata.new_state] is not self.event_type:
+            raise InvalidDomainValue("event_type must match the new lifecycle state")
+        if self.metadata.prior_state is None:
+            if not _is_creation_target(self.entity_type, self.metadata.new_state):
+                raise InvalidDomainValue(
+                    "Absent prior state is valid only for a canonical creation target"
+                )
+        elif not _can_transition(
+            self.entity_type, self.metadata.prior_state, self.metadata.new_state
+        ):
+            raise InvalidDomainValue(
+                "metadata must describe a canonical lifecycle edge"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class TransitionRequest[StateT_co: LifecycleState]:
+    """Immutable caller request; actor classification alone grants no authority."""
+
+    event_id: EventId
+    target_state: StateT_co
+    actor: ActorIdentity
+    reason: TransitionReason
+    expected_version: EntityVersion
+    timestamp: Timestamp
+    correlation_id: CorrelationId
+    causation_id: CausationId | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.event_id, EventId):
+            raise InvalidDomainValue("event_id must be an EventId")
+        if not _is_lifecycle_state(self.target_state):
+            raise InvalidDomainValue("target_state must be a lifecycle state")
+        if not isinstance(self.actor, ActorIdentity):
+            raise InvalidDomainValue("actor must be an ActorIdentity")
+        if not isinstance(self.reason, TransitionReason):
+            raise InvalidDomainValue("reason must be a TransitionReason")
+        if not isinstance(self.expected_version, EntityVersion):
+            raise InvalidDomainValue("expected_version must be an EntityVersion")
+        if not isinstance(self.timestamp, Timestamp):
+            raise InvalidDomainValue("timestamp must be a Timestamp")
+        if not isinstance(self.correlation_id, CorrelationId):
+            raise InvalidDomainValue("correlation_id must be a CorrelationId")
+        if self.causation_id is not None and not isinstance(
+            self.causation_id, CausationId
+        ):
+            raise InvalidDomainValue("causation_id must be a CausationId or None")
+
+
+@runtime_checkable
+class TransitionGuard(Protocol):
+    """Pure extension boundary for later typed authority and semantic guards."""
+
+    def validate(
+        self,
+        entity: LifecycleEntity,
+        request: TransitionRequest[LifecycleState],
+    ) -> None:
+        """Return normally when satisfied or raise a typed DomainError."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class TransitionContext:
+    """Explicit nonempty guard chain; M7A supplies no permissive default."""
+
+    guards: tuple[TransitionGuard, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.guards, tuple) or not self.guards:
+            raise InvalidDomainValue("guards must be a nonempty tuple")
+        if any(not isinstance(guard, TransitionGuard) for guard in self.guards):
+            raise InvalidDomainValue("Every guard must implement TransitionGuard")
+
+
+@dataclass(frozen=True, slots=True)
+class TransitionResult[EntityT_co: LifecycleEntity]:
+    """One new immutable snapshot paired with exactly one lifecycle event."""
+
+    entity: EntityT_co
+    event: DomainEvent
+
+    def __post_init__(self) -> None:
+        if not isinstance(
+            self.entity, (Objective, Task, Run, Outcome, Evaluation, Effect)
+        ):
+            raise InvalidDomainValue("entity must be a lifecycle entity snapshot")
+        if not isinstance(self.event, DomainEvent):
+            raise InvalidDomainValue("event must be a DomainEvent")
+        entity_type, entity_id, state = _entity_details(self.entity)
+        if (
+            self.event.entity_type is not entity_type
+            or self.event.entity_id != entity_id
+            or self.event.entity_version != self.entity.version
+            or self.event.metadata.new_state is not state
+        ):
+            raise InvalidDomainValue("event must describe the returned entity snapshot")
+
+
+@overload
+def transition_entity(
+    entity: Objective,
+    request: TransitionRequest[ObjectiveState],
+    context: TransitionContext,
+) -> TransitionResult[Objective]: ...
+
+
+@overload
+def transition_entity(
+    entity: Task,
+    request: TransitionRequest[TaskState],
+    context: TransitionContext,
+) -> TransitionResult[Task]: ...
+
+
+@overload
+def transition_entity(
+    entity: Run,
+    request: TransitionRequest[RunState],
+    context: TransitionContext,
+) -> TransitionResult[Run]: ...
+
+
+@overload
+def transition_entity(
+    entity: Outcome,
+    request: TransitionRequest[OutcomeState],
+    context: TransitionContext,
+) -> TransitionResult[Outcome]: ...
+
+
+@overload
+def transition_entity(
+    entity: Evaluation,
+    request: TransitionRequest[EvaluationState],
+    context: TransitionContext,
+) -> TransitionResult[Evaluation]: ...
+
+
+@overload
+def transition_entity(
+    entity: Effect,
+    request: TransitionRequest[EffectState],
+    context: TransitionContext,
+) -> TransitionResult[Effect]: ...
+
+
+def transition_entity(
+    entity: LifecycleEntity,
+    request: TransitionRequest[LifecycleState],
+    context: TransitionContext,
+) -> TransitionResult[LifecycleEntity]:
+    """Apply foundation guards and return a replacement snapshot plus one event."""
+    if not isinstance(entity, (Objective, Task, Run, Outcome, Evaluation, Effect)):
+        raise InvalidDomainValue("entity must be a lifecycle entity snapshot")
+    if not isinstance(request, TransitionRequest):
+        raise InvalidDomainValue("request must be a TransitionRequest")
+    if not isinstance(context, TransitionContext):
+        raise InvalidDomainValue("context must be a TransitionContext")
+
+    entity_type, entity_id, source_state = _entity_details(entity)
+    if request.expected_version != entity.version:
+        raise ConcurrencyConflict(
+            f"Expected version {request.expected_version.value}, "
+            f"but snapshot is version {entity.version.value}"
+        )
+    if _entity_type_for_state(request.target_state) is not entity_type:
+        raise InvalidTransition("Target state belongs to a different entity family")
+    if not _can_transition(entity_type, source_state, request.target_state):
+        raise InvalidTransition(
+            f"Unsupported {entity_type.value} transition "
+            f"{source_state.value} -> {request.target_state.value}"
+        )
+
+    for guard in context.guards:
+        guard.validate(entity, request)
+
+    next_version = entity.version.next()
+    updated = _replace_entity_state(entity, request.target_state, next_version)
+    event = DomainEvent(
+        event_id=request.event_id,
+        event_type=_EVENT_TYPE_BY_STATE[request.target_state],
+        entity_type=entity_type,
+        entity_id=entity_id,
+        entity_version=next_version,
+        actor=request.actor,
+        timestamp=request.timestamp,
+        correlation_id=request.correlation_id,
+        causation_id=request.causation_id,
+        reason=request.reason,
+        metadata=DomainEventMetadata(source_state, request.target_state),
+    )
+    return TransitionResult(updated, event)

@@ -7,6 +7,7 @@ import pytest
 
 from symphony_k.domain import (
     ActorId,
+    CausationId,
     CorrelationId,
     EffectCompensationCompletionId,
     EffectCompensationPlanId,
@@ -22,6 +23,7 @@ from symphony_k.domain import (
     EvaluationConflictSetId,
     EvaluationId,
     EvaluationInvalidationId,
+    EventId,
     InvalidDomainValue,
     ObjectiveId,
     OutcomeId,
@@ -49,6 +51,8 @@ type IdClass = (
     | type[EffectObservationId]
     | type[EffectIncidentId]
     | type[EffectIncidentRecordId]
+    | type[EventId]
+    | type[CausationId]
     | type[ActorId]
     | type[CorrelationId]
 )
@@ -72,6 +76,8 @@ ID_CLASSES: tuple[IdClass, ...] = (
     EffectObservationId,
     EffectIncidentId,
     EffectIncidentRecordId,
+    EventId,
+    CausationId,
     ActorId,
     CorrelationId,
 )

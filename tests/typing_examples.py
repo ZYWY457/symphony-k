@@ -14,9 +14,14 @@ from symphony_k.domain import (
     ActorType,
     ArbitrationDisposition,
     ArtifactRef,
+    CausationId,
     CompletionPolicyRef,
     ConflictSetVersion,
     CorrelationId,
+    DomainEntityType,
+    DomainEvent,
+    DomainEventMetadata,
+    DomainEventType,
     Effect,
     EffectAttributionId,
     EffectAuthorizationFindingId,
@@ -67,6 +72,7 @@ from symphony_k.domain import (
     EvaluationState,
     EvaluationTargetRef,
     EvaluationVerdict,
+    EventId,
     EvidenceRef,
     ExecutionProfileRef,
     Objective,
@@ -84,6 +90,10 @@ from symphony_k.domain import (
     TaskId,
     TaskState,
     Timestamp,
+    TransitionContext,
+    TransitionReason,
+    TransitionRequest,
+    TransitionResult,
     can_arbitrate_evaluation_conflict_set,
     can_attach_effect_incident_record,
     can_attach_effect_observation,
@@ -104,6 +114,7 @@ from symphony_k.domain import (
     can_use_effect_verification_for_authorization,
     can_verify_effect_preparation,
     derive_evaluation_effective_use,
+    transition_entity,
 )
 
 if TYPE_CHECKING:
@@ -122,6 +133,8 @@ if TYPE_CHECKING:
     assert_type(EvaluationInvalidationId.new(), EvaluationInvalidationId)
     assert_type(EffectId.new(), EffectId)
     assert_type(EffectObservationId.new(), EffectObservationId)
+    assert_type(EventId.new(), EventId)
+    assert_type(CausationId.new(), CausationId)
     assert_type(ActorId.new(), ActorId)
     assert_type(CorrelationId.new(), CorrelationId)
     assert_type(ObjectiveId.from_string(str(value)), ObjectiveId)
@@ -825,6 +838,87 @@ if TYPE_CHECKING:
         "Established verifier failure",
         frozenset({EvidenceRef("invalidation evidence")}),
         designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+    )
+
+    def requires_event_id(identity: EventId) -> EventId:
+        return identity
+
+    def requires_causation_id(identity: CausationId) -> CausationId:
+        return identity
+
+    event_id = EventId(value)
+    causation_id = CausationId(value)
+    assert_type(requires_event_id(event_id), EventId)
+    assert_type(requires_causation_id(causation_id), CausationId)
+    requires_event_id(CorrelationId(value))  # type: ignore[arg-type]
+    requires_event_id(CausationId(value))  # type: ignore[arg-type]
+    requires_event_id(ObjectiveId(value))  # type: ignore[arg-type]
+    requires_causation_id(EventId(value))  # type: ignore[arg-type]
+    requires_causation_id(CorrelationId(value))  # type: ignore[arg-type]
+
+    class StaticTransitionGuard:
+        def validate(self, entity: object, request: object) -> None:
+            pass
+
+    transition_objective = Objective(
+        ObjectiveId(value),
+        ObjectiveState.DRAFT,
+        EntityVersion(7),
+        "Bounded goal",
+        ("Criterion",),
+        designation,
+        policy,
+    )
+    objective_transition_request = TransitionRequest(
+        event_id,
+        ObjectiveState.ACTIVE,
+        designation,
+        TransitionReason("Activate objective"),
+        EntityVersion(7),
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+        causation_id,
+    )
+    transition_context = TransitionContext((StaticTransitionGuard(),))
+    objective_transition_result = transition_entity(
+        transition_objective,
+        objective_transition_request,
+        transition_context,
+    )
+    assert_type(objective_transition_request, TransitionRequest[ObjectiveState])
+    assert_type(objective_transition_result, TransitionResult[Objective])
+    assert_type(objective_transition_result.entity, Objective)
+    assert_type(objective_transition_result.event, DomainEvent)
+    assert_type(objective_transition_result.event.event_id, EventId)
+    assert_type(
+        objective_transition_result.event.entity_id,
+        ObjectiveId | TaskId | RunId | OutcomeId | EvaluationId | EffectId,
+    )
+    assert_type(objective_transition_result.event.metadata, DomainEventMetadata)
+    assert_type(objective_transition_result.event.entity_type, DomainEntityType)
+    assert_type(objective_transition_result.event.event_type, DomainEventType)
+    task_transition_request = TransitionRequest(
+        event_id,
+        TaskState.READY,
+        designation,
+        TransitionReason("Ready task"),
+        EntityVersion(7),
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+    )
+    transition_entity(
+        transition_objective,
+        task_transition_request,  # type: ignore[arg-type]
+        transition_context,
+    )
+    TransitionRequest(
+        CorrelationId(value),  # type: ignore[arg-type]
+        ObjectiveState.ACTIVE,
+        designation,
+        TransitionReason("Activate objective"),
+        EntityVersion(7),
         Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
         correlation_id,
     )
