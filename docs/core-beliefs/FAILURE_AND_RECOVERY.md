@@ -61,6 +61,11 @@ Incomplete checkpoints are not valid recovery anchors.
 
 Recovery decisions require classification rather than a single `failed` flag.
 
+Provider-, client-, runtime-, operating-system-, and agent-specific diagnostics
+remain behind their adapters and drivers. The Control Plane consumes normalized
+failure information; the detailed taxonomy for execution-route health is
+deferred.
+
 Initial classes:
 
 - `TRANSIENT`
@@ -122,6 +127,13 @@ Worker self-confidence alone is not a sufficient Rewind authority signal.
 
 Reassign is used when the Task remains valid but the current execution profile is no longer appropriate.
 
+An execution-route failure normally establishes that the route is unhealthy or
+ineligible for the Task; it does not by itself establish that the Task, model,
+AgentDriver abstraction, repository, or toolchain is invalid. Every route must
+pass base substrate and Task-specific capability preflight before repository
+mutation. Route health and any future circuit breaking are runtime/control-plane
+concerns, not Task lifecycle state.
+
 Triggers may include:
 
 - repeated Rewind failure,
@@ -144,6 +156,10 @@ Reassign may change:
 - permissions,
 - verification requirements.
 
+Reassign closes the prior Run as `REASSIGNED` only after a durable successor-Run
+or human-handoff reference exists. The successor has a new RunId; a route change
+does not silently mutate the execution identity or history of the prior Run.
+
 ## Handoff Package
 
 A Reassign operation should create a structured handoff containing:
@@ -165,6 +181,15 @@ A Reassign operation should create a structured handoff containing:
 - audit references.
 
 A replacement worker should not need to rediscover validated history from scratch.
+
+Route failure does not erase trustworthy workspace state, candidate artifacts,
+checkpoints, evidence, or audit history. A successor may use preserved material
+only through an explicit recovery decision and the required verification.
+
+If an external Effect may have occurred, recovery must not blindly replay it
+through another route. Occurrence evidence, deduplication, reconciliation,
+authorization, and the Effect Controller path determine whether continuation is
+safe; route failure is not evidence of non-occurrence.
 
 ## Loop and Progress-Stall Detection
 

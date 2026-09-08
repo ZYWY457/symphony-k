@@ -89,7 +89,8 @@ Contribution links MUST NOT automatically propagate authoritative state transiti
 
 ### Run
 
-One concrete execution attempt for a Task using a specific execution profile.
+One concrete execution attempt for a Task using a specific execution profile and,
+when selected, execution route.
 
 A Task may have multiple Runs. Runs may use different agents, models, tools, skills, permissions, and sandboxes.
 
@@ -192,9 +193,12 @@ The Planner MUST NOT obtain unlimited authority to create work, expand an Object
 
 TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9 (Planner). Stage 1 is limited to Objective, Task, Run, Outcome, Evaluation and Effect. A proposal is never directly executable; governance creates separate Task work.
 
-## 6. Execution Profiles
+## 6. Execution Profiles and Routes
 
-Routing selects an execution profile rather than only an agent.
+Routing selects an execution profile rather than only an agent. A resolved
+Execution Route is a runtime/control-plane path through which a Task may be
+attempted. It binds eligible execution dimensions; it is not a seventh core
+domain entity.
 
 An execution profile may include:
 
@@ -210,6 +214,23 @@ An execution profile may include:
 - budget limit,
 - timeout,
 - verification requirements.
+
+Tasks and execution policy should express required capabilities and constraints
+rather than a named client, provider, operating system, or model vendor, unless
+that identity is an explicit Task constraint. An eligible route must pass base
+substrate health (it can start commands and access its workspace) and Task
+capability health before repository mutation.
+
+Adapters and drivers normalize provider-, client-, runtime-, and
+operating-system-specific failures before they reach Control Plane routing.
+Route health, including future circuit-breaking policy, is runtime/control-plane
+state; a healthy model does not make an unhealthy route eligible. The exact route,
+capability, health, and failure-taxonomy data models remain deferred.
+
+Reassigning work to another route closes the existing Run according to the
+accepted lifecycle and creates a successor Run with a new RunId. Trusted
+workspace state, candidate artifacts, checkpoints, evidence, and audit history
+may survive route failure, subject to explicit recovery and verification.
 
 ## 7. Persistence and Authority
 
