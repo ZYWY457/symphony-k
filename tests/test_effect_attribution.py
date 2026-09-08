@@ -128,7 +128,9 @@ def test_attribution_identity_is_nominal_and_record_is_frozen() -> None:
         ("prior_attribution_id", EffectId(OTHER)),
     ],
 )
-def test_record_rejects_wrong_typed_or_empty_fields(field: str, invalid: object) -> None:
+def test_record_rejects_wrong_typed_or_empty_fields(
+    field: str, invalid: object
+) -> None:
     with pytest.raises(InvalidDomainValue):
         replace(record(), **{field: invalid})  # type: ignore[arg-type]
 
@@ -136,9 +138,12 @@ def test_record_rejects_wrong_typed_or_empty_fields(field: str, invalid: object)
 def test_record_rejects_self_reference_but_allows_explicit_prior() -> None:
     with pytest.raises(InvalidDomainValue):
         record(prior=ATTRIBUTION_ID)
-    assert record(
-        attribution_id=EffectAttributionId(OTHER), prior=ATTRIBUTION_ID
-    ).prior_attribution_id == ATTRIBUTION_ID
+    assert (
+        record(
+            attribution_id=EffectAttributionId(OTHER), prior=ATTRIBUTION_ID
+        ).prior_attribution_id
+        == ATTRIBUTION_ID
+    )
 
 
 def test_observed_effect_attachment_preserves_known_and_unknown_origin() -> None:
@@ -151,9 +156,7 @@ def test_observed_effect_attachment_preserves_known_and_unknown_origin() -> None
 
     known_task = observed_effect(task_id=TASK_ID)
     assert can_attach_effect_attribution(known_task, record())
-    assert not can_attach_effect_attribution(
-        known_task, record(task_id=TaskId(OTHER))
-    )
+    assert not can_attach_effect_attribution(known_task, record(task_id=TaskId(OTHER)))
     assert can_attach_effect_attribution(known_task, record(run_id=RUN_ID))
 
     known_run = observed_effect(task_id=TASK_ID, run_id=RUN_ID)
@@ -186,17 +189,30 @@ def test_lineage_refines_only_same_task_effect_and_correlation() -> None:
     )
     assert can_follow_effect_attribution(previous, with_run)
     assert can_follow_effect_attribution(
-        previous, replace(with_run, run_id=None, observed_effect_version=EntityVersion(8))
+        previous,
+        replace(with_run, run_id=None, observed_effect_version=EntityVersion(8)),
     )
     known_run = replace(previous, run_id=RUN_ID)
     same_run = replace(with_run, prior_attribution_id=known_run.attribution_id)
     assert can_follow_effect_attribution(known_run, same_run)
-    assert not can_follow_effect_attribution(known_run, replace(same_run, run_id=RunId(THIRD)))
-    assert not can_follow_effect_attribution(previous, replace(with_run, task_id=TaskId(OTHER)))
-    assert not can_follow_effect_attribution(previous, replace(with_run, effect_id=EffectId(OTHER)))
-    assert not can_follow_effect_attribution(previous, replace(with_run, correlation_id=CorrelationId(OTHER)))
-    assert not can_follow_effect_attribution(previous, replace(with_run, observed_effect_version=EntityVersion(6)))
-    assert can_follow_effect_attribution(previous, replace(with_run, observed_effect_version=VERSION))
+    assert not can_follow_effect_attribution(
+        known_run, replace(same_run, run_id=RunId(THIRD))
+    )
+    assert not can_follow_effect_attribution(
+        previous, replace(with_run, task_id=TaskId(OTHER))
+    )
+    assert not can_follow_effect_attribution(
+        previous, replace(with_run, effect_id=EffectId(OTHER))
+    )
+    assert not can_follow_effect_attribution(
+        previous, replace(with_run, correlation_id=CorrelationId(OTHER))
+    )
+    assert not can_follow_effect_attribution(
+        previous, replace(with_run, observed_effect_version=EntityVersion(6))
+    )
+    assert can_follow_effect_attribution(
+        previous, replace(with_run, observed_effect_version=VERSION)
+    )
     assert not can_follow_effect_attribution(
         previous, replace(with_run, prior_attribution_id=EffectAttributionId(THIRD))
     )
@@ -205,8 +221,14 @@ def test_lineage_refines_only_same_task_effect_and_correlation() -> None:
 def test_attribution_is_supporting_history_without_resolver_or_authority() -> None:
     value = record()
     for name in (
-        "authorized", "policy_passed", "execution_allowed", "incident_status",
-        "current_task", "current_run", "latest_attribution", "effective_attribution",
+        "authorized",
+        "policy_passed",
+        "execution_allowed",
+        "incident_status",
+        "current_task",
+        "current_run",
+        "latest_attribution",
+        "effective_attribution",
     ):
         assert not hasattr(value, name)
         assert not hasattr(attribution_module, name)

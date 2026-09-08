@@ -47,10 +47,17 @@ class EffectAttributionRecord:
             raise InvalidDomainValue("run_id must be a RunId or None")
         if not isinstance(self.evidence_refs, frozenset) or not self.evidence_refs:
             raise InvalidDomainValue("evidence_refs must be a nonempty frozenset")
-        if any(not isinstance(reference, EvidenceRef) for reference in self.evidence_refs):
+        if any(
+            not isinstance(reference, EvidenceRef) for reference in self.evidence_refs
+        ):
             raise InvalidDomainValue("Every evidence reference must be an EvidenceRef")
-        if not isinstance(self.attribution_summary, str) or not self.attribution_summary.strip():
-            raise InvalidDomainValue("attribution_summary must contain non-whitespace text")
+        if (
+            not isinstance(self.attribution_summary, str)
+            or not self.attribution_summary.strip()
+        ):
+            raise InvalidDomainValue(
+                "attribution_summary must contain non-whitespace text"
+            )
         if not isinstance(self.verified_by, ActorIdentity):
             raise InvalidDomainValue("verified_by must be an ActorIdentity")
         if not isinstance(self.recorded_by, ActorIdentity):
@@ -86,7 +93,10 @@ def can_attach_effect_attribution(
         or attribution.observed_effect_version != effect.version
     ):
         return False
-    if effect.origin.task_id is not None and attribution.task_id != effect.origin.task_id:
+    if (
+        effect.origin.task_id is not None
+        and attribution.task_id != effect.origin.task_id
+    ):
         return False
     return effect.origin.run_id is None or attribution.run_id == effect.origin.run_id
 
@@ -104,7 +114,8 @@ def can_follow_effect_attribution(
         or current.effect_id != previous.effect_id
         or current.correlation_id != previous.correlation_id
         or current.task_id != previous.task_id
-        or current.observed_effect_version.value < previous.observed_effect_version.value
+        or current.observed_effect_version.value
+        < previous.observed_effect_version.value
     ):
         return False
     return previous.run_id is None or current.run_id == previous.run_id
