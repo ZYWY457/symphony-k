@@ -128,3 +128,15 @@ If command execution becomes unavailable after workspace modification has alread
 Successful reasoning or file editing is not equivalent to successful execution.
 
 A candidate that has not passed its required validation gates is not a verified Outcome.
+
+When a sandbox denies access to a default cache or temporary path,
+a Worker may redirect only non-authoritative disposable execution data
+to a repository-local ignored path when:
+
+- task semantics remain unchanged;
+- lock/dependency inputs remain unchanged;
+- security or validation is not weakened;
+- no authoritative state or credential store is redirected;
+- the fallback is reported in execution evidence.
+
+Otherwise stop and report the capability gap.
