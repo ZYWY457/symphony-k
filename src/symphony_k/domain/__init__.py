@@ -35,6 +35,10 @@ from .evaluation_conflict import (
     EvaluationConflictSetRef,
     can_extend_evaluation_conflict_set,
 )
+from .evaluation_invalidation import (
+    EvaluationInvalidationRecord,
+    can_invalidate_evaluation,
+)
 from .evaluation_result import (
     EvaluationConfidence,
     EvaluationMethodRef,
@@ -50,6 +54,7 @@ from .ids import (
     EvaluationArbitrationId,
     EvaluationConflictSetId,
     EvaluationId,
+    EvaluationInvalidationId,
     ObjectiveId,
     OutcomeId,
     RunId,
@@ -105,6 +110,8 @@ __all__ = [
     "EvaluationConflictSetRecord",
     "EvaluationConflictSetRef",
     "EvaluationId",
+    "EvaluationInvalidationId",
+    "EvaluationInvalidationRecord",
     "EvaluationMethodRef",
     "EvaluationResult",
     "EvaluationState",
@@ -135,6 +142,7 @@ __all__ = [
     "can_arbitrate_evaluation_conflict_set",
     "can_extend_evaluation_conflict_set",
     "can_evaluation_transition",
+    "can_invalidate_evaluation",
     "can_objective_transition",
     "can_outcome_transition",
     "can_run_transition",

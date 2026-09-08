@@ -31,6 +31,8 @@ from symphony_k.domain import (
     EvaluationConflictSetRecord,
     EvaluationConflictSetRef,
     EvaluationId,
+    EvaluationInvalidationId,
+    EvaluationInvalidationRecord,
     EvaluationMethodRef,
     EvaluationResult,
     EvaluationState,
@@ -54,6 +56,7 @@ from symphony_k.domain import (
     can_arbitrate_evaluation_conflict_set,
     can_evaluation_transition,
     can_extend_evaluation_conflict_set,
+    can_invalidate_evaluation,
     can_objective_transition,
     can_outcome_transition,
     can_run_transition,
@@ -73,6 +76,7 @@ if TYPE_CHECKING:
     assert_type(EvaluationId.new(), EvaluationId)
     assert_type(EvaluationArbitrationId.new(), EvaluationArbitrationId)
     assert_type(EvaluationConflictSetId.new(), EvaluationConflictSetId)
+    assert_type(EvaluationInvalidationId.new(), EvaluationInvalidationId)
     assert_type(EffectId.new(), EffectId)
     assert_type(ActorId.new(), ActorId)
     assert_type(CorrelationId.new(), CorrelationId)
@@ -85,6 +89,7 @@ if TYPE_CHECKING:
     requires_objective(EvaluationId(value))  # type: ignore[arg-type]
     requires_objective(EvaluationArbitrationId(value))  # type: ignore[arg-type]
     requires_objective(EvaluationConflictSetId(value))  # type: ignore[arg-type]
+    requires_objective(EvaluationInvalidationId(value))  # type: ignore[arg-type]
     requires_objective(EffectId(value))  # type: ignore[arg-type]
     requires_objective(ActorId(value))  # type: ignore[arg-type]
     requires_objective(CorrelationId(value))  # type: ignore[arg-type]
@@ -427,5 +432,71 @@ if TYPE_CHECKING:
         EvaluationArbitrationPolicyRef("policy", "revision"),
         designation,
         Timestamp(datetime(2026, 9, 7, tzinfo=UTC)),
+        correlation_id,
+    )
+
+    def requires_invalidation_id(
+        identity: EvaluationInvalidationId,
+    ) -> EvaluationInvalidationId:
+        return identity
+
+    invalidation_id = EvaluationInvalidationId(value)
+    assert_type(requires_invalidation_id(invalidation_id), EvaluationInvalidationId)
+    requires_invalidation_id(EvaluationId(value))  # type: ignore[arg-type]
+    requires_invalidation_id(EvaluationArbitrationId(value))  # type: ignore[arg-type]
+    requires_invalidation_id(EvaluationConflictSetId(value))  # type: ignore[arg-type]
+    requires_invalidation_id(CorrelationId(value))  # type: ignore[arg-type]
+
+    invalidation_record = EvaluationInvalidationRecord(
+        invalidation_id,
+        EvaluationId(value),
+        EntityVersion(7),
+        "Established verifier failure",
+        frozenset({EvidenceRef("invalidation evidence")}),
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+    )
+    assert_type(invalidation_record.observed_version, EntityVersion)
+    assert_type(invalidation_record.evidence_refs, frozenset[EvidenceRef])
+    assert_type(can_invalidate_evaluation(evaluation, invalidation_record), bool)
+    EvaluationInvalidationRecord(
+        EvaluationId(value),  # type: ignore[arg-type]
+        EvaluationId(value),
+        EntityVersion(7),
+        "Established verifier failure",
+        frozenset({EvidenceRef("invalidation evidence")}),
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+    )
+    EvaluationInvalidationRecord(
+        invalidation_id,
+        EvaluationInvalidationId(value),  # type: ignore[arg-type]
+        EntityVersion(7),
+        "Established verifier failure",
+        frozenset({EvidenceRef("invalidation evidence")}),
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+    )
+    EvaluationInvalidationRecord(
+        invalidation_id,
+        EvaluationId(value),
+        ConflictSetVersion(7),  # type: ignore[arg-type]
+        "Established verifier failure",
+        frozenset({EvidenceRef("invalidation evidence")}),
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        correlation_id,
+    )
+    EvaluationInvalidationRecord(
+        invalidation_id,
+        EvaluationId(value),
+        EntityVersion(7),
+        "Established verifier failure",
+        frozenset({ArtifactRef("not evidence")}),  # type: ignore[arg-type]
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
         correlation_id,
     )

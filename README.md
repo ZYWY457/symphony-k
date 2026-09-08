@@ -11,6 +11,8 @@ references, correlation identity and a pure append-only extension check.
 M5C1 adds immutable direct and exact conflict-set-linked arbitration decisions,
 explicit dispositions/effective judgements, decision provenance and a pure structural
 compatibility check.
+M5C2 adds immutable, evidence-backed Evaluation invalidation records and an exact
+snapshot structural compatibility check.
 Authoritative transition execution remains deferred to the Transition Engine.
 
 ## Development
@@ -84,8 +86,8 @@ verifier and immutable original `EvaluationResult`. Entity targets use a typed
 RunId/OutcomeId/EffectId plus observed EntityVersion; anchored EvidenceRef targets
 have no invented entity version. Verdict and confidence retain opaque text,
 without a global verdict taxonomy or numerical confidence scale. The ten-edge
-query is structural only. Evaluation transition execution,
-arbitration/invalidation records, verification runtime, authority and
+query is structural only. Evaluation transition execution, effective-use derivation,
+verification runtime, authority and
 physical-delete enforcement remain deferred. See the
 [M5A plan](docs/exec-plans/completed/stage-01-m5a-evaluation-v1.md).
 
@@ -109,3 +111,11 @@ correlation, and optional prior-arbitration lineage retain provenance. No API de
 global effective judgement, resolves conflicts, mutates Evaluation content/state, or
 persists history. See the
 [M5C1 plan](docs/exec-plans/completed/stage-01-m5c1-evaluation-arbitration-v1.md).
+
+`EvaluationInvalidationRecord` separately anchors one Evaluation ID and exact observed
+version, a meaningful free-form reason, at least one typed evidence reference, and
+actor/time/correlation provenance. `can_invalidate_evaluation` accepts only matching
+PENDING, RUNNING, COMPLETED or CONFLICTED snapshots. It does not inspect verdicts,
+authenticate authority, mutate Evaluation state/version, or derive conflict/arbitration
+consequences. See the
+[M5C2 plan](docs/exec-plans/completed/stage-01-m5c2-evaluation-invalidation-v1.md).

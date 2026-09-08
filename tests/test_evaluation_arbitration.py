@@ -516,13 +516,12 @@ def test_arbitration_creation_does_not_mutate_evaluation_or_original_result() ->
         assert not hasattr(original, absent)
 
 
-def test_m5c1_exposes_no_resolution_invalidation_event_or_repository_behavior() -> None:
+def test_m5c1_exposes_no_resolution_event_or_repository_behavior() -> None:
     for absent in (
         "is_evaluation_resolved",
         "current_effective_judgement",
         "remaining_open_conflicts",
         "can_release_evaluation",
-        "EvaluationInvalidationRecord",
         "EvaluationArbitrated",
         "EvaluationArbitrationRepository",
         "ArbitrationState",

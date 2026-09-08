@@ -73,6 +73,11 @@ class EvaluationArbitrationId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EvaluationInvalidationId(_UuidId):
+    """Identity of one immutable Evaluation invalidation record."""
+
+
+@dataclass(frozen=True, slots=True)
 class EffectId(_UuidId):
     """Identity of an Effect."""
 
