@@ -20,6 +20,10 @@ from symphony_k.domain import (
     Effect,
     EffectAttributionId,
     EffectAuthorizationFindingId,
+    EffectCompensationCompletionId,
+    EffectCompensationCompletionRecord,
+    EffectCompensationPlanId,
+    EffectCompensationPlanRecord,
     EffectDeduplicationRef,
     EffectExternalOperationRef,
     EffectGovernanceFindingId,
@@ -32,6 +36,8 @@ from symphony_k.domain import (
     EffectObservationRecord,
     EffectOccurrenceStatus,
     EffectPayloadRef,
+    EffectRollbackRecord,
+    EffectRollbackRecordId,
     EffectState,
     EffectTargetRef,
     EntityVersion,
@@ -75,6 +81,8 @@ from symphony_k.domain import (
     can_arbitrate_evaluation_conflict_set,
     can_attach_effect_incident_record,
     can_attach_effect_observation,
+    can_attach_effect_rollback_record,
+    can_complete_effect_compensation_plan,
     can_effect_transition,
     can_evaluation_transition,
     can_extend_evaluation_conflict_set,
@@ -496,6 +504,159 @@ if TYPE_CHECKING:
         designation,
         Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
         correlation_id,
+    )
+
+    def requires_rollback_record_id(
+        identity: EffectRollbackRecordId,
+    ) -> EffectRollbackRecordId:
+        return identity
+
+    def requires_compensation_plan_id(
+        identity: EffectCompensationPlanId,
+    ) -> EffectCompensationPlanId:
+        return identity
+
+    def requires_compensation_completion_id(
+        identity: EffectCompensationCompletionId,
+    ) -> EffectCompensationCompletionId:
+        return identity
+
+    rollback_record_id = EffectRollbackRecordId(value)
+    compensation_plan_id = EffectCompensationPlanId(value)
+    compensation_completion_id = EffectCompensationCompletionId(value)
+    assert_type(requires_rollback_record_id(rollback_record_id), EffectRollbackRecordId)
+    assert_type(
+        requires_compensation_plan_id(compensation_plan_id), EffectCompensationPlanId
+    )
+    assert_type(
+        requires_compensation_completion_id(compensation_completion_id),
+        EffectCompensationCompletionId,
+    )
+    requires_rollback_record_id(EffectId(value))  # type: ignore[arg-type]
+    requires_compensation_plan_id(EffectObservationId(value))  # type: ignore[arg-type]
+    requires_compensation_completion_id(CorrelationId(value))  # type: ignore[arg-type]
+
+    rollback_record = EffectRollbackRecord(
+        rollback_record_id,
+        EffectId(value),
+        EntityVersion(7),
+        EffectObservationId(value),
+        EffectExternalOperationRef("restoration operation"),
+        "Independent evidence established restoration",
+        frozenset({EvidenceRef("restoration evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    compensation_plan = EffectCompensationPlanRecord(
+        compensation_plan_id,
+        EffectId(value),
+        EntityVersion(7),
+        EffectObservationId(value),
+        frozenset({EffectId(UUID("87654321-4321-4321-8321-cba987654321"))}),
+        "Separate governed Effect corrects the mutation",
+        frozenset({EvidenceRef("plan evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    compensation_completion = EffectCompensationCompletionRecord(
+        compensation_completion_id,
+        compensation_plan_id,
+        EffectId(value),
+        EntityVersion(7),
+        EffectObservationId(value),
+        "Independent evidence supports completion",
+        "Original mutation remains historical fact",
+        frozenset({EvidenceRef("completion evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    assert_type(rollback_record.rollback_record_id, EffectRollbackRecordId)
+    assert_type(compensation_plan.plan_id, EffectCompensationPlanId)
+    assert_type(compensation_completion.completion_id, EffectCompensationCompletionId)
+    remediation_effect = Effect(
+        EffectId(value),
+        EffectState.COMMITTED,
+        EntityVersion(7),
+        ObservedEffectOrigin(
+            EffectExternalOperationRef("original operation"),
+            frozenset({EvidenceRef("original observation evidence")}),
+            designation,
+            Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+            None,
+            None,
+            "Attribution unknown",
+        ),
+        EffectTargetRef("target"),
+        None,
+    )
+    assert_type(
+        can_attach_effect_rollback_record(remediation_effect, rollback_record), bool
+    )
+    assert_type(
+        can_complete_effect_compensation_plan(
+            compensation_plan, compensation_completion
+        ),
+        bool,
+    )
+    EffectRollbackRecord(
+        EffectId(value),  # type: ignore[arg-type]
+        EffectId(value),
+        EntityVersion(7),
+        EffectObservationId(value),
+        EffectExternalOperationRef("restoration operation"),
+        "Independent evidence established restoration",
+        frozenset({EvidenceRef("restoration evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    EffectCompensationPlanRecord(
+        compensation_plan_id,
+        EffectId(value),
+        EntityVersion(7),
+        EffectId(value),  # type: ignore[arg-type]
+        frozenset({EffectId(UUID("87654321-4321-4321-8321-cba987654321"))}),
+        "Separate governed Effect corrects the mutation",
+        frozenset({EvidenceRef("plan evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    EffectCompensationCompletionRecord(
+        compensation_completion_id,
+        EffectId(value),  # type: ignore[arg-type]
+        EffectId(value),
+        EntityVersion(7),
+        EffectObservationId(value),
+        "Independent evidence supports completion",
+        "Original mutation remains historical fact",
+        frozenset({EvidenceRef("completion evidence")}),
+        designation,
+        designation,
+        Timestamp(datetime(2026, 9, 8, tzinfo=UTC)),
+        Timestamp(datetime(2026, 9, 9, tzinfo=UTC)),
+        correlation_id,
+    )
+    can_attach_effect_rollback_record(
+        remediation_effect,
+        compensation_plan,  # type: ignore[arg-type]
+    )
+    can_complete_effect_compensation_plan(
+        compensation_plan,
+        rollback_record,  # type: ignore[arg-type]
     )
 
     effect_target_ref = EffectTargetRef("target")

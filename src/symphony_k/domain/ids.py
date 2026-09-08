@@ -113,6 +113,21 @@ class EffectIncidentRecordId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EffectRollbackRecordId(_UuidId):
+    """Identity of one immutable supporting Effect rollback record."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectCompensationPlanId(_UuidId):
+    """Identity of one immutable supporting Effect compensation plan."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectCompensationCompletionId(_UuidId):
+    """Identity of one immutable Effect compensation completion record."""
+
+
+@dataclass(frozen=True, slots=True)
 class ActorId(_UuidId):
     """Identity of a principal, independent of its operating category."""
 
