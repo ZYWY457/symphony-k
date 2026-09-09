@@ -64,8 +64,21 @@ from symphony_k.domain import (
     OutcomeState,
     PlannedEffectOrigin,
     Run,
+    RunBudgetValidityDecision,
+    RunExecutionBoundaryDecision,
+    RunExecutionOwnershipDecision,
+    RunExecutionOwnershipRef,
+    RunExecutionProfileApprovalDecision,
+    RunGrantValidityDecision,
     RunId,
+    RunPrimaryObjectiveStateObservation,
+    RunSemanticDecisionRef,
+    RunSemanticDecisionStatus,
+    RunSemanticGuard,
+    RunStartSemantics,
     RunState,
+    RunTaskStateObservation,
+    RunTrustedStartConfirmationDecision,
     Task,
     TaskBudgetValidityDecision,
     TaskDefinitionGovernanceDecision,
@@ -175,11 +188,20 @@ def authorized_context(
     if isinstance(entity, Task):
         assert isinstance(request.target_state, TaskState)
         task_guard = readiness_guard(entity, request.target_state)
+    run_guard = None
+    if isinstance(entity, Run):
+        assert isinstance(request.target_state, RunState)
+        if (entity.state, request.target_state) == (
+            RunState.PENDING,
+            RunState.RUNNING,
+        ):
+            run_guard = run_start_guard(entity, request.target_state)
     return TransitionContext(
         guards,
         authority_decision(entity, request),
         objective_guard,
         task_guard,
+        run_guard,
     )
 
 
@@ -267,6 +289,92 @@ def readiness_guard(entity: Task, target: TaskState) -> TaskSemanticGuard:
                 EntityVersion(11),
                 ObjectiveState.ACTIVE,
             ),
+        ),
+    )
+
+
+def run_start_guard(entity: Run, target: RunState) -> RunSemanticGuard:
+    def decision[
+        DecisionT: (
+            RunExecutionBoundaryDecision
+            | RunGrantValidityDecision
+            | RunBudgetValidityDecision
+            | RunTrustedStartConfirmationDecision
+        )
+    ](decision_type: type[DecisionT], name: str) -> DecisionT:
+        return cast(
+            DecisionT,
+            decision_type(
+                RunSemanticDecisionRef(name),
+                RunSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef(name)}),
+                entity.run_id,
+                entity.version,
+                CORRELATION_ID,
+            ),
+        )
+
+    return RunSemanticGuard(
+        entity.run_id,
+        entity.version,
+        entity.state,
+        target,
+        CORRELATION_ID,
+        RunStartSemantics(
+            RunTaskStateObservation(
+                RunSemanticDecisionRef("task"),
+                RunSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef("task")}),
+                entity.run_id,
+                entity.version,
+                CORRELATION_ID,
+                entity.task_id,
+                EntityVersion(11),
+                TaskState.IN_PROGRESS,
+            ),
+            RunPrimaryObjectiveStateObservation(
+                RunSemanticDecisionRef("primary-objective"),
+                RunSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef("primary-objective")}),
+                entity.run_id,
+                entity.version,
+                CORRELATION_ID,
+                entity.task_id,
+                EntityVersion(11),
+                ObjectiveId(VALUE),
+                EntityVersion(13),
+                ObjectiveState.ACTIVE,
+            ),
+            RunExecutionOwnershipDecision(
+                RunSemanticDecisionRef("ownership"),
+                RunSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef("ownership")}),
+                entity.run_id,
+                entity.version,
+                CORRELATION_ID,
+                entity.task_id,
+                EntityVersion(11),
+                RunExecutionOwnershipRef("ownership/record-1"),
+                entity.run_id,
+            ),
+            RunExecutionProfileApprovalDecision(
+                RunSemanticDecisionRef("profile"),
+                RunSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef("profile")}),
+                entity.run_id,
+                entity.version,
+                CORRELATION_ID,
+                entity.execution_profile_ref,
+            ),
+            decision(RunExecutionBoundaryDecision, "boundary"),
+            decision(RunGrantValidityDecision, "grants"),
+            decision(RunBudgetValidityDecision, "budget"),
+            decision(RunTrustedStartConfirmationDecision, "start"),
         ),
     )
 
@@ -667,6 +775,8 @@ def test_context_requires_explicit_typed_guards_and_has_no_permissive_default() 
     assert definitions["guards"].default is MISSING
     assert definitions["authority_decision"].default is None
     assert definitions["objective_semantic_guard"].default is None
+    assert definitions["task_semantic_guard"].default is None
+    assert definitions["run_semantic_guard"].default is None
     with pytest.raises(InvalidDomainValue):
         TransitionContext((PASSING_GUARD,), object())  # type: ignore[arg-type]
 

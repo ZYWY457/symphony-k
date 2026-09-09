@@ -3,10 +3,10 @@
 M7A validates caller-supplied versions and canonical structural topology. M7B1
 requires a separate exact-bound authority decision. M7B2 additionally requires
 the decision actor's type to be canonically eligible for the exact lifecycle edge.
-M7C1/M7C2 require the canonical Objective/Task semantic guard before ordinary
-additional guards, then return a new snapshot and one DomainEvent. Eligibility
-is not a scoped grant. This module performs no loading, persistence,
-transaction, or external action.
+M7C1/M7C2 and M7C3A require the canonical Objective/Task/normal-Run semantic
+guard before ordinary additional guards, then return a new snapshot and one
+DomainEvent. Eligibility is not a scoped grant. This module performs no loading,
+persistence, transaction, or external action.
 """
 
 from collections.abc import Mapping
@@ -46,6 +46,7 @@ from .objective import Objective, ObjectiveState
 from .objective_semantics import ObjectiveSemanticGuard
 from .outcome import Outcome, OutcomeState
 from .run import Run, RunState
+from .run_semantics import RunSemanticGuard
 from .task import Task, TaskState
 from .task_semantics import TaskSemanticGuard
 from .time import Timestamp
@@ -657,6 +658,7 @@ class TransitionContext:
     authority_decision: TransitionAuthorityDecision | None = None
     objective_semantic_guard: ObjectiveSemanticGuard | None = None
     task_semantic_guard: TaskSemanticGuard | None = None
+    run_semantic_guard: RunSemanticGuard | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
@@ -680,6 +682,12 @@ class TransitionContext:
         ):
             raise InvalidDomainValue(
                 "task_semantic_guard must be a TaskSemanticGuard or None"
+            )
+        if self.run_semantic_guard is not None and not isinstance(
+            self.run_semantic_guard, RunSemanticGuard
+        ):
+            raise InvalidDomainValue(
+                "run_semantic_guard must be a RunSemanticGuard or None"
             )
 
 
@@ -849,6 +857,13 @@ def transition_entity(
         if not isinstance(request.target_state, TaskState):
             raise InvalidTransition("Target state belongs to a different entity family")
         task_guard.validate(entity, request.target_state, request.correlation_id)
+    elif isinstance(entity, Run):
+        run_guard = context.run_semantic_guard
+        if run_guard is None:
+            raise InvariantViolation("Canonical Run semantic guard is required")
+        if not isinstance(request.target_state, RunState):
+            raise InvalidTransition("Target state belongs to a different entity family")
+        run_guard.validate(entity, request.target_state, request.correlation_id)
 
     for guard in context.guards:
         guard.validate(entity, request)
