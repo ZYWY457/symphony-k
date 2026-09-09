@@ -63,6 +63,19 @@ class RunExecutionOwnershipRef:
             )
 
 
+@dataclass(frozen=True, slots=True)
+class RunRecoveryBoundaryRef:
+    """Opaque durable reference to an already-trusted recovery boundary."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, str) or not self.value.strip():
+            raise InvalidDomainValue(
+                "Run recovery boundary reference must contain non-whitespace text"
+            )
+
+
 def _require_evidence(evidence_refs: frozenset[EvidenceRef]) -> None:
     if not isinstance(evidence_refs, frozenset) or not evidence_refs:
         raise InvalidDomainValue("Run semantic decisions require evidence references")
@@ -154,6 +167,57 @@ class RunNoVerificationWaitRequirementDecision(_EvidenceBackedRunDecision):
 @dataclass(frozen=True, slots=True)
 class RunVerificationEvidenceRetentionDecision(_EvidenceBackedRunDecision):
     pass
+
+
+@dataclass(frozen=True, slots=True)
+class RunRecoverableInterruptionDecision(_EvidenceBackedRunDecision):
+    """Evidence-backed interruption classification; a worker report is admissible."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunSameAttemptContinuityDecision(_EvidenceBackedRunDecision):
+    """Trusted observation that the existing attempt/path/strategy still applies."""
+
+    task_id: TaskId
+    predecessor_run_id: RunId | None
+    execution_profile_ref: ExecutionProfileRef
+
+    def __post_init__(self) -> None:
+        super(RunSameAttemptContinuityDecision, self).__post_init__()
+        if not isinstance(self.task_id, TaskId):
+            raise InvalidDomainValue("task_id must be a TaskId")
+        if self.predecessor_run_id is not None and not isinstance(
+            self.predecessor_run_id, RunId
+        ):
+            raise InvalidDomainValue("predecessor_run_id must be a RunId or None")
+        if not isinstance(self.execution_profile_ref, ExecutionProfileRef):
+            raise InvalidDomainValue(
+                "execution_profile_ref must be an ExecutionProfileRef"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class RunResumeDecision(_EvidenceBackedRunDecision):
+    """Explicit recovery-controller decision to Resume one exact Run snapshot."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunTrustedRecoveryBoundaryDecision(_EvidenceBackedRunDecision):
+    """Trusted provenance observation for an already-recorded recovery boundary."""
+
+    recovery_boundary_ref: RunRecoveryBoundaryRef
+
+    def __post_init__(self) -> None:
+        super(RunTrustedRecoveryBoundaryDecision, self).__post_init__()
+        if not isinstance(self.recovery_boundary_ref, RunRecoveryBoundaryRef):
+            raise InvalidDomainValue(
+                "recovery_boundary_ref must be a RunRecoveryBoundaryRef"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class RunRecoveryLimitsDecision(_EvidenceBackedRunDecision):
+    """Evidence-backed observation that continuation remains within recovery limits."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -398,11 +462,85 @@ class RunVerifiedCompletionSemantics:
                 raise InvalidDomainValue(f"{name} has the wrong decision type")
 
 
+@dataclass(frozen=True, slots=True)
+class RunRetryPreparationSemantics:
+    """Canonical semantics for preparing a same-attempt Resume."""
+
+    recoverable_interruption: RunRecoverableInterruptionDecision
+    same_attempt_continuity: RunSameAttemptContinuityDecision
+    resume_decision: RunResumeDecision
+    trusted_recovery_boundary: RunTrustedRecoveryBoundaryDecision
+    recovery_limits: RunRecoveryLimitsDecision
+
+    def __post_init__(self) -> None:
+        for value, expected, name in (
+            (
+                self.recoverable_interruption,
+                RunRecoverableInterruptionDecision,
+                "recoverable_interruption",
+            ),
+            (
+                self.same_attempt_continuity,
+                RunSameAttemptContinuityDecision,
+                "same_attempt_continuity",
+            ),
+            (self.resume_decision, RunResumeDecision, "resume_decision"),
+            (
+                self.trusted_recovery_boundary,
+                RunTrustedRecoveryBoundaryDecision,
+                "trusted_recovery_boundary",
+            ),
+            (self.recovery_limits, RunRecoveryLimitsDecision, "recovery_limits"),
+        ):
+            if not isinstance(value, expected):
+                raise InvalidDomainValue(f"{name} has the wrong decision type")
+
+
+@dataclass(frozen=True, slots=True)
+class RunResumeSemantics:
+    """Canonical semantics for re-entering RUNNING on the same Run attempt."""
+
+    same_attempt_continuity: RunSameAttemptContinuityDecision
+    resume_decision: RunResumeDecision
+    trusted_recovery_boundary: RunTrustedRecoveryBoundaryDecision
+    task: RunTaskStateObservation
+    primary_objective: RunPrimaryObjectiveStateObservation
+    boundary: RunExecutionBoundaryDecision
+    grants: RunGrantValidityDecision
+
+    def __post_init__(self) -> None:
+        for value, expected, name in (
+            (
+                self.same_attempt_continuity,
+                RunSameAttemptContinuityDecision,
+                "same_attempt_continuity",
+            ),
+            (self.resume_decision, RunResumeDecision, "resume_decision"),
+            (
+                self.trusted_recovery_boundary,
+                RunTrustedRecoveryBoundaryDecision,
+                "trusted_recovery_boundary",
+            ),
+            (self.task, RunTaskStateObservation, "task"),
+            (
+                self.primary_objective,
+                RunPrimaryObjectiveStateObservation,
+                "primary_objective",
+            ),
+            (self.boundary, RunExecutionBoundaryDecision, "boundary"),
+            (self.grants, RunGrantValidityDecision, "grants"),
+        ):
+            if not isinstance(value, expected):
+                raise InvalidDomainValue(f"{name} has the wrong decision type")
+
+
 type RunSemanticInput = (
     RunStartSemantics
     | RunVerificationWaitSemantics
     | RunDirectCompletionSemantics
     | RunVerifiedCompletionSemantics
+    | RunRetryPreparationSemantics
+    | RunResumeSemantics
 )
 
 type _RunSnapshotBoundSemanticDecision = (
@@ -436,10 +574,28 @@ def _semantic_decisions_for(
             semantics.artifact_usage_persistence,
             semantics.no_verification_wait_required,
         )
+    if isinstance(semantics, RunVerifiedCompletionSemantics):
+        return (
+            semantics.normal_termination,
+            semantics.verification_resolution,
+            semantics.evidence_retention,
+        )
+    if isinstance(semantics, RunRetryPreparationSemantics):
+        return (
+            semantics.recoverable_interruption,
+            semantics.same_attempt_continuity,
+            semantics.resume_decision,
+            semantics.trusted_recovery_boundary,
+            semantics.recovery_limits,
+        )
     return (
-        semantics.normal_termination,
-        semantics.verification_resolution,
-        semantics.evidence_retention,
+        semantics.same_attempt_continuity,
+        semantics.resume_decision,
+        semantics.trusted_recovery_boundary,
+        semantics.task,
+        semantics.primary_objective,
+        semantics.boundary,
+        semantics.grants,
     )
 
 
@@ -456,6 +612,8 @@ _INPUT_TYPE_BY_EDGE: Final[
             RunState.WAITING_FOR_VERIFICATION,
             RunState.COMPLETED,
         ): RunVerifiedCompletionSemantics,
+        (RunState.RUNNING, RunState.RETRYING): RunRetryPreparationSemantics,
+        (RunState.RETRYING, RunState.RUNNING): RunResumeSemantics,
     }
 )
 
@@ -532,8 +690,12 @@ class RunSemanticGuard:
             self._validate_verification_wait(run, semantics)
         elif isinstance(semantics, RunDirectCompletionSemantics):
             self._validate_direct_completion(semantics)
-        else:
+        elif isinstance(semantics, RunVerifiedCompletionSemantics):
             self._validate_verified_completion(semantics)
+        elif isinstance(semantics, RunRetryPreparationSemantics):
+            self._validate_retry_preparation(run, semantics)
+        else:
+            self._validate_resume(run, semantics)
 
     @staticmethod
     def _validate_start(run: Run, semantics: RunStartSemantics) -> None:
@@ -633,3 +795,81 @@ class RunSemanticGuard:
                 "Worker verification resolution is not independent"
             )
         _require_passed(semantics.evidence_retention, "retained verification evidence")
+
+    @staticmethod
+    def _validate_same_attempt_continuity(
+        run: Run,
+        continuity: RunSameAttemptContinuityDecision,
+    ) -> None:
+        _require_passed(continuity, "same-attempt path and strategy continuity")
+        if (
+            continuity.task_id != run.task_id
+            or continuity.predecessor_run_id != run.predecessor_run_id
+            or continuity.execution_profile_ref != run.execution_profile_ref
+        ):
+            raise InvariantViolation(
+                "Same-attempt continuity does not match the Run identity and strategy"
+            )
+
+    @staticmethod
+    def _validate_resume_decision(
+        resume_decision: RunResumeDecision,
+    ) -> None:
+        _require_passed(resume_decision, "explicit scoped Resume decision")
+        if resume_decision.decided_by.actor_type is ActorType.WORKER:
+            raise InvariantViolation("Worker cannot authoritatively select Resume")
+
+    @staticmethod
+    def _validate_trusted_recovery_boundary(
+        recovery_boundary: RunTrustedRecoveryBoundaryDecision,
+    ) -> None:
+        _require_passed(recovery_boundary, "trusted recovery-boundary provenance")
+        if recovery_boundary.decided_by.actor_type is ActorType.WORKER:
+            raise InvariantViolation("Worker recovery-boundary claim is not trusted")
+
+    @classmethod
+    def _validate_active_task_and_primary_objective(
+        cls,
+        run: Run,
+        task: RunTaskStateObservation,
+        objective: RunPrimaryObjectiveStateObservation,
+    ) -> None:
+        _require_passed(task, "Task IN_PROGRESS observation")
+        if task.task_id != run.task_id:
+            raise InvariantViolation("Task observation does not identify the Run Task")
+        if task.observed_state is not TaskState.IN_PROGRESS:
+            raise InvariantViolation("Run Task is not IN_PROGRESS")
+        _require_passed(objective, "primary Objective observation")
+        if (
+            objective.task_id != task.task_id
+            or objective.observed_task_version != task.observed_task_version
+        ):
+            raise InvariantViolation(
+                "Primary Objective observation does not match the observed Task "
+                "snapshot"
+            )
+        if objective.observed_state is not ObjectiveState.ACTIVE:
+            raise InvariantViolation("Run primary Objective is not ACTIVE")
+
+    @classmethod
+    def _validate_retry_preparation(
+        cls,
+        run: Run,
+        semantics: RunRetryPreparationSemantics,
+    ) -> None:
+        _require_passed(semantics.recoverable_interruption, "recoverable interruption")
+        cls._validate_same_attempt_continuity(run, semantics.same_attempt_continuity)
+        cls._validate_resume_decision(semantics.resume_decision)
+        cls._validate_trusted_recovery_boundary(semantics.trusted_recovery_boundary)
+        _require_passed(semantics.recovery_limits, "remaining recovery limits")
+
+    @classmethod
+    def _validate_resume(cls, run: Run, semantics: RunResumeSemantics) -> None:
+        cls._validate_same_attempt_continuity(run, semantics.same_attempt_continuity)
+        cls._validate_resume_decision(semantics.resume_decision)
+        cls._validate_trusted_recovery_boundary(semantics.trusted_recovery_boundary)
+        cls._validate_active_task_and_primary_objective(
+            run, semantics.task, semantics.primary_objective
+        )
+        _require_passed(semantics.boundary, "approved execution boundary")
+        _require_passed(semantics.grants, "current execution grants")

@@ -35,12 +35,20 @@ from symphony_k.domain import (
     RunIndependentNormalTerminationDecision,
     RunNoVerificationWaitRequirementDecision,
     RunPrimaryObjectiveStateObservation,
+    RunRecoverableInterruptionDecision,
+    RunRecoveryBoundaryRef,
+    RunRecoveryLimitsDecision,
+    RunResumeDecision,
+    RunResumeSemantics,
+    RunRetryPreparationSemantics,
+    RunSameAttemptContinuityDecision,
     RunSemanticDecisionRef,
     RunSemanticDecisionStatus,
     RunSemanticGuard,
     RunStartSemantics,
     RunState,
     RunTaskStateObservation,
+    RunTrustedRecoveryBoundaryDecision,
     RunTrustedStartConfirmationDecision,
     RunVerificationEvidenceRetentionDecision,
     RunVerificationRequestDecision,
@@ -78,8 +86,22 @@ LIFECYCLE_AUTHORITY = ActorIdentity(ActorId(VALUE), ActorType.RUN_CONTROLLER)
 DECISION_AUTHORITY = ActorIdentity(ActorId(OTHER), ActorType.POLICY_ENGINE)
 
 
-def run(state: RunState, *, version: EntityVersion = RUN_VERSION) -> Run:
-    return Run(RunId(VALUE), TaskId(VALUE), state, version, PROFILE)
+def run(
+    state: RunState,
+    *,
+    version: EntityVersion = RUN_VERSION,
+    task_id: TaskId | None = None,
+    profile: ExecutionProfileRef = PROFILE,
+    predecessor_run_id: RunId | None = None,
+) -> Run:
+    return Run(
+        RunId(VALUE),
+        TaskId(VALUE) if task_id is None else task_id,
+        state,
+        version,
+        profile,
+        predecessor_run_id,
+    )
 
 
 def request(
@@ -310,6 +332,101 @@ def verified_completion_semantics(
     )
 
 
+def same_attempt_continuity(
+    snapshot: Run,
+    *,
+    task_id: TaskId | None = None,
+    profile: ExecutionProfileRef | None = None,
+    status: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+) -> RunSameAttemptContinuityDecision:
+    return RunSameAttemptContinuityDecision(
+        RunSemanticDecisionRef("same-attempt-continuity"),
+        status,
+        DECISION_AUTHORITY,
+        evidence("same-attempt-continuity"),
+        snapshot.run_id,
+        snapshot.version,
+        CORRELATION,
+        snapshot.task_id if task_id is None else task_id,
+        snapshot.predecessor_run_id,
+        snapshot.execution_profile_ref if profile is None else profile,
+    )
+
+
+def trusted_recovery_boundary(
+    snapshot: Run,
+    *,
+    status: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    actor: ActorIdentity = DECISION_AUTHORITY,
+) -> RunTrustedRecoveryBoundaryDecision:
+    return RunTrustedRecoveryBoundaryDecision(
+        RunSemanticDecisionRef("trusted-recovery-boundary"),
+        status,
+        actor,
+        evidence("trusted-recovery-boundary"),
+        snapshot.run_id,
+        snapshot.version,
+        CORRELATION,
+        RunRecoveryBoundaryRef("checkpoint/manifest-1"),
+    )
+
+
+def retry_preparation_semantics(
+    snapshot: Run,
+    *,
+    interruption: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    continuity: RunSameAttemptContinuityDecision | None = None,
+    resume: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    resume_actor: ActorIdentity = DECISION_AUTHORITY,
+    recovery_boundary: RunTrustedRecoveryBoundaryDecision | None = None,
+    limits: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    interruption_actor: ActorIdentity = DECISION_AUTHORITY,
+) -> RunRetryPreparationSemantics:
+    return RunRetryPreparationSemantics(
+        decision(
+            RunRecoverableInterruptionDecision,
+            "recoverable-interruption",
+            interruption,
+            actor=interruption_actor,
+        ),
+        same_attempt_continuity(snapshot) if continuity is None else continuity,
+        decision(RunResumeDecision, "resume", resume, actor=resume_actor),
+        (
+            trusted_recovery_boundary(snapshot)
+            if recovery_boundary is None
+            else recovery_boundary
+        ),
+        decision(RunRecoveryLimitsDecision, "recovery-limits", limits),
+    )
+
+
+def resume_semantics(
+    snapshot: Run,
+    *,
+    continuity: RunSameAttemptContinuityDecision | None = None,
+    resume: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    resume_actor: ActorIdentity = DECISION_AUTHORITY,
+    recovery_boundary: RunTrustedRecoveryBoundaryDecision | None = None,
+    task: RunTaskStateObservation | None = None,
+    objective: RunPrimaryObjectiveStateObservation | None = None,
+    boundary: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    grants: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+) -> RunResumeSemantics:
+    return RunResumeSemantics(
+        same_attempt_continuity(snapshot) if continuity is None else continuity,
+        decision(RunResumeDecision, "resume", resume, actor=resume_actor),
+        (
+            trusted_recovery_boundary(snapshot)
+            if recovery_boundary is None
+            else recovery_boundary
+        ),
+        task_observation(task_id=snapshot.task_id) if task is None else task,
+        primary_objective(task_id=snapshot.task_id) if objective is None else objective,
+        decision(RunExecutionBoundaryDecision, "boundary", boundary),
+        decision(RunGrantValidityDecision, "grants", grants),
+    )
+
+
 def canonical_guard(
     snapshot: Run, target: RunState, semantic: object
 ) -> RunSemanticGuard:
@@ -407,6 +524,60 @@ def test_every_normal_run_edge_requires_and_accepts_canonical_semantics(
 
 
 @pytest.mark.parametrize(
+    ("source", "target", "semantics_factory"),
+    (
+        (RunState.RUNNING, RunState.RETRYING, retry_preparation_semantics),
+        (RunState.RETRYING, RunState.RUNNING, resume_semantics),
+    ),
+)
+def test_same_attempt_retry_and_resume_edges_require_and_preserve_continuity(
+    source: RunState,
+    target: RunState,
+    semantics_factory: object,
+) -> None:
+    snapshot = run(source, predecessor_run_id=RunId(OTHER))
+    transition_request = request(target)
+    semantic = semantics_factory(snapshot)  # type: ignore[operator]
+    result = transition_entity(
+        snapshot,
+        transition_request,
+        context(
+            snapshot,
+            transition_request,
+            canonical_guard(snapshot, target, semantic),
+        ),
+    )
+    assert result.entity.state is target
+    assert result.entity.version == RUN_VERSION.next()
+    assert result.entity.run_id == snapshot.run_id
+    assert result.entity.task_id == snapshot.task_id
+    assert result.entity.predecessor_run_id == snapshot.predecessor_run_id
+    assert result.entity.execution_profile_ref == snapshot.execution_profile_ref
+    assert (snapshot.state, snapshot.version) == (source, RUN_VERSION)
+
+
+def test_worker_interruption_report_does_not_select_resume() -> None:
+    snapshot = run(RunState.RUNNING)
+    transition_request = request(RunState.RETRYING)
+    semantic = retry_preparation_semantics(
+        snapshot,
+        interruption_actor=ActorIdentity(ActorId(OTHER), ActorType.WORKER),
+    )
+    assert (
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(
+                snapshot,
+                transition_request,
+                canonical_guard(snapshot, RunState.RETRYING, semantic),
+            ),
+        ).entity.state
+        is RunState.RETRYING
+    )
+
+
+@pytest.mark.parametrize(
     "target",
     (RunState.RETRYING, RunState.REASSIGNED, RunState.FAILED, RunState.ABORTED),
 )
@@ -415,6 +586,144 @@ def test_recovery_reassign_failure_and_abort_cannot_receive_placeholder_semantic
 ) -> None:
     with pytest.raises(InvalidDomainValue, match="normal Run lifecycle edge"):
         canonical_guard(run(RunState.RUNNING), target, direct_completion_semantics())
+
+
+def test_retry_preparation_requires_every_canonical_recovery_input() -> None:
+    snapshot = run(RunState.RUNNING, predecessor_run_id=RunId(OTHER))
+    transition_request = request(RunState.RETRYING)
+    worker = ActorIdentity(ActorId(OTHER), ActorType.WORKER)
+    invalid_semantics = (
+        retry_preparation_semantics(
+            snapshot, interruption=RunSemanticDecisionStatus.UNRESOLVED
+        ),
+        retry_preparation_semantics(
+            snapshot,
+            continuity=replace(
+                same_attempt_continuity(snapshot),
+                execution_profile_ref=ExecutionProfileRef("other-profile", "v3"),
+            ),
+        ),
+        retry_preparation_semantics(
+            snapshot, resume=RunSemanticDecisionStatus.UNRESOLVED
+        ),
+        retry_preparation_semantics(snapshot, resume_actor=worker),
+        retry_preparation_semantics(
+            snapshot,
+            recovery_boundary=trusted_recovery_boundary(snapshot, actor=worker),
+        ),
+        retry_preparation_semantics(
+            snapshot,
+            recovery_boundary=trusted_recovery_boundary(
+                snapshot, status=RunSemanticDecisionStatus.REJECTED
+            ),
+        ),
+        retry_preparation_semantics(
+            snapshot, limits=RunSemanticDecisionStatus.REJECTED
+        ),
+    )
+    for semantic in invalid_semantics:
+        with pytest.raises(InvariantViolation):
+            transition_entity(
+                snapshot,
+                transition_request,
+                context(
+                    snapshot,
+                    transition_request,
+                    canonical_guard(snapshot, RunState.RETRYING, semantic),
+                ),
+            )
+        assert (snapshot.state, snapshot.version) == (RunState.RUNNING, RUN_VERSION)
+
+
+def test_resume_requires_every_canonical_same_attempt_input() -> None:
+    snapshot = run(RunState.RETRYING, predecessor_run_id=RunId(OTHER))
+    transition_request = request(RunState.RUNNING)
+    worker = ActorIdentity(ActorId(OTHER), ActorType.WORKER)
+    invalid_semantics = (
+        resume_semantics(
+            snapshot,
+            continuity=replace(
+                same_attempt_continuity(snapshot), task_id=TaskId(OTHER)
+            ),
+        ),
+        resume_semantics(
+            snapshot,
+            continuity=replace(
+                same_attempt_continuity(snapshot), predecessor_run_id=None
+            ),
+        ),
+        resume_semantics(snapshot, resume_actor=worker),
+        resume_semantics(
+            snapshot,
+            recovery_boundary=trusted_recovery_boundary(snapshot, actor=worker),
+        ),
+        resume_semantics(snapshot, task=task_observation(state=TaskState.BLOCKED)),
+        resume_semantics(
+            snapshot,
+            objective=primary_objective(task_version=EntityVersion(12)),
+        ),
+        resume_semantics(
+            snapshot, objective=primary_objective(state=ObjectiveState.BLOCKED)
+        ),
+        resume_semantics(snapshot, boundary=RunSemanticDecisionStatus.UNRESOLVED),
+        resume_semantics(snapshot, grants=RunSemanticDecisionStatus.REJECTED),
+    )
+    for semantic in invalid_semantics:
+        with pytest.raises(InvariantViolation):
+            transition_entity(
+                snapshot,
+                transition_request,
+                context(
+                    snapshot,
+                    transition_request,
+                    canonical_guard(snapshot, RunState.RUNNING, semantic),
+                ),
+            )
+        assert (snapshot.state, snapshot.version) == (RunState.RETRYING, RUN_VERSION)
+
+
+@pytest.mark.parametrize(
+    ("source", "target"),
+    (
+        (RunState.RUNNING, RunState.RETRYING),
+        (RunState.RETRYING, RunState.RUNNING),
+    ),
+)
+def test_every_retry_resume_decision_is_exactly_bound(
+    source: RunState, target: RunState
+) -> None:
+    snapshot = run(source)
+    transition_request = request(target)
+    semantic: RunRetryPreparationSemantics | RunResumeSemantics
+    if target is RunState.RETRYING:
+        retry_semantic = retry_preparation_semantics(snapshot)
+        semantic = replace(
+            retry_semantic,
+            recovery_limits=replace(
+                retry_semantic.recovery_limits,
+                correlation_id=CorrelationId(OTHER),
+            ),
+        )
+    else:
+        resume_semantic = resume_semantics(snapshot)
+        semantic = replace(
+            resume_semantic,
+            grants=replace(
+                resume_semantic.grants,
+                observed_entity_version=EntityVersion(6),
+            ),
+        )
+    with pytest.raises(InvariantViolation, match="semantic decision does not match"):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(
+                snapshot,
+                transition_request,
+                canonical_guard(snapshot, target, semantic),
+            ),
+        )
+    assert (snapshot.state, snapshot.version) == (source, RUN_VERSION)
 
 
 def test_start_requires_every_exact_normal_execution_input() -> None:
@@ -681,6 +990,29 @@ def test_authority_semantics_and_generic_guards_remain_distinct_gates() -> None:
             ),
         )
     assert (snapshot.state, snapshot.version) == (RunState.PENDING, RUN_VERSION)
+
+
+@pytest.mark.parametrize(
+    ("source", "target"),
+    (
+        (RunState.RUNNING, RunState.RETRYING),
+        (RunState.RETRYING, RunState.RUNNING),
+    ),
+)
+def test_generic_guards_cannot_substitute_retry_or_resume_semantics(
+    source: RunState, target: RunState
+) -> None:
+    snapshot = run(source)
+    transition_request = request(target)
+    with pytest.raises(InvariantViolation, match="Canonical Run semantic guard"):
+        transition_entity(
+            snapshot,
+            transition_request,
+            TransitionContext(
+                (PassingGuard(),), authority(snapshot, transition_request)
+            ),
+        )
+    assert (snapshot.state, snapshot.version) == (source, RUN_VERSION)
 
 
 def test_run_completion_has_no_outcome_task_or_objective_propagation() -> None:
