@@ -1,10 +1,11 @@
 """Pure authoritative lifecycle-transition mechanics for immutable snapshots.
 
 M7A validates caller-supplied versions and canonical structural topology. M7B1
-requires a separate exact-bound authority decision before ordinary semantic
-guards, then returns a new snapshot and one DomainEvent. Positive authority rules
-remain deferred. This module performs no loading, persistence, transaction, or
-external action.
+requires a separate exact-bound authority decision. M7B2 additionally requires
+the decision actor's type to be canonically eligible for the exact lifecycle edge
+before ordinary semantic guards, then returns a new snapshot and one DomainEvent.
+Eligibility is not a scoped grant. This module performs no loading, persistence,
+transaction, or external action.
 """
 
 from collections.abc import Mapping
@@ -19,7 +20,7 @@ from . import objective as objective_domain
 from . import outcome as outcome_domain
 from . import run as run_domain
 from . import task as task_domain
-from .actors import ActorIdentity
+from .actors import ActorIdentity, ActorType
 from .effect import Effect, EffectState
 from .errors import (
     ConcurrencyConflict,
@@ -368,6 +369,131 @@ def _is_creation_target(entity_type: DomainEntityType, target: LifecycleState) -
     )
 
 
+_OBJECTIVE_AUTHORITY: Final[frozenset[ActorType]] = frozenset(
+    {
+        ActorType.REQUESTER,
+        ActorType.SCHEDULER,
+        ActorType.POLICY_ENGINE,
+        ActorType.HUMAN_OPERATOR,
+    }
+)
+_TASK_AUTHORITY: Final[frozenset[ActorType]] = _OBJECTIVE_AUTHORITY
+_RUN_AUTHORITY: Final[frozenset[ActorType]] = frozenset(
+    {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
+)
+_OUTCOME_AUTHORITY: Final[frozenset[ActorType]] = frozenset(
+    {ActorType.SCHEDULER, ActorType.POLICY_ENGINE}
+)
+_EFFECT_AUTHORITY: Final[frozenset[ActorType]] = frozenset(
+    {ActorType.EFFECT_CONTROLLER}
+)
+
+_UNIFORM_AUTHORITY_BY_ENTITY: Final[Mapping[DomainEntityType, frozenset[ActorType]]] = (
+    MappingProxyType(
+        {
+            DomainEntityType.OBJECTIVE: _OBJECTIVE_AUTHORITY,
+            DomainEntityType.TASK: _TASK_AUTHORITY,
+            DomainEntityType.RUN: _RUN_AUTHORITY,
+            DomainEntityType.OUTCOME: _OUTCOME_AUTHORITY,
+            DomainEntityType.EFFECT: _EFFECT_AUTHORITY,
+        }
+    )
+)
+
+_EVALUATION_AUTHORITY_BY_EDGE: Final[
+    Mapping[
+        tuple[EvaluationState | None, EvaluationState],
+        frozenset[ActorType],
+    ]
+] = MappingProxyType(
+    {
+        (None, EvaluationState.PENDING): frozenset(
+            {ActorType.SCHEDULER, ActorType.EVALUATOR}
+        ),
+        (EvaluationState.PENDING, EvaluationState.RUNNING): frozenset(
+            {ActorType.EVALUATOR}
+        ),
+        (EvaluationState.RUNNING, EvaluationState.COMPLETED): frozenset(
+            {ActorType.EVALUATOR}
+        ),
+        (EvaluationState.RUNNING, EvaluationState.CONFLICTED): frozenset(
+            {
+                ActorType.EVALUATOR,
+                ActorType.ARBITRATOR,
+                ActorType.HUMAN_OPERATOR,
+            }
+        ),
+        (EvaluationState.COMPLETED, EvaluationState.CONFLICTED): frozenset(
+            {
+                ActorType.EVALUATOR,
+                ActorType.ARBITRATOR,
+                ActorType.HUMAN_OPERATOR,
+            }
+        ),
+        (EvaluationState.COMPLETED, EvaluationState.ARBITRATED): frozenset(
+            {ActorType.ARBITRATOR, ActorType.HUMAN_OPERATOR}
+        ),
+        (EvaluationState.CONFLICTED, EvaluationState.ARBITRATED): frozenset(
+            {ActorType.ARBITRATOR, ActorType.HUMAN_OPERATOR}
+        ),
+        **{
+            (source, EvaluationState.INVALID): frozenset(
+                {
+                    ActorType.EVALUATOR,
+                    ActorType.ARBITRATOR,
+                    ActorType.HUMAN_OPERATOR,
+                }
+            )
+            for source in (
+                EvaluationState.PENDING,
+                EvaluationState.RUNNING,
+                EvaluationState.COMPLETED,
+                EvaluationState.CONFLICTED,
+            )
+        },
+    }
+)
+
+
+def is_actor_eligible_for_transition_authority(
+    entity_type: DomainEntityType,
+    prior_state: LifecycleState | None,
+    target_state: LifecycleState,
+    actor_type: ActorType,
+) -> bool:
+    """Return actor-type eligibility for one canonical edge, never a grant."""
+    if not isinstance(entity_type, DomainEntityType) or not isinstance(
+        actor_type, ActorType
+    ):
+        return False
+    if not _is_lifecycle_state(target_state):
+        return False
+    if _entity_type_for_state(target_state) is not entity_type:
+        return False
+
+    if prior_state is None:
+        if not _is_creation_target(entity_type, target_state):
+            return False
+    else:
+        if not _is_lifecycle_state(prior_state):
+            return False
+        if _entity_type_for_state(prior_state) is not entity_type:
+            return False
+        if not _can_transition(entity_type, prior_state, target_state):
+            return False
+
+    if entity_type is DomainEntityType.EVALUATION:
+        if not isinstance(target_state, EvaluationState):
+            return False
+        if prior_state is not None and not isinstance(prior_state, EvaluationState):
+            return False
+        return actor_type in _EVALUATION_AUTHORITY_BY_EDGE.get(
+            (prior_state, target_state), frozenset()
+        )
+
+    return actor_type in _UNIFORM_AUTHORITY_BY_ENTITY[entity_type]
+
+
 @dataclass(frozen=True, slots=True)
 class DomainEventMetadata:
     """Immutable lifecycle meaning; None means pre-creation absence, not a state."""
@@ -564,6 +690,18 @@ def _require_authorized_transition(
     ):
         raise UnauthorizedTransition(
             "Transition authority decision does not match the exact request snapshot"
+        )
+
+    if not is_actor_eligible_for_transition_authority(
+        entity_type,
+        source_state,
+        request.target_state,
+        decision.actor.actor_type,
+    ):
+        raise UnauthorizedTransition(
+            f"{decision.actor.actor_type.value} is not eligible for direct "
+            f"{entity_type.value} lifecycle authority on "
+            f"{source_state.value} -> {request.target_state.value}"
         )
 
 

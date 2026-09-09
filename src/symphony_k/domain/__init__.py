@@ -163,6 +163,7 @@ from .transition_engine import (
     TransitionGuard,
     TransitionRequest,
     TransitionResult,
+    is_actor_eligible_for_transition_authority,
     transition_entity,
 )
 from .transitions import TransitionReason
@@ -302,6 +303,7 @@ __all__ = [
     "can_use_effect_verification_for_authorization",
     "can_verify_effect_preparation",
     "derive_evaluation_effective_use",
+    "is_actor_eligible_for_transition_authority",
     "can_objective_transition",
     "can_outcome_transition",
     "can_run_transition",

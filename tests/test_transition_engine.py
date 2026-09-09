@@ -1,4 +1,4 @@
-"""M7A transition mechanics and authoritative event contracts."""
+"""M7 transition mechanics, authority gates, and event contracts."""
 
 from dataclasses import MISSING, FrozenInstanceError, dataclass, fields, replace
 from datetime import UTC, datetime
@@ -67,6 +67,7 @@ from symphony_k.domain import (
     TransitionRequest,
     TransitionResult,
     UnauthorizedTransition,
+    is_actor_eligible_for_transition_authority,
     transition_entity,
 )
 from symphony_k.domain.transition_engine import LifecycleEntity, LifecycleState
@@ -120,11 +121,19 @@ def transition_request[StateT: LifecycleState](
     *,
     expected_version: EntityVersion = VERSION,
     causation_id: CausationId | None = CAUSATION_ID,
+    authority_actor: ActorIdentity | None = None,
 ) -> TransitionRequest[StateT]:
+    if authority_actor is None:
+        if isinstance(target, EvaluationState):
+            authority_actor = actor(ActorType.EVALUATOR)
+        elif isinstance(target, EffectState):
+            authority_actor = actor(ActorType.EFFECT_CONTROLLER)
+        else:
+            authority_actor = actor(ActorType.SCHEDULER)
     return TransitionRequest(
         EVENT_ID,
         target,
-        actor(),
+        authority_actor,
         TransitionReason("Foundation transition requested"),
         expected_version,
         instant(),
@@ -296,7 +305,7 @@ def test_success_returns_new_snapshot_and_exactly_one_matching_event(
     assert result.event.event_id == EVENT_ID
     assert result.event.event_type is event_type
     assert result.event.entity_version == result.entity.version
-    assert result.event.actor == actor()
+    assert result.event.actor == request.actor
     assert result.event.timestamp == instant()
     assert result.event.correlation_id == CORRELATION_ID
     assert result.event.causation_id == CAUSATION_ID
@@ -501,6 +510,32 @@ def test_authority_success_does_not_bypass_rejecting_semantic_guard() -> None:
         transition_entity(snapshot, request, rejecting_context)
     assert snapshot.state is RunState.PENDING
     assert snapshot.version == VERSION
+
+
+@pytest.mark.parametrize(
+    ("snapshot", "target", "ineligible_actor"),
+    [
+        (run(), RunState.RUNNING, ActorType.WORKER),
+        (run(), RunState.ABORTED, ActorType.HUMAN_OPERATOR),
+        (outcome(), OutcomeState.VALIDATING, ActorType.EVALUATOR),
+        (effect(), EffectState.PENDING_COMMIT, ActorType.HUMAN_OPERATOR),
+        (objective(), ObjectiveState.ACTIVE, ActorType.SYSTEM),
+    ],
+)
+def test_ineligible_actor_with_exact_authorized_decision_is_rejected(
+    snapshot: LifecycleEntity,
+    target: LifecycleState,
+    ineligible_actor: ActorType,
+) -> None:
+    request = transition_request(target, authority_actor=actor(ineligible_actor))
+    before = (snapshot.state, snapshot.version)
+    with pytest.raises(UnauthorizedTransition, match="not eligible"):
+        transition_entity(
+            snapshot,  # type: ignore[arg-type]
+            request,  # type: ignore[arg-type]
+            authorized_context(snapshot, request),
+        )
+    assert (snapshot.state, snapshot.version) == before
 
 
 def test_context_requires_explicit_typed_guards_and_has_no_permissive_default() -> None:
@@ -745,7 +780,7 @@ def test_existing_snapshot_invariant_rejection_is_typed_and_has_no_partial_resul
     assert snapshot.version == VERSION
 
 
-def test_transition_authority_has_no_m7b2_or_m8_runtime_boundaries() -> None:
+def test_transition_authority_has_no_m7c_or_m8_runtime_boundaries() -> None:
     for name in (
         "Repository",
         "UnitOfWork",
@@ -756,8 +791,6 @@ def test_transition_authority_has_no_m7b2_or_m8_runtime_boundaries() -> None:
         "CompletionPolicyEvaluator",
         "PolicyEngine",
         "PermissionEngine",
-        "AuthorityMatrix",
-        "ActorTransitionAuthorityMatrix",
         "AllowAllAuthority",
         "EffectExecutor",
         "execute_effect",
@@ -770,3 +803,16 @@ def test_transition_authority_has_no_m7b2_or_m8_runtime_boundaries() -> None:
     result = transition_entity(snapshot, request, authorized_context(snapshot, request))
     assert result.entity.state is EffectState.SIMULATED
     assert effect().state is EffectState.PLANNED
+
+
+def test_public_eligibility_query_does_not_replace_m7b1_authority() -> None:
+    assert is_actor_eligible_for_transition_authority(
+        DomainEntityType.RUN,
+        RunState.PENDING,
+        RunState.RUNNING,
+        ActorType.SCHEDULER,
+    )
+    snapshot = run()
+    request = transition_request(RunState.RUNNING)
+    with pytest.raises(UnauthorizedTransition, match="decision is required"):
+        transition_entity(snapshot, request, MISSING_AUTHORITY_CONTEXT)

@@ -116,6 +116,7 @@ from symphony_k.domain import (
     can_use_effect_verification_for_authorization,
     can_verify_effect_preparation,
     derive_evaluation_effective_use,
+    is_actor_eligible_for_transition_authority,
     transition_entity,
 )
 
@@ -921,6 +922,15 @@ if TYPE_CHECKING:
     assert_type(transition_authority.observed_entity_version, EntityVersion)
     assert_type(transition_authority.correlation_id, CorrelationId)
     assert_type(transition_authority.decision, TransitionAuthorityStatus)
+    assert_type(
+        is_actor_eligible_for_transition_authority(
+            DomainEntityType.OBJECTIVE,
+            ObjectiveState.DRAFT,
+            ObjectiveState.ACTIVE,
+            ActorType.HUMAN_OPERATOR,
+        ),
+        bool,
+    )
     TransitionAuthorityDecision(
         designation,
         DomainEntityType.EFFECT,
