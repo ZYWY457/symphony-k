@@ -264,6 +264,7 @@ def readiness_guard(entity: Task, target: TaskState) -> TaskSemanticGuard:
                 entity.version,
                 CORRELATION_ID,
                 entity.primary_objective_id,
+                EntityVersion(11),
                 ObjectiveState.ACTIVE,
             ),
         ),

@@ -76,6 +76,7 @@ from symphony_k.domain.transition_engine import (
 VALUE = UUID("12345678-1234-4234-8234-123456789abc")
 OTHER = UUID("87654321-4321-4321-8321-cba987654321")
 VERSION = EntityVersion(7)
+OBJECTIVE_VERSION = EntityVersion(11)
 CORRELATION = CorrelationId(VALUE)
 POLICY = CompletionPolicyRef("task-completion", "v1")
 LIFECYCLE_AUTHORITY = ActorIdentity(ActorId(VALUE), ActorType.SCHEDULER)
@@ -138,6 +139,7 @@ def primary_objective(
     *,
     state: ObjectiveState = ObjectiveState.ACTIVE,
     objective_id: ObjectiveId | None = None,
+    objective_version: EntityVersion = OBJECTIVE_VERSION,
     status: TaskSemanticDecisionStatus = TaskSemanticDecisionStatus.PASSED,
 ) -> TaskPrimaryObjectiveStateDecision:
     return TaskPrimaryObjectiveStateDecision(
@@ -149,6 +151,7 @@ def primary_objective(
         VERSION,
         CORRELATION,
         ObjectiveId(VALUE) if objective_id is None else objective_id,
+        objective_version,
         state,
     )
 
@@ -465,6 +468,17 @@ def test_primary_objective_evidence_must_identify_exact_task_primary_objective()
             ),
         )
     assert (snapshot.state, snapshot.version) == (TaskState.DRAFT, VERSION)
+
+
+def test_primary_objective_observation_retains_its_independent_entity_version() -> (
+    None
+):
+    observation = primary_objective()
+    assert observation.observed_entity_version == VERSION
+    assert observation.observed_objective_version == OBJECTIVE_VERSION
+    assert observation.observed_objective_version != observation.observed_entity_version
+    with pytest.raises(InvalidDomainValue):
+        replace(observation, observed_objective_version=11)  # type: ignore[arg-type]
 
 
 def test_blocked_to_ready_requires_explicit_no_active_ownership() -> None:

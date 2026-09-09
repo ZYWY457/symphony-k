@@ -186,15 +186,20 @@ class TaskExecutionAuthorizationEndedDecision(_EvidenceBackedTaskDecision):
 
 @dataclass(frozen=True, slots=True)
 class TaskPrimaryObjectiveStateDecision(_EvidenceBackedTaskDecision):
-    """Observed primary Objective state for exactly one Task snapshot."""
+    """Observed primary Objective state and snapshot for one Task snapshot."""
 
     primary_objective_id: ObjectiveId
+    observed_objective_version: EntityVersion
     observed_state: ObjectiveState
 
     def __post_init__(self) -> None:
         super(TaskPrimaryObjectiveStateDecision, self).__post_init__()
         if not isinstance(self.primary_objective_id, ObjectiveId):
             raise InvalidDomainValue("primary_objective_id must be an ObjectiveId")
+        if not isinstance(self.observed_objective_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_objective_version must be an EntityVersion"
+            )
         if not isinstance(self.observed_state, ObjectiveState):
             raise InvalidDomainValue("observed_state must be an ObjectiveState")
 

@@ -2,7 +2,7 @@
 
 **Version:** 1
 **Status:** Active
-**Scope:** GitHub Issue #25 only
+**Scope:** GitHub Issue #26 only
 
 ## Boundary
 
@@ -18,7 +18,7 @@ semantic guard.
    start/resume ownership, completion, failure, and cancellation.
 2. Bind every decision to TaskId, observed Task EntityVersion, and CorrelationId;
    primary-Objective observations additionally identify the exact primary
-   ObjectiveId.
+   ObjectiveId and observed Objective EntityVersion.
 3. Require a canonical Task semantic guard for each of the existing sixteen Task
    edges, before ordinary additional guards and independently of M7B1/M7B2.
 4. Test all accepted Task edges; stale, cross-Task, and cross-correlation reuse;
