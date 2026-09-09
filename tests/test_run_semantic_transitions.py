@@ -84,6 +84,7 @@ CORRELATION = CorrelationId(VALUE)
 PROFILE = ExecutionProfileRef("approved-profile", "v3")
 LIFECYCLE_AUTHORITY = ActorIdentity(ActorId(VALUE), ActorType.RUN_CONTROLLER)
 DECISION_AUTHORITY = ActorIdentity(ActorId(OTHER), ActorType.POLICY_ENGINE)
+RECOVERY_AUTHORITY = ActorIdentity(ActorId(OTHER), ActorType.RUN_CONTROLLER)
 
 
 def run(
@@ -377,7 +378,7 @@ def retry_preparation_semantics(
     interruption: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
     continuity: RunSameAttemptContinuityDecision | None = None,
     resume: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
-    resume_actor: ActorIdentity = DECISION_AUTHORITY,
+    resume_actor: ActorIdentity = RECOVERY_AUTHORITY,
     recovery_boundary: RunTrustedRecoveryBoundaryDecision | None = None,
     limits: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
     interruption_actor: ActorIdentity = DECISION_AUTHORITY,
@@ -405,7 +406,7 @@ def resume_semantics(
     *,
     continuity: RunSameAttemptContinuityDecision | None = None,
     resume: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
-    resume_actor: ActorIdentity = DECISION_AUTHORITY,
+    resume_actor: ActorIdentity = RECOVERY_AUTHORITY,
     recovery_boundary: RunTrustedRecoveryBoundaryDecision | None = None,
     task: RunTaskStateObservation | None = None,
     objective: RunPrimaryObjectiveStateObservation | None = None,
@@ -556,12 +557,18 @@ def test_same_attempt_retry_and_resume_edges_require_and_preserve_continuity(
     assert (snapshot.state, snapshot.version) == (source, RUN_VERSION)
 
 
-def test_worker_interruption_report_does_not_select_resume() -> None:
+def test_worker_interruption_evidence_does_not_make_worker_a_recovery_authority() -> (
+    None
+):
     snapshot = run(RunState.RUNNING)
     transition_request = request(RunState.RETRYING)
-    semantic = retry_preparation_semantics(
-        snapshot,
-        interruption_actor=ActorIdentity(ActorId(OTHER), ActorType.WORKER),
+    semantic = retry_preparation_semantics(snapshot)
+    semantic = replace(
+        semantic,
+        recoverable_interruption=replace(
+            semantic.recoverable_interruption,
+            evidence_refs=frozenset({EvidenceRef("worker-interruption-report")}),
+        ),
     )
     assert (
         transition_entity(
@@ -575,6 +582,23 @@ def test_worker_interruption_report_does_not_select_resume() -> None:
         ).entity.state
         is RunState.RETRYING
     )
+
+
+@pytest.mark.parametrize("actor_type", ActorType)
+def test_resume_decision_accepts_exactly_canonical_recovery_authorities(
+    actor_type: ActorType,
+) -> None:
+    actor = ActorIdentity(ActorId(OTHER), actor_type)
+    if actor_type in {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}:
+        assert isinstance(
+            decision(RunResumeDecision, "resume", actor=actor), RunResumeDecision
+        )
+    else:
+        with pytest.raises(
+            InvalidDomainValue,
+            match="must be decided by SCHEDULER or RUN_CONTROLLER",
+        ):
+            decision(RunResumeDecision, "resume", actor=actor)
 
 
 @pytest.mark.parametrize(
@@ -592,6 +616,9 @@ def test_retry_preparation_requires_every_canonical_recovery_input() -> None:
     snapshot = run(RunState.RUNNING, predecessor_run_id=RunId(OTHER))
     transition_request = request(RunState.RETRYING)
     worker = ActorIdentity(ActorId(OTHER), ActorType.WORKER)
+    worker_recoverability = retry_preparation_semantics(snapshot)
+    worker_continuity = retry_preparation_semantics(snapshot)
+    worker_limits = retry_preparation_semantics(snapshot)
     invalid_semantics = (
         retry_preparation_semantics(
             snapshot, interruption=RunSemanticDecisionStatus.UNRESOLVED
@@ -606,7 +633,18 @@ def test_retry_preparation_requires_every_canonical_recovery_input() -> None:
         retry_preparation_semantics(
             snapshot, resume=RunSemanticDecisionStatus.UNRESOLVED
         ),
-        retry_preparation_semantics(snapshot, resume_actor=worker),
+        replace(
+            worker_recoverability,
+            recoverable_interruption=replace(
+                worker_recoverability.recoverable_interruption, decided_by=worker
+            ),
+        ),
+        replace(
+            worker_continuity,
+            same_attempt_continuity=replace(
+                worker_continuity.same_attempt_continuity, decided_by=worker
+            ),
+        ),
         retry_preparation_semantics(
             snapshot,
             recovery_boundary=trusted_recovery_boundary(snapshot, actor=worker),
@@ -619,6 +657,10 @@ def test_retry_preparation_requires_every_canonical_recovery_input() -> None:
         ),
         retry_preparation_semantics(
             snapshot, limits=RunSemanticDecisionStatus.REJECTED
+        ),
+        replace(
+            worker_limits,
+            recovery_limits=replace(worker_limits.recovery_limits, decided_by=worker),
         ),
     )
     for semantic in invalid_semantics:
@@ -639,6 +681,9 @@ def test_resume_requires_every_canonical_same_attempt_input() -> None:
     snapshot = run(RunState.RETRYING, predecessor_run_id=RunId(OTHER))
     transition_request = request(RunState.RUNNING)
     worker = ActorIdentity(ActorId(OTHER), ActorType.WORKER)
+    worker_continuity = resume_semantics(snapshot)
+    worker_boundary = resume_semantics(snapshot)
+    worker_grants = resume_semantics(snapshot)
     invalid_semantics = (
         resume_semantics(
             snapshot,
@@ -652,7 +697,12 @@ def test_resume_requires_every_canonical_same_attempt_input() -> None:
                 same_attempt_continuity(snapshot), predecessor_run_id=None
             ),
         ),
-        resume_semantics(snapshot, resume_actor=worker),
+        replace(
+            worker_continuity,
+            same_attempt_continuity=replace(
+                worker_continuity.same_attempt_continuity, decided_by=worker
+            ),
+        ),
         resume_semantics(
             snapshot,
             recovery_boundary=trusted_recovery_boundary(snapshot, actor=worker),
@@ -667,6 +717,14 @@ def test_resume_requires_every_canonical_same_attempt_input() -> None:
         ),
         resume_semantics(snapshot, boundary=RunSemanticDecisionStatus.UNRESOLVED),
         resume_semantics(snapshot, grants=RunSemanticDecisionStatus.REJECTED),
+        replace(
+            worker_boundary,
+            boundary=replace(worker_boundary.boundary, decided_by=worker),
+        ),
+        replace(
+            worker_grants,
+            grants=replace(worker_grants.grants, decided_by=worker),
+        ),
     )
     for semantic in invalid_semantics:
         with pytest.raises(InvariantViolation):

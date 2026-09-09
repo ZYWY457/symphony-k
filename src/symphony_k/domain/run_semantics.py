@@ -29,6 +29,11 @@ class RunSemanticDecisionStatus(Enum):
     UNRESOLVED = "UNRESOLVED"
 
 
+_RESUME_DECISION_ACTOR_TYPES: Final[frozenset[ActorType]] = frozenset(
+    {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
+)
+
+
 class RunVerificationResolutionStatus(Enum):
     """A resolved verification may be favorable or unfavorable to the candidate."""
 
@@ -199,6 +204,13 @@ class RunSameAttemptContinuityDecision(_EvidenceBackedRunDecision):
 @dataclass(frozen=True, slots=True)
 class RunResumeDecision(_EvidenceBackedRunDecision):
     """Explicit recovery-controller decision to Resume one exact Run snapshot."""
+
+    def __post_init__(self) -> None:
+        super(RunResumeDecision, self).__post_init__()
+        if self.decided_by.actor_type not in _RESUME_DECISION_ACTOR_TYPES:
+            raise InvalidDomainValue(
+                "RunResumeDecision must be decided by SCHEDULER or RUN_CONTROLLER"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -625,6 +637,14 @@ def _require_passed(decision: _EvidenceBackedRunDecision, condition: str) -> Non
         )
 
 
+def _require_non_worker_authority(
+    decision: _EvidenceBackedRunDecision,
+    condition: str,
+) -> None:
+    if decision.decided_by.actor_type is ActorType.WORKER:
+        raise InvariantViolation(f"Worker cannot authoritatively establish {condition}")
+
+
 @dataclass(frozen=True, slots=True)
 class RunSemanticGuard:
     """Canonical guard for one exact normal Run transition attempt."""
@@ -802,6 +822,7 @@ class RunSemanticGuard:
         continuity: RunSameAttemptContinuityDecision,
     ) -> None:
         _require_passed(continuity, "same-attempt path and strategy continuity")
+        _require_non_worker_authority(continuity, "same-attempt continuity")
         if (
             continuity.task_id != run.task_id
             or continuity.predecessor_run_id != run.predecessor_run_id
@@ -816,16 +837,15 @@ class RunSemanticGuard:
         resume_decision: RunResumeDecision,
     ) -> None:
         _require_passed(resume_decision, "explicit scoped Resume decision")
-        if resume_decision.decided_by.actor_type is ActorType.WORKER:
-            raise InvariantViolation("Worker cannot authoritatively select Resume")
 
     @staticmethod
     def _validate_trusted_recovery_boundary(
         recovery_boundary: RunTrustedRecoveryBoundaryDecision,
     ) -> None:
         _require_passed(recovery_boundary, "trusted recovery-boundary provenance")
-        if recovery_boundary.decided_by.actor_type is ActorType.WORKER:
-            raise InvariantViolation("Worker recovery-boundary claim is not trusted")
+        _require_non_worker_authority(
+            recovery_boundary, "trusted recovery-boundary acceptance"
+        )
 
     @classmethod
     def _validate_active_task_and_primary_objective(
@@ -858,10 +878,16 @@ class RunSemanticGuard:
         semantics: RunRetryPreparationSemantics,
     ) -> None:
         _require_passed(semantics.recoverable_interruption, "recoverable interruption")
+        _require_non_worker_authority(
+            semantics.recoverable_interruption, "recoverability"
+        )
         cls._validate_same_attempt_continuity(run, semantics.same_attempt_continuity)
         cls._validate_resume_decision(semantics.resume_decision)
         cls._validate_trusted_recovery_boundary(semantics.trusted_recovery_boundary)
         _require_passed(semantics.recovery_limits, "remaining recovery limits")
+        _require_non_worker_authority(
+            semantics.recovery_limits, "remaining recovery limits"
+        )
 
     @classmethod
     def _validate_resume(cls, run: Run, semantics: RunResumeSemantics) -> None:
@@ -872,4 +898,10 @@ class RunSemanticGuard:
             run, semantics.task, semantics.primary_objective
         )
         _require_passed(semantics.boundary, "approved execution boundary")
+        _require_non_worker_authority(
+            semantics.boundary, "recovery continuation eligibility"
+        )
         _require_passed(semantics.grants, "current execution grants")
+        _require_non_worker_authority(
+            semantics.grants, "recovery continuation eligibility"
+        )
