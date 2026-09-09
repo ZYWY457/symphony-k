@@ -470,9 +470,7 @@ def test_primary_objective_evidence_must_identify_exact_task_primary_objective()
     assert (snapshot.state, snapshot.version) == (TaskState.DRAFT, VERSION)
 
 
-def test_primary_objective_observation_retains_its_independent_entity_version() -> (
-    None
-):
+def test_primary_objective_observation_retains_its_independent_entity_version() -> None:
     observation = primary_objective()
     assert observation.observed_entity_version == VERSION
     assert observation.observed_objective_version == OBJECTIVE_VERSION

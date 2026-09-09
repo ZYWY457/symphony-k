@@ -372,20 +372,30 @@ class RunDirectCompletionSemantics:
 
 @dataclass(frozen=True, slots=True)
 class RunVerifiedCompletionSemantics:
+    normal_termination: RunIndependentNormalTerminationDecision
     verification_resolution: RunVerificationResolutionDecision
     evidence_retention: RunVerificationEvidenceRetentionDecision
 
     def __post_init__(self) -> None:
-        if not isinstance(
-            self.verification_resolution, RunVerificationResolutionDecision
+        for value, expected, name in (
+            (
+                self.normal_termination,
+                RunIndependentNormalTerminationDecision,
+                "normal_termination",
+            ),
+            (
+                self.verification_resolution,
+                RunVerificationResolutionDecision,
+                "verification_resolution",
+            ),
+            (
+                self.evidence_retention,
+                RunVerificationEvidenceRetentionDecision,
+                "evidence_retention",
+            ),
         ):
-            raise InvalidDomainValue(
-                "verification_resolution has the wrong decision type"
-            )
-        if not isinstance(
-            self.evidence_retention, RunVerificationEvidenceRetentionDecision
-        ):
-            raise InvalidDomainValue("evidence_retention has the wrong decision type")
+            if not isinstance(value, expected):
+                raise InvalidDomainValue(f"{name} has the wrong decision type")
 
 
 type RunSemanticInput = (
@@ -426,7 +436,11 @@ def _semantic_decisions_for(
             semantics.artifact_usage_persistence,
             semantics.no_verification_wait_required,
         )
-    return (semantics.verification_resolution, semantics.evidence_retention)
+    return (
+        semantics.normal_termination,
+        semantics.verification_resolution,
+        semantics.evidence_retention,
+    )
 
 
 _INPUT_TYPE_BY_EDGE: Final[
@@ -604,6 +618,11 @@ class RunSemanticGuard:
     def _validate_verified_completion(
         semantics: RunVerifiedCompletionSemantics,
     ) -> None:
+        _require_passed(semantics.normal_termination, "normal termination evidence")
+        if semantics.normal_termination.decided_by.actor_type is ActorType.WORKER:
+            raise InvariantViolation(
+                "Worker normal-termination claim is not independent"
+            )
         if semantics.verification_resolution.status not in {
             RunVerificationResolutionStatus.RESOLVED_FAVORABLE,
             RunVerificationResolutionStatus.RESOLVED_UNFAVORABLE,

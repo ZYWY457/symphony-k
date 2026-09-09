@@ -282,13 +282,21 @@ def direct_completion_semantics(
 
 def verified_completion_semantics(
     *,
+    termination: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
     resolution: RunVerificationResolutionStatus = (
         RunVerificationResolutionStatus.RESOLVED_FAVORABLE
     ),
     retention: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    termination_actor: ActorIdentity = DECISION_AUTHORITY,
     resolution_actor: ActorIdentity = DECISION_AUTHORITY,
 ) -> RunVerifiedCompletionSemantics:
     return RunVerifiedCompletionSemantics(
+        decision(
+            RunIndependentNormalTerminationDecision,
+            "normal-termination",
+            termination,
+            actor=termination_actor,
+        ),
         RunVerificationResolutionDecision(
             RunSemanticDecisionRef("verification-resolution"),
             resolution,
@@ -543,10 +551,14 @@ def test_verified_completion_allows_unfavorable_verdict_with_evidence() -> None:
         is RunState.COMPLETED
     )
     for semantic in (
+        verified_completion_semantics(termination=RunSemanticDecisionStatus.UNRESOLVED),
         verified_completion_semantics(
             resolution=RunVerificationResolutionStatus.UNRESOLVED
         ),
         verified_completion_semantics(retention=RunSemanticDecisionStatus.REJECTED),
+        verified_completion_semantics(
+            termination_actor=ActorIdentity(ActorId(OTHER), ActorType.WORKER)
+        ),
         verified_completion_semantics(
             resolution_actor=ActorIdentity(ActorId(OTHER), ActorType.WORKER)
         ),
@@ -597,6 +609,52 @@ def test_every_consumed_decision_is_exact_bound_to_run_snapshot_and_correlation(
             ),
         )
     assert (snapshot.state, snapshot.version) == (RunState.PENDING, RUN_VERSION)
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    (RunId(OTHER), EntityVersion(6), CorrelationId(OTHER)),
+)
+def test_verified_completion_normal_termination_is_exactly_bound(
+    replacement: RunId | EntityVersion | CorrelationId,
+) -> None:
+    snapshot = run(RunState.WAITING_FOR_VERIFICATION)
+    transition_request = request(RunState.COMPLETED)
+    semantic = verified_completion_semantics()
+    if isinstance(replacement, RunId):
+        semantic = replace(
+            semantic,
+            normal_termination=replace(semantic.normal_termination, run_id=replacement),
+        )
+    elif isinstance(replacement, EntityVersion):
+        semantic = replace(
+            semantic,
+            normal_termination=replace(
+                semantic.normal_termination,
+                observed_entity_version=replacement,
+            ),
+        )
+    else:
+        semantic = replace(
+            semantic,
+            normal_termination=replace(
+                semantic.normal_termination, correlation_id=replacement
+            ),
+        )
+    with pytest.raises(InvariantViolation, match="semantic decision does not match"):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(
+                snapshot,
+                transition_request,
+                canonical_guard(snapshot, RunState.COMPLETED, semantic),
+            ),
+        )
+    assert (snapshot.state, snapshot.version) == (
+        RunState.WAITING_FOR_VERIFICATION,
+        RUN_VERSION,
+    )
 
 
 def test_authority_semantics_and_generic_guards_remain_distinct_gates() -> None:
