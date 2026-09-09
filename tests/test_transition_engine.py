@@ -67,7 +67,16 @@ from symphony_k.domain import (
     RunId,
     RunState,
     Task,
+    TaskBudgetValidityDecision,
+    TaskDefinitionGovernanceDecision,
+    TaskDependencyReadinessDecision,
     TaskId,
+    TaskPermissionValidityDecision,
+    TaskPrimaryObjectiveStateDecision,
+    TaskReadinessSemantics,
+    TaskSemanticDecisionRef,
+    TaskSemanticDecisionStatus,
+    TaskSemanticGuard,
     TaskState,
     Timestamp,
     TransitionAuthorityDecision,
@@ -162,8 +171,15 @@ def authorized_context(
     if isinstance(entity, Objective):
         assert isinstance(request.target_state, ObjectiveState)
         objective_guard = activation_guard(entity, request.target_state)
+    task_guard = None
+    if isinstance(entity, Task):
+        assert isinstance(request.target_state, TaskState)
+        task_guard = readiness_guard(entity, request.target_state)
     return TransitionContext(
-        guards, authority_decision(entity, request), objective_guard
+        guards,
+        authority_decision(entity, request),
+        objective_guard,
+        task_guard,
     )
 
 
@@ -202,6 +218,54 @@ def activation_guard(
             decision(ObjectiveBudgetValidityDecision, "budget"),
             decision(ObjectivePermissionValidityDecision, "permission"),
             decision(ObjectiveTimeHorizonValidityDecision, "time"),
+        ),
+    )
+
+
+def readiness_guard(entity: Task, target: TaskState) -> TaskSemanticGuard:
+    def decision[
+        DecisionT: (
+            TaskDefinitionGovernanceDecision
+            | TaskDependencyReadinessDecision
+            | TaskBudgetValidityDecision
+            | TaskPermissionValidityDecision
+        )
+    ](decision_type: type[DecisionT], name: str) -> DecisionT:
+        return cast(
+            DecisionT,
+            decision_type(
+                TaskSemanticDecisionRef(name),
+                TaskSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef(name)}),
+                entity.task_id,
+                entity.version,
+                CORRELATION_ID,
+            ),
+        )
+
+    return TaskSemanticGuard(
+        entity.task_id,
+        entity.version,
+        entity.state,
+        target,
+        CORRELATION_ID,
+        TaskReadinessSemantics(
+            decision(TaskDefinitionGovernanceDecision, "governance"),
+            decision(TaskDependencyReadinessDecision, "dependencies"),
+            decision(TaskBudgetValidityDecision, "budget"),
+            decision(TaskPermissionValidityDecision, "permission"),
+            TaskPrimaryObjectiveStateDecision(
+                TaskSemanticDecisionRef("primary-objective"),
+                TaskSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef("primary-objective")}),
+                entity.task_id,
+                entity.version,
+                CORRELATION_ID,
+                entity.primary_objective_id,
+                ObjectiveState.ACTIVE,
+            ),
         ),
     )
 
