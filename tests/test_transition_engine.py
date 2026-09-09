@@ -3,6 +3,7 @@
 from dataclasses import MISSING, FrozenInstanceError, dataclass, fields, replace
 from datetime import UTC, datetime
 from types import ModuleType
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -42,13 +43,22 @@ from symphony_k.domain import (
     EvaluationState,
     EvaluationTargetRef,
     EventId,
+    EvidenceRef,
     ExecutionProfileRef,
     InvalidDomainValue,
     InvalidTransition,
     InvariantViolation,
     Objective,
+    ObjectiveActivationSemantics,
+    ObjectiveBudgetValidityDecision,
+    ObjectiveGovernanceApprovalDecision,
     ObjectiveId,
+    ObjectivePermissionValidityDecision,
+    ObjectiveSemanticDecisionRef,
+    ObjectiveSemanticDecisionStatus,
+    ObjectiveSemanticGuard,
     ObjectiveState,
+    ObjectiveTimeHorizonValidityDecision,
     Outcome,
     OutcomeId,
     OutcomeState,
@@ -148,7 +158,49 @@ def authorized_context(
     *,
     guards: tuple[engine_module.TransitionGuard, ...] = (PASSING_GUARD,),
 ) -> TransitionContext:
-    return TransitionContext(guards, authority_decision(entity, request))
+    objective_guard = None
+    if isinstance(entity, Objective):
+        assert isinstance(request.target_state, ObjectiveState)
+        objective_guard = activation_guard(entity, request.target_state)
+    return TransitionContext(
+        guards, authority_decision(entity, request), objective_guard
+    )
+
+
+def activation_guard(
+    entity: Objective, target: ObjectiveState
+) -> ObjectiveSemanticGuard:
+    def decision[
+        DecisionT: (
+            ObjectiveGovernanceApprovalDecision
+            | ObjectiveBudgetValidityDecision
+            | ObjectivePermissionValidityDecision
+            | ObjectiveTimeHorizonValidityDecision
+        )
+    ](decision_type: type[DecisionT], name: str) -> DecisionT:
+        return cast(
+            DecisionT,
+            decision_type(
+                ObjectiveSemanticDecisionRef(name),
+                ObjectiveSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef(name)}),
+            ),
+        )
+
+    return ObjectiveSemanticGuard(
+        entity.objective_id,
+        entity.version,
+        entity.state,
+        target,
+        CORRELATION_ID,
+        ObjectiveActivationSemantics(
+            decision(ObjectiveGovernanceApprovalDecision, "governance"),
+            decision(ObjectiveBudgetValidityDecision, "budget"),
+            decision(ObjectivePermissionValidityDecision, "permission"),
+            decision(ObjectiveTimeHorizonValidityDecision, "time"),
+        ),
+    )
 
 
 def authority_decision(
@@ -546,6 +598,7 @@ def test_context_requires_explicit_typed_guards_and_has_no_permissive_default() 
     definitions = {field.name: field for field in fields(TransitionContext)}
     assert definitions["guards"].default is MISSING
     assert definitions["authority_decision"].default is None
+    assert definitions["objective_semantic_guard"].default is None
     with pytest.raises(InvalidDomainValue):
         TransitionContext((PASSING_GUARD,), object())  # type: ignore[arg-type]
 
@@ -646,7 +699,11 @@ def test_exact_authority_reaches_semantic_guards_and_preserves_actor_provenance(
     result = transition_entity(
         snapshot,
         request,
-        TransitionContext((RecordingSemanticGuard(),), decision),
+        TransitionContext(
+            (RecordingSemanticGuard(),),
+            decision,
+            activation_guard(snapshot, ObjectiveState.ACTIVE),
+        ),
     )
     assert calls == [request.actor]
     assert request.actor == decision.actor == result.event.actor

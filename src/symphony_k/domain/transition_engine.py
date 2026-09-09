@@ -2,10 +2,11 @@
 
 M7A validates caller-supplied versions and canonical structural topology. M7B1
 requires a separate exact-bound authority decision. M7B2 additionally requires
-the decision actor's type to be canonically eligible for the exact lifecycle edge
-before ordinary semantic guards, then returns a new snapshot and one DomainEvent.
-Eligibility is not a scoped grant. This module performs no loading, persistence,
-transaction, or external action.
+the decision actor's type to be canonically eligible for the exact lifecycle edge.
+M7C1 requires the canonical Objective semantic guard before ordinary additional
+guards, then returns a new snapshot and one DomainEvent. Eligibility is not a
+scoped grant. This module performs no loading, persistence, transaction, or
+external action.
 """
 
 from collections.abc import Mapping
@@ -26,6 +27,7 @@ from .errors import (
     ConcurrencyConflict,
     InvalidDomainValue,
     InvalidTransition,
+    InvariantViolation,
     UnauthorizedTransition,
 )
 from .evaluation import Evaluation, EvaluationState
@@ -41,6 +43,7 @@ from .ids import (
     TaskId,
 )
 from .objective import Objective, ObjectiveState
+from .objective_semantics import ObjectiveSemanticGuard
 from .outcome import Outcome, OutcomeState
 from .run import Run, RunState
 from .task import Task, TaskState
@@ -647,10 +650,11 @@ class TransitionGuard(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class TransitionContext:
-    """One explicit authority decision plus a nonempty semantic guard chain."""
+    """Mandatory authority, optional Objective semantics, and extra guards."""
 
     guards: tuple[TransitionGuard, ...]
     authority_decision: TransitionAuthorityDecision | None = None
+    objective_semantic_guard: ObjectiveSemanticGuard | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
@@ -662,6 +666,12 @@ class TransitionContext:
         ):
             raise InvalidDomainValue(
                 "authority_decision must be a TransitionAuthorityDecision or None"
+            )
+        if self.objective_semantic_guard is not None and not isinstance(
+            self.objective_semantic_guard, ObjectiveSemanticGuard
+        ):
+            raise InvalidDomainValue(
+                "objective_semantic_guard must be an ObjectiveSemanticGuard or None"
             )
 
 
@@ -811,6 +821,19 @@ def transition_entity(
         request,
         context.authority_decision,
     )
+
+    if isinstance(entity, Objective):
+        objective_guard = context.objective_semantic_guard
+        if objective_guard is None:
+            raise InvariantViolation("Canonical Objective semantic guard is required")
+        if not isinstance(request.target_state, ObjectiveState):
+            raise InvalidTransition("Target state belongs to a different entity family")
+        objective_guard.validate(
+            entity,
+            request.target_state,
+            request.timestamp,
+            request.correlation_id,
+        )
 
     for guard in context.guards:
         guard.validate(entity, request)

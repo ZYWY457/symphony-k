@@ -76,8 +76,16 @@ from symphony_k.domain import (
     EvidenceRef,
     ExecutionProfileRef,
     Objective,
+    ObjectiveActivationSemantics,
+    ObjectiveBudgetValidityDecision,
+    ObjectiveGovernanceApprovalDecision,
     ObjectiveId,
+    ObjectivePermissionValidityDecision,
+    ObjectiveSemanticDecisionRef,
+    ObjectiveSemanticDecisionStatus,
+    ObjectiveSemanticGuard,
     ObjectiveState,
+    ObjectiveTimeHorizonValidityDecision,
     ObservedEffectOrigin,
     Outcome,
     OutcomeId,
@@ -894,8 +902,44 @@ if TYPE_CHECKING:
         TransitionAuthorityStatus.AUTHORIZED,
         correlation_id,
     )
+    semantic_decision_ref = ObjectiveSemanticDecisionRef("decision")
+    semantic_status = ObjectiveSemanticDecisionStatus.PASSED
+    semantic_evidence = frozenset({EvidenceRef("semantic evidence")})
+    objective_semantic_guard = ObjectiveSemanticGuard(
+        ObjectiveId(value),
+        EntityVersion(7),
+        ObjectiveState.DRAFT,
+        ObjectiveState.ACTIVE,
+        correlation_id,
+        ObjectiveActivationSemantics(
+            ObjectiveGovernanceApprovalDecision(
+                semantic_decision_ref,
+                semantic_status,
+                designation,
+                semantic_evidence,
+            ),
+            ObjectiveBudgetValidityDecision(
+                semantic_decision_ref,
+                semantic_status,
+                designation,
+                semantic_evidence,
+            ),
+            ObjectivePermissionValidityDecision(
+                semantic_decision_ref,
+                semantic_status,
+                designation,
+                semantic_evidence,
+            ),
+            ObjectiveTimeHorizonValidityDecision(
+                semantic_decision_ref,
+                semantic_status,
+                designation,
+                semantic_evidence,
+            ),
+        ),
+    )
     transition_context = TransitionContext(
-        (StaticTransitionGuard(),), transition_authority
+        (StaticTransitionGuard(),), transition_authority, objective_semantic_guard
     )
     objective_transition_result = transition_entity(
         transition_objective,
@@ -922,6 +966,26 @@ if TYPE_CHECKING:
     assert_type(transition_authority.observed_entity_version, EntityVersion)
     assert_type(transition_authority.correlation_id, CorrelationId)
     assert_type(transition_authority.decision, TransitionAuthorityStatus)
+    assert_type(objective_semantic_guard.objective_id, ObjectiveId)
+    assert_type(objective_semantic_guard.observed_entity_version, EntityVersion)
+    assert_type(objective_semantic_guard.prior_state, ObjectiveState)
+    assert_type(objective_semantic_guard.target_state, ObjectiveState)
+    assert_type(objective_semantic_guard.correlation_id, CorrelationId)
+    assert_type(semantic_decision_ref, ObjectiveSemanticDecisionRef)
+    ObjectiveSemanticGuard(
+        TaskId(value),  # type: ignore[arg-type]
+        EntityVersion(7),
+        ObjectiveState.DRAFT,
+        ObjectiveState.ACTIVE,
+        correlation_id,
+        objective_semantic_guard.semantic_input,
+    )
+    ObjectiveBudgetValidityDecision(
+        EvidenceRef("not a decision"),  # type: ignore[arg-type]
+        semantic_status,
+        designation,
+        semantic_evidence,
+    )
     assert_type(
         is_actor_eligible_for_transition_authority(
             DomainEntityType.OBJECTIVE,
