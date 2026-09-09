@@ -917,24 +917,36 @@ if TYPE_CHECKING:
                 semantic_status,
                 designation,
                 semantic_evidence,
+                ObjectiveId(value),
+                EntityVersion(7),
+                correlation_id,
             ),
             ObjectiveBudgetValidityDecision(
                 semantic_decision_ref,
                 semantic_status,
                 designation,
                 semantic_evidence,
+                ObjectiveId(value),
+                EntityVersion(7),
+                correlation_id,
             ),
             ObjectivePermissionValidityDecision(
                 semantic_decision_ref,
                 semantic_status,
                 designation,
                 semantic_evidence,
+                ObjectiveId(value),
+                EntityVersion(7),
+                correlation_id,
             ),
             ObjectiveTimeHorizonValidityDecision(
                 semantic_decision_ref,
                 semantic_status,
                 designation,
                 semantic_evidence,
+                ObjectiveId(value),
+                EntityVersion(7),
+                correlation_id,
             ),
         ),
     )
@@ -985,6 +997,9 @@ if TYPE_CHECKING:
         semantic_status,
         designation,
         semantic_evidence,
+        ObjectiveId(value),
+        EntityVersion(7),
+        correlation_id,
     )
     assert_type(
         is_actor_eligible_for_transition_authority(

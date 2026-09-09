@@ -185,6 +185,9 @@ def activation_guard(
                 ObjectiveSemanticDecisionStatus.PASSED,
                 actor(ActorType.POLICY_ENGINE),
                 frozenset({EvidenceRef(name)}),
+                entity.objective_id,
+                entity.version,
+                CORRELATION_ID,
             ),
         )
 

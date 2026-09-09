@@ -69,12 +69,28 @@ def _require_evidence(evidence_refs: frozenset[EvidenceRef]) -> None:
         raise InvalidDomainValue("Every evidence reference must be an EvidenceRef")
 
 
+def _require_objective_snapshot_scope(
+    objective_id: ObjectiveId,
+    observed_entity_version: EntityVersion,
+    correlation_id: CorrelationId,
+) -> None:
+    if not isinstance(objective_id, ObjectiveId):
+        raise InvalidDomainValue("objective_id must be an ObjectiveId")
+    if not isinstance(observed_entity_version, EntityVersion):
+        raise InvalidDomainValue("observed_entity_version must be an EntityVersion")
+    if not isinstance(correlation_id, CorrelationId):
+        raise InvalidDomainValue("correlation_id must be a CorrelationId")
+
+
 @dataclass(frozen=True, slots=True)
 class _EvidenceBackedObjectiveDecision:
     decision_ref: ObjectiveSemanticDecisionRef
     status: ObjectiveSemanticDecisionStatus
     decided_by: ActorIdentity
     evidence_refs: frozenset[EvidenceRef]
+    objective_id: ObjectiveId
+    observed_entity_version: EntityVersion
+    correlation_id: CorrelationId
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision_ref, ObjectiveSemanticDecisionRef):
@@ -88,6 +104,11 @@ class _EvidenceBackedObjectiveDecision:
         if not isinstance(self.decided_by, ActorIdentity):
             raise InvalidDomainValue("decided_by must be an ActorIdentity")
         _require_evidence(self.evidence_refs)
+        _require_objective_snapshot_scope(
+            self.objective_id,
+            self.observed_entity_version,
+            self.correlation_id,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,6 +198,9 @@ class ObjectiveCompletionBlockerDecision:
     status: ObjectiveCompletionBlockerStatus
     decided_by: ActorIdentity
     evidence_refs: frozenset[EvidenceRef]
+    objective_id: ObjectiveId
+    observed_entity_version: EntityVersion
+    correlation_id: CorrelationId
     waiver_policy_ref: CompletionPolicyRef | None = None
 
     def __post_init__(self) -> None:
@@ -191,6 +215,11 @@ class ObjectiveCompletionBlockerDecision:
         if not isinstance(self.decided_by, ActorIdentity):
             raise InvalidDomainValue("decided_by must be an ActorIdentity")
         _require_evidence(self.evidence_refs)
+        _require_objective_snapshot_scope(
+            self.objective_id,
+            self.observed_entity_version,
+            self.correlation_id,
+        )
         if self.status is ObjectiveCompletionBlockerStatus.LAWFULLY_WAIVED:
             if not isinstance(self.waiver_policy_ref, CompletionPolicyRef):
                 raise InvalidDomainValue(
@@ -208,6 +237,9 @@ class ObjectiveExtensionCoverageDecision:
     status: ObjectiveExtensionCoverageStatus
     decided_by: ActorIdentity
     evidence_refs: frozenset[EvidenceRef]
+    objective_id: ObjectiveId
+    observed_entity_version: EntityVersion
+    correlation_id: CorrelationId
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision_ref, ObjectiveSemanticDecisionRef):
@@ -221,6 +253,11 @@ class ObjectiveExtensionCoverageDecision:
         if not isinstance(self.decided_by, ActorIdentity):
             raise InvalidDomainValue("decided_by must be an ActorIdentity")
         _require_evidence(self.evidence_refs)
+        _require_objective_snapshot_scope(
+            self.objective_id,
+            self.observed_entity_version,
+            self.correlation_id,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -359,6 +396,46 @@ type ObjectiveSemanticInput = (
 )
 
 
+type _ObjectiveSnapshotBoundSemanticDecision = (
+    _EvidenceBackedObjectiveDecision
+    | ObjectiveCompletionBlockerDecision
+    | ObjectiveExtensionCoverageDecision
+)
+
+
+def _semantic_decisions_for(
+    semantics: ObjectiveSemanticInput,
+) -> tuple[_ObjectiveSnapshotBoundSemanticDecision, ...]:
+    if isinstance(semantics, ObjectiveActivationSemantics):
+        return (
+            semantics.governance,
+            semantics.budget,
+            semantics.permissions,
+            semantics.time_horizon,
+        )
+    if isinstance(semantics, ObjectiveBlockingSemantics):
+        return (semantics.blocker, semantics.objective_validity)
+    if isinstance(semantics, ObjectiveReactivationSemantics):
+        return (
+            semantics.blocker_resolution,
+            *_semantic_decisions_for(semantics.activation),
+        )
+    if isinstance(semantics, ObjectiveSatisfactionSemantics):
+        return (
+            semantics.completion_policy,
+            semantics.evidence_independence,
+            semantics.acceptance,
+            semantics.completion_blockers,
+        )
+    if isinstance(semantics, ObjectiveFailureSemantics):
+        return (semantics.inability,)
+    if isinstance(semantics, ObjectiveCancellationSemantics):
+        return (semantics.termination,)
+    if isinstance(semantics, ObjectiveExpirySemantics):
+        return (semantics.extension_coverage,)
+    return (semantics.archival,)
+
+
 _INPUT_TYPE_BY_EDGE: Final[
     MappingProxyType[
         tuple[ObjectiveState, ObjectiveState], type[ObjectiveSemanticInput]
@@ -464,6 +541,16 @@ class ObjectiveSemanticGuard:
             raise InvariantViolation(
                 "Objective semantic guard does not match the exact request snapshot"
             )
+        for decision in _semantic_decisions_for(self.semantic_input):
+            if not (
+                decision.objective_id == self.objective_id
+                and decision.observed_entity_version == self.observed_entity_version
+                and decision.correlation_id == self.correlation_id
+            ):
+                raise InvariantViolation(
+                    "Objective semantic decision does not match the exact request "
+                    "snapshot"
+                )
 
         semantics = self.semantic_input
         if isinstance(semantics, ObjectiveActivationSemantics):

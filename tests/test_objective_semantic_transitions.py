@@ -129,6 +129,9 @@ def decision[DecisionT](
         status,
         ActorIdentity(ActorId(VALUE), ActorType.POLICY_ENGINE),
         evidence(name),
+        ObjectiveId(VALUE),
+        VERSION,
+        CORRELATION,
     )
 
 
@@ -177,6 +180,9 @@ def satisfaction(
             completion,
             ActorIdentity(ActorId(VALUE), ActorType.POLICY_ENGINE),
             evidence("completion"),
+            ObjectiveId(VALUE),
+            VERSION,
+            CORRELATION,
             policy,
         ),
         decision(ObjectiveEvidenceIndependenceDecision, "independence", independence),
@@ -185,6 +191,9 @@ def satisfaction(
             acceptance,
             accepting_authority,
             evidence("acceptance"),
+            ObjectiveId(VALUE),
+            VERSION,
+            CORRELATION,
             accepting_authority,
         ),
         ObjectiveCompletionBlockerDecision(
@@ -192,6 +201,9 @@ def satisfaction(
             blocker_status,
             ActorIdentity(ActorId(VALUE), ActorType.POLICY_ENGINE),
             evidence("completion-blockers"),
+            ObjectiveId(VALUE),
+            VERSION,
+            CORRELATION,
             waiver_policy,
         ),
     )
@@ -239,6 +251,9 @@ def semantic_input(
                     ObjectiveExtensionCoverageStatus.NO_COVERING_EXTENSION,
                     ActorIdentity(ActorId(VALUE), ActorType.POLICY_ENGINE),
                     evidence("extension-review"),
+                    ObjectiveId(VALUE),
+                    VERSION,
+                    CORRELATION,
                 )
             ),
         )
@@ -573,6 +588,9 @@ def test_expiry_uses_request_timestamp_at_boundary_and_never_system_clock() -> N
             ObjectiveExtensionCoverageStatus.NO_COVERING_EXTENSION,
             ActorIdentity(ActorId(VALUE), ActorType.POLICY_ENGINE),
             evidence("extension-review"),
+            ObjectiveId(VALUE),
+            VERSION,
+            CORRELATION,
         )
     )
     at_boundary = request(ObjectiveState.EXPIRED, timestamp=NOW)
@@ -627,6 +645,9 @@ def test_expiry_rejects_no_horizon_covering_extension_and_unresolved_review() ->
                 status,
                 ActorIdentity(ActorId(VALUE), ActorType.POLICY_ENGINE),
                 evidence("extension-review"),
+                ObjectiveId(VALUE),
+                VERSION,
+                CORRELATION,
             )
         )
         with pytest.raises(InvariantViolation):
@@ -700,6 +721,58 @@ def test_exact_objective_snapshot_and_correlation_binding_is_mandatory() -> None
         assert (snapshot.state, snapshot.version) == (ObjectiveState.DRAFT, VERSION)
 
 
+def _assert_reused_semantic_decision_is_rejected(
+    semantic: ObjectiveActivationSemantics,
+) -> None:
+    snapshot = objective(ObjectiveState.DRAFT)
+    transition_request = request(ObjectiveState.ACTIVE)
+    with pytest.raises(
+        InvariantViolation, match="semantic decision does not match the exact request"
+    ):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(
+                snapshot,
+                transition_request,
+                canonical_guard(snapshot, ObjectiveState.ACTIVE, semantic),
+            ),
+        )
+    assert (snapshot.state, snapshot.version) == (ObjectiveState.DRAFT, VERSION)
+
+
+def test_exact_guard_rejects_cross_objective_semantic_decision_reuse() -> None:
+    semantics = activation()
+    _assert_reused_semantic_decision_is_rejected(
+        replace(
+            semantics,
+            governance=replace(semantics.governance, objective_id=ObjectiveId(OTHER)),
+        )
+    )
+
+
+def test_exact_guard_rejects_stale_version_semantic_decision_reuse() -> None:
+    semantics = activation()
+    _assert_reused_semantic_decision_is_rejected(
+        replace(
+            semantics,
+            budget=replace(semantics.budget, observed_entity_version=EntityVersion(6)),
+        )
+    )
+
+
+def test_exact_guard_rejects_cross_correlation_semantic_decision_reuse() -> None:
+    semantics = activation()
+    _assert_reused_semantic_decision_is_rejected(
+        replace(
+            semantics,
+            permissions=replace(
+                semantics.permissions, correlation_id=CorrelationId(OTHER)
+            ),
+        )
+    )
+
+
 def test_m7_authority_eligibility_semantics_and_generic_guard_are_distinct_gates() -> (
     None
 ):
@@ -771,6 +844,9 @@ def test_semantic_decisions_reject_bare_booleans_and_missing_evidence() -> None:
             True,  # type: ignore[arg-type]
             LIFECYCLE_AUTHORITY,
             evidence("budget"),
+            ObjectiveId(VALUE),
+            VERSION,
+            CORRELATION,
         )
     with pytest.raises(InvalidDomainValue):
         ObjectiveBudgetValidityDecision(
@@ -778,6 +854,9 @@ def test_semantic_decisions_reject_bare_booleans_and_missing_evidence() -> None:
             ObjectiveSemanticDecisionStatus.PASSED,
             LIFECYCLE_AUTHORITY,
             frozenset(),
+            ObjectiveId(VALUE),
+            VERSION,
+            CORRELATION,
         )
 
 
