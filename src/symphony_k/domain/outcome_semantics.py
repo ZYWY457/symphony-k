@@ -15,7 +15,7 @@ from .evaluation import EvaluationState
 from .evaluation_effective_use import EvaluationEffectiveUseView
 from .evaluation_result import EvaluationMethodRef, EvaluationVerdict
 from .evaluation_target import EvaluationTargetRef
-from .ids import CorrelationId, EvaluationId, OutcomeId
+from .ids import CorrelationId, EvaluationId, OutcomeId, RunId, TaskId
 from .outcome import Outcome, OutcomeState
 from .version import EntityVersion
 
@@ -478,15 +478,198 @@ class OutcomeDispositionSemantics:
 
 
 @dataclass(frozen=True, slots=True)
+class OutcomeReplacementObservation:
+    """Exact immutable observation of an existing replacement Outcome."""
+
+    outcome_id: OutcomeId
+    observed_entity_version: EntityVersion
+    observed_state: OutcomeState
+    originating_run_id: RunId
+    prior_outcome_id: OutcomeId | None
+    superseded_by_outcome_id: OutcomeId | None
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        _require_outcome_snapshot_scope(
+            self.outcome_id, self.observed_entity_version, self.correlation_id
+        )
+        if not isinstance(self.observed_state, OutcomeState):
+            raise InvalidDomainValue("observed_state must be an OutcomeState")
+        if not isinstance(self.originating_run_id, RunId):
+            raise InvalidDomainValue("originating_run_id must be a RunId")
+        for name, outcome_id in (
+            ("prior_outcome_id", self.prior_outcome_id),
+            ("superseded_by_outcome_id", self.superseded_by_outcome_id),
+        ):
+            if outcome_id is not None and not isinstance(outcome_id, OutcomeId):
+                raise InvalidDomainValue(f"{name} must be an OutcomeId or None")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeOriginatingRunObservation:
+    """Exact Run-to-Task provenance for one observed Outcome snapshot."""
+
+    outcome_id: OutcomeId
+    observed_outcome_version: EntityVersion
+    originating_run_id: RunId
+    observed_run_version: EntityVersion
+    task_id: TaskId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.outcome_id, OutcomeId):
+            raise InvalidDomainValue("outcome_id must be an OutcomeId")
+        if not isinstance(self.observed_outcome_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_outcome_version must be an EntityVersion"
+            )
+        if not isinstance(self.originating_run_id, RunId):
+            raise InvalidDomainValue("originating_run_id must be a RunId")
+        if not isinstance(self.observed_run_version, EntityVersion):
+            raise InvalidDomainValue("observed_run_version must be an EntityVersion")
+        if not isinstance(self.task_id, TaskId):
+            raise InvalidDomainValue("task_id must be a TaskId")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeAcceptanceScopeRef:
+    """Opaque identity/version for an Outcome acceptance scope."""
+
+    scope_id: str
+    scope_version: str
+
+    def __post_init__(self) -> None:
+        for value, field in (
+            (self.scope_id, "scope_id"),
+            (self.scope_version, "scope_version"),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise InvalidDomainValue(f"{field} must contain non-whitespace text")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeAcceptanceScopeCompatibilityDecision:
+    """Policy decision that two exact Outcome snapshots share an acceptance scope."""
+
+    decision_ref: OutcomeSemanticDecisionRef
+    status: OutcomeSemanticDecisionStatus
+    decided_by: ActorIdentity
+    evidence_refs: frozenset[EvidenceRef]
+    source_outcome_id: OutcomeId
+    source_outcome_version: EntityVersion
+    replacement_outcome_id: OutcomeId
+    replacement_outcome_version: EntityVersion
+    task_id: TaskId
+    acceptance_scope: OutcomeAcceptanceScopeRef
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision_ref, OutcomeSemanticDecisionRef):
+            raise InvalidDomainValue(
+                "decision_ref must be an OutcomeSemanticDecisionRef"
+            )
+        if not isinstance(self.status, OutcomeSemanticDecisionStatus):
+            raise InvalidDomainValue("status must be an OutcomeSemanticDecisionStatus")
+        if not isinstance(self.decided_by, ActorIdentity):
+            raise InvalidDomainValue("decided_by must be an ActorIdentity")
+        _require_evidence(self.evidence_refs)
+        for value, expected, field in (
+            (self.source_outcome_id, OutcomeId, "source_outcome_id"),
+            (self.source_outcome_version, EntityVersion, "source_outcome_version"),
+            (self.replacement_outcome_id, OutcomeId, "replacement_outcome_id"),
+            (
+                self.replacement_outcome_version,
+                EntityVersion,
+                "replacement_outcome_version",
+            ),
+            (self.task_id, TaskId, "task_id"),
+            (self.correlation_id, CorrelationId, "correlation_id"),
+        ):
+            if not isinstance(value, expected):
+                raise InvalidDomainValue(f"{field} has an invalid type")
+        if not isinstance(self.acceptance_scope, OutcomeAcceptanceScopeRef):
+            raise InvalidDomainValue(
+                "acceptance_scope must be an OutcomeAcceptanceScopeRef"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomePriorLineageObservation:
+    """One immutable member of a complete observed prior-candidate chain."""
+
+    outcome_id: OutcomeId
+    observed_entity_version: EntityVersion
+    prior_outcome_id: OutcomeId | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.outcome_id, OutcomeId):
+            raise InvalidDomainValue("outcome_id must be an OutcomeId")
+        if not isinstance(self.observed_entity_version, EntityVersion):
+            raise InvalidDomainValue("observed_entity_version must be an EntityVersion")
+        if self.prior_outcome_id is not None and not isinstance(
+            self.prior_outcome_id, OutcomeId
+        ):
+            raise InvalidDomainValue("prior_outcome_id must be an OutcomeId or None")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeSupersessionSemantics:
+    """Complete caller-supplied evidence bundle for one supersession attempt."""
+
+    replacement: OutcomeReplacementObservation
+    source_run: OutcomeOriginatingRunObservation
+    replacement_run: OutcomeOriginatingRunObservation
+    acceptance_scope_decision: OutcomeAcceptanceScopeCompatibilityDecision
+    source_prior_lineage: tuple[OutcomePriorLineageObservation, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.replacement, OutcomeReplacementObservation):
+            raise InvalidDomainValue(
+                "replacement must be an OutcomeReplacementObservation"
+            )
+        if not isinstance(self.source_run, OutcomeOriginatingRunObservation):
+            raise InvalidDomainValue(
+                "source_run must be an OutcomeOriginatingRunObservation"
+            )
+        if not isinstance(self.replacement_run, OutcomeOriginatingRunObservation):
+            raise InvalidDomainValue(
+                "replacement_run must be an OutcomeOriginatingRunObservation"
+            )
+        if not isinstance(
+            self.acceptance_scope_decision, OutcomeAcceptanceScopeCompatibilityDecision
+        ):
+            raise InvalidDomainValue(
+                "acceptance_scope_decision must be an "
+                "OutcomeAcceptanceScopeCompatibilityDecision"
+            )
+        if (
+            not isinstance(self.source_prior_lineage, tuple)
+            or not self.source_prior_lineage
+        ):
+            raise InvalidDomainValue("source_prior_lineage must be a nonempty tuple")
+        if any(
+            not isinstance(member, OutcomePriorLineageObservation)
+            for member in self.source_prior_lineage
+        ):
+            raise InvalidDomainValue(
+                "Every source_prior_lineage member must be an "
+                "OutcomePriorLineageObservation"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class OutcomeSemanticGuard:
-    """Canonical guard for implemented Outcome semantic edges through M7C4B."""
+    """Canonical guard for implemented Outcome semantic edges through M7C4C."""
 
     outcome_id: OutcomeId
     observed_entity_version: EntityVersion
     prior_state: OutcomeState
     target_state: OutcomeState
     correlation_id: CorrelationId
-    semantic_input: OutcomeValidationStartSemantics | OutcomeDispositionSemantics
+    semantic_input: (
+        OutcomeValidationStartSemantics
+        | OutcomeDispositionSemantics
+        | OutcomeSupersessionSemantics
+    )
 
     def __post_init__(self) -> None:
         _require_outcome_snapshot_scope(
@@ -494,7 +677,9 @@ class OutcomeSemanticGuard:
         )
         edge = (self.prior_state, self.target_state)
         expected_input: (
-            type[OutcomeValidationStartSemantics] | type[OutcomeDispositionSemantics]
+            type[OutcomeValidationStartSemantics]
+            | type[OutcomeDispositionSemantics]
+            | type[OutcomeSupersessionSemantics]
         )
         if edge == (OutcomeState.PROPOSED, OutcomeState.VALIDATING):
             expected_input = OutcomeValidationStartSemantics
@@ -503,6 +688,13 @@ class OutcomeSemanticGuard:
             (OutcomeState.VALIDATING, OutcomeState.REJECTED),
         }:
             expected_input = OutcomeDispositionSemantics
+        elif edge in {
+            (OutcomeState.PROPOSED, OutcomeState.SUPERSEDED),
+            (OutcomeState.VALIDATING, OutcomeState.SUPERSEDED),
+            (OutcomeState.ACCEPTED, OutcomeState.SUPERSEDED),
+            (OutcomeState.REJECTED, OutcomeState.SUPERSEDED),
+        }:
+            expected_input = OutcomeSupersessionSemantics
         else:
             raise InvalidDomainValue(
                 "Outcome semantic guard does not support this lifecycle edge"
@@ -542,7 +734,99 @@ class OutcomeSemanticGuard:
             self._validate_policy(semantics.validation_policy)
             self._validate_evaluation_request(outcome, semantics.evaluation_request)
             return
-        self._validate_disposition(outcome, target_state, semantics)
+        if isinstance(semantics, OutcomeDispositionSemantics):
+            self._validate_disposition(outcome, target_state, semantics)
+            return
+        self._validate_supersession(outcome, semantics)
+
+    def validated_replacement_outcome_id(self) -> OutcomeId:
+        """Return the replacement only for an already exact-bound supersession guard."""
+        if not isinstance(self.semantic_input, OutcomeSupersessionSemantics):
+            raise InvariantViolation(
+                "Outcome semantic input is not supersession semantics"
+            )
+        return self.semantic_input.replacement.outcome_id
+
+    def _validate_supersession(
+        self,
+        source: Outcome,
+        semantics: OutcomeSupersessionSemantics,
+    ) -> None:
+        replacement = semantics.replacement
+        if not (
+            replacement.correlation_id == self.correlation_id
+            and replacement.outcome_id != source.outcome_id
+            and replacement.prior_outcome_id == source.outcome_id
+            and replacement.observed_state
+            not in {OutcomeState.SUPERSEDED, OutcomeState.EXPIRED}
+        ):
+            raise InvariantViolation(
+                "Replacement Outcome is not a distinct current direct successor"
+            )
+        if source.superseded_by_outcome_id is not None:
+            raise InvariantViolation("Source Outcome already has a replacement link")
+        if (
+            source.state is OutcomeState.ACCEPTED
+            and replacement.observed_state is not OutcomeState.ACCEPTED
+        ):
+            raise InvariantViolation(
+                "An ACCEPTED source requires an already-ACCEPTED replacement"
+            )
+
+        source_run = semantics.source_run
+        replacement_run = semantics.replacement_run
+        if not (
+            source_run.outcome_id == source.outcome_id
+            and source_run.observed_outcome_version == source.version
+            and source_run.originating_run_id == source.run_id
+            and replacement_run.outcome_id == replacement.outcome_id
+            and replacement_run.observed_outcome_version
+            == replacement.observed_entity_version
+            and replacement_run.originating_run_id == replacement.originating_run_id
+            and source_run.task_id == replacement_run.task_id
+        ):
+            raise InvariantViolation(
+                "Originating Run observations do not prove same-Task provenance"
+            )
+
+        decision = semantics.acceptance_scope_decision
+        if not (
+            decision.status is OutcomeSemanticDecisionStatus.PASSED
+            and decision.decided_by.actor_type is ActorType.POLICY_ENGINE
+            and decision.source_outcome_id == source.outcome_id
+            and decision.source_outcome_version == source.version
+            and decision.replacement_outcome_id == replacement.outcome_id
+            and decision.replacement_outcome_version
+            == replacement.observed_entity_version
+            and decision.task_id == source_run.task_id
+            and decision.correlation_id == self.correlation_id
+        ):
+            raise InvariantViolation(
+                "Acceptance-scope compatibility decision is not exact and passed"
+            )
+
+        lineage = semantics.source_prior_lineage
+        first = lineage[0]
+        if not (
+            first.outcome_id == source.outcome_id
+            and first.observed_entity_version == source.version
+            and first.prior_outcome_id == source.prior_outcome_id
+        ):
+            raise InvariantViolation("Prior lineage does not exact-bind the source")
+        lineage_ids = tuple(member.outcome_id for member in lineage)
+        if len(set(lineage_ids)) != len(lineage_ids):
+            raise InvariantViolation(
+                "Prior lineage contains duplicate or cyclic members"
+            )
+        if replacement.outcome_id in lineage_ids:
+            raise InvariantViolation(
+                "Replacement Outcome already occurs in source ancestry"
+            )
+        for member, prior in zip(lineage[:-1], lineage[1:], strict=True):
+            if member.prior_outcome_id != prior.outcome_id:
+                raise InvariantViolation("Prior lineage is discontinuous")
+        if lineage[-1].prior_outcome_id is not None:
+            raise InvariantViolation("Prior lineage is incomplete")
 
     def _validate_disposition(
         self,

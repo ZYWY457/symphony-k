@@ -315,6 +315,20 @@ def _replace_entity_state(
     raise InvalidTransition("Target state belongs to a different entity family")
 
 
+def _project_outcome_supersession(
+    source: Outcome,
+    replacement_outcome_id: OutcomeId,
+    version: EntityVersion,
+) -> Outcome:
+    """Create the only Outcome-specific relationship projection in M7C4C."""
+    return replace(
+        source,
+        state=OutcomeState.SUPERSEDED,
+        version=version,
+        superseded_by_outcome_id=replacement_outcome_id,
+    )
+
+
 def _can_transition(
     entity_type: DomainEntityType,
     source: LifecycleState,
@@ -884,7 +898,20 @@ def transition_entity(
         guard.validate(entity, request)
 
     next_version = entity.version.next()
-    updated = _replace_entity_state(entity, request.target_state, next_version)
+    updated: LifecycleEntity
+    annotations: frozenset[tuple[str, str]] = frozenset()
+    if isinstance(entity, Outcome) and request.target_state is OutcomeState.SUPERSEDED:
+        outcome_guard = context.outcome_semantic_guard
+        assert outcome_guard is not None
+        replacement_outcome_id = outcome_guard.validated_replacement_outcome_id()
+        updated = _project_outcome_supersession(
+            entity, replacement_outcome_id, next_version
+        )
+        annotations = frozenset(
+            {("replacement_outcome_id", str(replacement_outcome_id.value))}
+        )
+    else:
+        updated = _replace_entity_state(entity, request.target_state, next_version)
     event = DomainEvent(
         event_id=request.event_id,
         event_type=_EVENT_TYPE_BY_STATE[request.target_state],
@@ -896,6 +923,6 @@ def transition_entity(
         correlation_id=request.correlation_id,
         causation_id=request.causation_id,
         reason=request.reason,
-        metadata=DomainEventMetadata(source_state, request.target_state),
+        metadata=DomainEventMetadata(source_state, request.target_state, annotations),
     )
     return TransitionResult(updated, event)
