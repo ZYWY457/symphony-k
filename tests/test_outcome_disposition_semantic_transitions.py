@@ -48,6 +48,7 @@ from symphony_k.domain import (
     OutcomeDispositionPolicyRef,
     OutcomeDispositionSemantics,
     OutcomeEvaluationEffectiveUseObservation,
+    OutcomeEvaluationEffectiveUseSnapshot,
     OutcomeEvaluationRequestRef,
     OutcomeHumanAcceptanceDecision,
     OutcomeId,
@@ -167,6 +168,13 @@ def semantics(
         identity(ActorType.EVALUATOR, THIRD),
         view,
         CORRELATION_ID,
+        OutcomeEvaluationEffectiveUseSnapshot(
+            EvaluationId(OTHER),
+            OBSERVED_EVALUATION_VERSION,
+            evaluation_state,
+            EvaluationTargetRef(snapshot.outcome_id, CANDIDATE_VERSION),
+            view,
+        ),
     )
     disposition = (
         OutcomeDisposition.ACCEPTED
@@ -420,6 +428,47 @@ def test_effective_use_observation_rejects_provenance_substitution(
     transition_request = request(snapshot, OutcomeState.ACCEPTED)
 
     with pytest.raises(InvariantViolation):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(
+                snapshot,
+                transition_request,
+                guard(snapshot, OutcomeState.ACCEPTED, forged),
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    ("source_state", "relabelled_state"),
+    [
+        (EvaluationState.COMPLETED, EvaluationState.ARBITRATED),
+        (EvaluationState.ARBITRATED, EvaluationState.COMPLETED),
+    ],
+)
+def test_effective_use_provenance_cannot_be_relabelled_across_states(
+    source_state: EvaluationState, relabelled_state: EvaluationState
+) -> None:
+    snapshot = outcome()
+    semantic_input = semantics(
+        snapshot, OutcomeState.ACCEPTED, evaluation_state=source_state
+    )
+    observation = semantic_input.evaluation
+    relabelled_snapshot = replace(
+        observation.effective_use_snapshot,
+        observed_state=relabelled_state,
+    )
+    forged = replace(
+        semantic_input,
+        evaluation=replace(
+            observation,
+            observed_state=relabelled_state,
+            effective_use_snapshot=relabelled_snapshot,
+        ),
+    )
+    transition_request = request(snapshot, OutcomeState.ACCEPTED)
+
+    with pytest.raises(InvariantViolation, match="effective-use provenance"):
         transition_entity(
             snapshot,
             transition_request,

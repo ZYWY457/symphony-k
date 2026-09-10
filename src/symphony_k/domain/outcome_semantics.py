@@ -284,6 +284,7 @@ class OutcomeEvaluationEffectiveUseObservation:
     verifier: ActorIdentity | None
     effective_use: EvaluationEffectiveUseView
     correlation_id: CorrelationId
+    effective_use_snapshot: "OutcomeEvaluationEffectiveUseSnapshot"
 
     def __post_init__(self) -> None:
         if not isinstance(self.request_ref, OutcomeEvaluationRequestRef):
@@ -308,6 +309,44 @@ class OutcomeEvaluationEffectiveUseObservation:
             )
         if not isinstance(self.correlation_id, CorrelationId):
             raise InvalidDomainValue("correlation_id must be a CorrelationId")
+        if not isinstance(
+            self.effective_use_snapshot, OutcomeEvaluationEffectiveUseSnapshot
+        ):
+            raise InvalidDomainValue(
+                "effective_use_snapshot must be an "
+                "OutcomeEvaluationEffectiveUseSnapshot"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeEvaluationEffectiveUseSnapshot:
+    """Immutable effective-use provenance for one exact Evaluation snapshot."""
+
+    evaluation_id: EvaluationId
+    observed_evaluation_version: EntityVersion
+    observed_state: EvaluationState
+    target: EvaluationTargetRef
+    effective_use: EvaluationEffectiveUseView
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.evaluation_id, EvaluationId):
+            raise InvalidDomainValue("evaluation_id must be an EvaluationId")
+        if not isinstance(self.observed_evaluation_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_evaluation_version must be an EntityVersion"
+            )
+        if not isinstance(self.observed_state, EvaluationState):
+            raise InvalidDomainValue("observed_state must be an EvaluationState")
+        if not isinstance(self.target, EvaluationTargetRef):
+            raise InvalidDomainValue("target must be an EvaluationTargetRef")
+        if not isinstance(self.effective_use, EvaluationEffectiveUseView):
+            raise InvalidDomainValue(
+                "effective_use must be an EvaluationEffectiveUseView"
+            )
+        if self.effective_use.evaluation_id != self.evaluation_id:
+            raise InvalidDomainValue(
+                "effective_use must concern the exact observed Evaluation"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -533,6 +572,14 @@ class OutcomeSemanticGuard:
             and observation.target.reference == outcome.outcome_id
             and observation.target.version == lineage.candidate_version
             and observation.correlation_id == lineage.correlation_id
+            and observation.evaluation_id
+            == observation.effective_use_snapshot.evaluation_id
+            and observation.observed_evaluation_version
+            == observation.effective_use_snapshot.observed_evaluation_version
+            and observation.observed_state
+            is observation.effective_use_snapshot.observed_state
+            and observation.target == observation.effective_use_snapshot.target
+            and effective_use == observation.effective_use_snapshot.effective_use
         ):
             raise InvariantViolation(
                 "Evaluation effective-use observation does not match validation lineage"
@@ -565,6 +612,28 @@ class OutcomeSemanticGuard:
             raise InvariantViolation("Evaluation terminal arbitration is ambiguous")
         if effective_use.invalidation_ids:
             raise InvariantViolation("Evaluation is invalidated and unusable")
+        if observation.observed_state is EvaluationState.COMPLETED:
+            if not (
+                effective_use.original_judgement == effective_use.effective_judgement
+                and not effective_use.applicable_conflicts
+                and not effective_use.unresolved_conflicts
+                and not effective_use.supporting_arbitration_ids
+                and effective_use.terminal_arbitration_id is None
+                and not effective_use.arbitration_ambiguous
+            ):
+                raise InvariantViolation(
+                    "COMPLETED Evaluation effective-use provenance is inconsistent"
+                )
+        else:
+            if not (
+                effective_use.supporting_arbitration_ids
+                and effective_use.terminal_arbitration_id is not None
+                and not effective_use.arbitration_ambiguous
+                and not effective_use.unresolved_conflicts
+            ):
+                raise InvariantViolation(
+                    "ARBITRATED Evaluation effective-use provenance is inconsistent"
+                )
 
         disposition = (
             OutcomeDisposition.ACCEPTED
