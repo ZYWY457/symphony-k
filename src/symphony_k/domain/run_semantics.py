@@ -33,6 +33,10 @@ _RESUME_DECISION_ACTOR_TYPES: Final[frozenset[ActorType]] = frozenset(
     {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
 )
 
+_REASSIGN_DECISION_ACTOR_TYPES: Final[frozenset[ActorType]] = frozenset(
+    {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
+)
+
 
 class RunVerificationResolutionStatus(Enum):
     """A resolved verification may be favorable or unfavorable to the candidate."""
@@ -78,6 +82,19 @@ class RunRecoveryBoundaryRef:
         if not isinstance(self.value, str) or not self.value.strip():
             raise InvalidDomainValue(
                 "Run recovery boundary reference must contain non-whitespace text"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class RunHumanHandoffRef:
+    """Opaque durable identity for an already-recorded human handoff."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, str) or not self.value.strip():
+            raise InvalidDomainValue(
+                "Run human handoff reference must contain non-whitespace text"
             )
 
 
@@ -230,6 +247,76 @@ class RunTrustedRecoveryBoundaryDecision(_EvidenceBackedRunDecision):
 @dataclass(frozen=True, slots=True)
 class RunRecoveryLimitsDecision(_EvidenceBackedRunDecision):
     """Evidence-backed observation that continuation remains within recovery limits."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunReassignDecision(_EvidenceBackedRunDecision):
+    """Explicit recovery-controller selection to reassign one exact old Run."""
+
+    def __post_init__(self) -> None:
+        super(RunReassignDecision, self).__post_init__()
+        if self.decided_by.actor_type not in _REASSIGN_DECISION_ACTOR_TYPES:
+            raise InvalidDomainValue(
+                "RunReassignDecision must be decided by SCHEDULER or RUN_CONTROLLER"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class RunOwnershipFencingDecision(_EvidenceBackedRunDecision):
+    """Evidence-backed decision that old-Run authority is stopped or fenced."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunExecutionRouteUnsuitabilityDecision(_EvidenceBackedRunDecision):
+    """Evidence-backed determination that this Run's route cannot continue."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunSuccessorRunObservation(_EvidenceBackedRunDecision):
+    """Durable, not-yet-started replacement Run snapshot observation only."""
+
+    successor_run_id: RunId
+    observed_successor_version: EntityVersion
+    successor_task_id: TaskId
+    predecessor_run_id: RunId
+    observed_successor_state: RunState
+
+    def __post_init__(self) -> None:
+        super(RunSuccessorRunObservation, self).__post_init__()
+        if not isinstance(self.successor_run_id, RunId):
+            raise InvalidDomainValue("successor_run_id must be a RunId")
+        if not isinstance(self.observed_successor_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_successor_version must be an EntityVersion"
+            )
+        if not isinstance(self.successor_task_id, TaskId):
+            raise InvalidDomainValue("successor_task_id must be a TaskId")
+        if not isinstance(self.predecessor_run_id, RunId):
+            raise InvalidDomainValue("predecessor_run_id must be a RunId")
+        if not isinstance(self.observed_successor_state, RunState):
+            raise InvalidDomainValue("observed_successor_state must be a RunState")
+
+
+@dataclass(frozen=True, slots=True)
+class RunAcceptedHumanHandoffDecision(_EvidenceBackedRunDecision):
+    """Recovery-boundary acceptance of one durable human-handoff reference."""
+
+    handoff_ref: RunHumanHandoffRef
+
+    def __post_init__(self) -> None:
+        super(RunAcceptedHumanHandoffDecision, self).__post_init__()
+        if self.decided_by.actor_type not in _REASSIGN_DECISION_ACTOR_TYPES:
+            raise InvalidDomainValue(
+                "RunAcceptedHumanHandoffDecision must be accepted by "
+                "SCHEDULER or RUN_CONTROLLER"
+            )
+        if not isinstance(self.handoff_ref, RunHumanHandoffRef):
+            raise InvalidDomainValue("handoff_ref must be a RunHumanHandoffRef")
+
+
+@dataclass(frozen=True, slots=True)
+class RunTransferExclusivityDecision(_EvidenceBackedRunDecision):
+    """Evidence-backed decision that transfer cannot duplicate execution authority."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -546,6 +633,48 @@ class RunResumeSemantics:
                 raise InvalidDomainValue(f"{name} has the wrong decision type")
 
 
+@dataclass(frozen=True, slots=True)
+class RunReassignmentSemantics:
+    """Canonical semantics for closing an old Run with responsibility transferred."""
+
+    reassign_decision: RunReassignDecision
+    ownership_fencing: RunOwnershipFencingDecision
+    route_unsuitability: RunExecutionRouteUnsuitabilityDecision
+    successor_run: RunSuccessorRunObservation | None
+    human_handoff: RunAcceptedHumanHandoffDecision | None
+    transfer_exclusivity: RunTransferExclusivityDecision
+
+    def __post_init__(self) -> None:
+        for value, expected, name in (
+            (self.reassign_decision, RunReassignDecision, "reassign_decision"),
+            (self.ownership_fencing, RunOwnershipFencingDecision, "ownership_fencing"),
+            (
+                self.route_unsuitability,
+                RunExecutionRouteUnsuitabilityDecision,
+                "route_unsuitability",
+            ),
+            (
+                self.transfer_exclusivity,
+                RunTransferExclusivityDecision,
+                "transfer_exclusivity",
+            ),
+        ):
+            if not isinstance(value, expected):
+                raise InvalidDomainValue(f"{name} has the wrong decision type")
+        if self.successor_run is not None and not isinstance(
+            self.successor_run, RunSuccessorRunObservation
+        ):
+            raise InvalidDomainValue("successor_run has the wrong observation type")
+        if self.human_handoff is not None and not isinstance(
+            self.human_handoff, RunAcceptedHumanHandoffDecision
+        ):
+            raise InvalidDomainValue("human_handoff has the wrong decision type")
+        if (self.successor_run is None) == (self.human_handoff is None):
+            raise InvalidDomainValue(
+                "Reassignment requires exactly one successor Run or human handoff"
+            )
+
+
 type RunSemanticInput = (
     RunStartSemantics
     | RunVerificationWaitSemantics
@@ -553,6 +682,7 @@ type RunSemanticInput = (
     | RunVerifiedCompletionSemantics
     | RunRetryPreparationSemantics
     | RunResumeSemantics
+    | RunReassignmentSemantics
 )
 
 type _RunSnapshotBoundSemanticDecision = (
@@ -600,6 +730,19 @@ def _semantic_decisions_for(
             semantics.trusted_recovery_boundary,
             semantics.recovery_limits,
         )
+    if isinstance(semantics, RunReassignmentSemantics):
+        target = (
+            (semantics.successor_run,)
+            if semantics.successor_run is not None
+            else (semantics.human_handoff,)
+        )
+        return (
+            semantics.reassign_decision,
+            semantics.ownership_fencing,
+            semantics.route_unsuitability,
+            *target,
+            semantics.transfer_exclusivity,
+        )
     return (
         semantics.same_attempt_continuity,
         semantics.resume_decision,
@@ -626,6 +769,13 @@ _INPUT_TYPE_BY_EDGE: Final[
         ): RunVerifiedCompletionSemantics,
         (RunState.RUNNING, RunState.RETRYING): RunRetryPreparationSemantics,
         (RunState.RETRYING, RunState.RUNNING): RunResumeSemantics,
+        (RunState.PENDING, RunState.REASSIGNED): RunReassignmentSemantics,
+        (RunState.RUNNING, RunState.REASSIGNED): RunReassignmentSemantics,
+        (
+            RunState.WAITING_FOR_VERIFICATION,
+            RunState.REASSIGNED,
+        ): RunReassignmentSemantics,
+        (RunState.RETRYING, RunState.REASSIGNED): RunReassignmentSemantics,
     }
 )
 
@@ -714,6 +864,8 @@ class RunSemanticGuard:
             self._validate_verified_completion(semantics)
         elif isinstance(semantics, RunRetryPreparationSemantics):
             self._validate_retry_preparation(run, semantics)
+        elif isinstance(semantics, RunReassignmentSemantics):
+            self._validate_reassignment(run, semantics)
         else:
             self._validate_resume(run, semantics)
 
@@ -905,3 +1057,56 @@ class RunSemanticGuard:
         _require_non_worker_authority(
             semantics.grants, "recovery continuation eligibility"
         )
+
+    @staticmethod
+    def _validate_reassignment(
+        run: Run,
+        semantics: RunReassignmentSemantics,
+    ) -> None:
+        _require_passed(
+            semantics.reassign_decision, "explicit scoped Reassign decision"
+        )
+        _require_passed(semantics.ownership_fencing, "current ownership fencing")
+        _require_non_worker_authority(
+            semantics.ownership_fencing, "current ownership fencing"
+        )
+        _require_passed(
+            semantics.route_unsuitability, "current execution route unsuitability"
+        )
+        _require_non_worker_authority(
+            semantics.route_unsuitability, "current execution route unsuitability"
+        )
+        _require_passed(
+            semantics.transfer_exclusivity, "exclusive transfer of execution authority"
+        )
+        _require_non_worker_authority(
+            semantics.transfer_exclusivity,
+            "exclusive transfer of execution authority",
+        )
+        if semantics.successor_run is not None:
+            successor = semantics.successor_run
+            _require_passed(successor, "durable successor Run")
+            _require_non_worker_authority(successor, "durable successor Run acceptance")
+            if successor.successor_run_id == run.run_id:
+                raise InvariantViolation(
+                    "Successor RunId must differ from the old RunId"
+                )
+            if successor.successor_task_id != run.task_id:
+                raise InvariantViolation(
+                    "Successor Run TaskId must match the old Run Task"
+                )
+            if successor.predecessor_run_id != run.run_id:
+                raise InvariantViolation(
+                    "Successor predecessor RunId must identify old Run"
+                )
+            if successor.observed_successor_state is not RunState.PENDING:
+                raise InvariantViolation(
+                    "Successor Run must remain PENDING when reassigned"
+                )
+        else:
+            handoff = semantics.human_handoff
+            if handoff is None:
+                raise InvariantViolation(
+                    "Reassignment requires exactly one durable transfer target"
+                )
+            _require_passed(handoff, "accepted human handoff")
