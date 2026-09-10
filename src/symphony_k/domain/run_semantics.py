@@ -37,6 +37,10 @@ _REASSIGN_DECISION_ACTOR_TYPES: Final[frozenset[ActorType]] = frozenset(
     {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
 )
 
+_FAILED_DECISION_ACTOR_TYPES: Final[frozenset[ActorType]] = frozenset(
+    {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
+)
+
 
 class RunVerificationResolutionStatus(Enum):
     """A resolved verification may be favorable or unfavorable to the candidate."""
@@ -44,6 +48,31 @@ class RunVerificationResolutionStatus(Enum):
     RESOLVED_FAVORABLE = "RESOLVED_FAVORABLE"
     RESOLVED_UNFAVORABLE = "RESOLVED_UNFAVORABLE"
     UNRESOLVED = "UNRESOLVED"
+
+
+class RunFailureClassification(Enum):
+    """Provider-independent classes consumed by canonical FAILED closure."""
+
+    TRANSIENT = "TRANSIENT"
+    INFRA_FAILURE = "INFRA_FAILURE"
+    WORKER_FAILURE = "WORKER_FAILURE"
+    EXECUTION_FAILURE = "EXECUTION_FAILURE"
+    VALIDATION_FAILURE = "VALIDATION_FAILURE"
+    CAPABILITY_FAILURE = "CAPABILITY_FAILURE"
+    POLICY_FAILURE = "POLICY_FAILURE"
+    BUDGET_FAILURE = "BUDGET_FAILURE"
+    DEPENDENCY_FAILURE = "DEPENDENCY_FAILURE"
+    TASK_DEFINITION_FAILURE = "TASK_DEFINITION_FAILURE"
+    SAFETY_FAILURE = "SAFETY_FAILURE"
+    UNRECOVERABLE_SIDE_EFFECT = "UNRECOVERABLE_SIDE_EFFECT"
+
+
+class RunRecoveryPathClosureReason(Enum):
+    """Accepted reasons why this exact Run cannot continue its recovery path."""
+
+    RECOVERY_EXHAUSTED = "RECOVERY_EXHAUSTED"
+    RECOVERY_RULED_OUT = "RECOVERY_RULED_OUT"
+    CONTINUATION_INVALID = "CONTINUATION_INVALID"
 
 
 @dataclass(frozen=True, slots=True)
@@ -264,6 +293,57 @@ class RunReassignDecision(_EvidenceBackedRunDecision):
 @dataclass(frozen=True, slots=True)
 class RunOwnershipFencingDecision(_EvidenceBackedRunDecision):
     """Evidence-backed decision that old-Run authority is stopped or fenced."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunNormalizedFailureClassificationDecision(_EvidenceBackedRunDecision):
+    """An authoritative normalized failure judgment with supporting evidence."""
+
+    classification: RunFailureClassification
+
+    def __post_init__(self) -> None:
+        super(RunNormalizedFailureClassificationDecision, self).__post_init__()
+        if not isinstance(self.classification, RunFailureClassification):
+            raise InvalidDomainValue(
+                "classification must be a RunFailureClassification"
+            )
+        if (
+            self.status is RunSemanticDecisionStatus.PASSED
+            and self.decided_by.actor_type is ActorType.WORKER
+        ):
+            raise InvalidDomainValue(
+                "Worker cannot authoritatively establish normalized failure "
+                "classification"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class RunRecoveryPathClosureDecision(_EvidenceBackedRunDecision):
+    """R-authorized determination that this Run's recovery path is closed."""
+
+    reason: RunRecoveryPathClosureReason
+
+    def __post_init__(self) -> None:
+        super(RunRecoveryPathClosureDecision, self).__post_init__()
+        if not isinstance(self.reason, RunRecoveryPathClosureReason):
+            raise InvalidDomainValue("reason must be a RunRecoveryPathClosureReason")
+        if self.decided_by.actor_type not in _FAILED_DECISION_ACTOR_TYPES:
+            raise InvalidDomainValue(
+                "RunRecoveryPathClosureDecision must be decided by SCHEDULER or "
+                "RUN_CONTROLLER"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class RunFailedDecision(_EvidenceBackedRunDecision):
+    """Explicit R-authorized selection to close one exact Run as FAILED."""
+
+    def __post_init__(self) -> None:
+        super(RunFailedDecision, self).__post_init__()
+        if self.decided_by.actor_type not in _FAILED_DECISION_ACTOR_TYPES:
+            raise InvalidDomainValue(
+                "RunFailedDecision must be decided by SCHEDULER or RUN_CONTROLLER"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -706,6 +786,34 @@ class RunReassignmentSemantics:
             )
 
 
+@dataclass(frozen=True, slots=True)
+class RunFailureSemantics:
+    """Canonical evidence-backed semantics for closing one Run as FAILED."""
+
+    failure_classification: RunNormalizedFailureClassificationDecision
+    recovery_path_closure: RunRecoveryPathClosureDecision
+    ownership_fencing: RunOwnershipFencingDecision
+    failed_decision: RunFailedDecision
+
+    def __post_init__(self) -> None:
+        for value, expected, name in (
+            (
+                self.failure_classification,
+                RunNormalizedFailureClassificationDecision,
+                "failure_classification",
+            ),
+            (
+                self.recovery_path_closure,
+                RunRecoveryPathClosureDecision,
+                "recovery_path_closure",
+            ),
+            (self.ownership_fencing, RunOwnershipFencingDecision, "ownership_fencing"),
+            (self.failed_decision, RunFailedDecision, "failed_decision"),
+        ):
+            if not isinstance(value, expected):
+                raise InvalidDomainValue(f"{name} has the wrong decision type")
+
+
 type RunSemanticInput = (
     RunStartSemantics
     | RunVerificationWaitSemantics
@@ -714,6 +822,7 @@ type RunSemanticInput = (
     | RunRetryPreparationSemantics
     | RunResumeSemantics
     | RunReassignmentSemantics
+    | RunFailureSemantics
 )
 
 type _RunSnapshotBoundSemanticDecision = (
@@ -774,6 +883,13 @@ def _semantic_decisions_for(
             *target,
             semantics.transfer_exclusivity,
         )
+    if isinstance(semantics, RunFailureSemantics):
+        return (
+            semantics.failure_classification,
+            semantics.recovery_path_closure,
+            semantics.ownership_fencing,
+            semantics.failed_decision,
+        )
     return (
         semantics.same_attempt_continuity,
         semantics.resume_decision,
@@ -807,6 +923,10 @@ _INPUT_TYPE_BY_EDGE: Final[
             RunState.REASSIGNED,
         ): RunReassignmentSemantics,
         (RunState.RETRYING, RunState.REASSIGNED): RunReassignmentSemantics,
+        (RunState.PENDING, RunState.FAILED): RunFailureSemantics,
+        (RunState.RUNNING, RunState.FAILED): RunFailureSemantics,
+        (RunState.WAITING_FOR_VERIFICATION, RunState.FAILED): RunFailureSemantics,
+        (RunState.RETRYING, RunState.FAILED): RunFailureSemantics,
     }
 )
 
@@ -824,6 +944,17 @@ def _require_non_worker_authority(
 ) -> None:
     if decision.decided_by.actor_type is ActorType.WORKER:
         raise InvariantViolation(f"Worker cannot authoritatively establish {condition}")
+
+
+def _require_failed_closure_authority(
+    decision: _EvidenceBackedRunDecision,
+    condition: str,
+) -> None:
+    if decision.decided_by.actor_type not in _FAILED_DECISION_ACTOR_TYPES:
+        raise InvariantViolation(
+            f"Only SCHEDULER or RUN_CONTROLLER can authoritatively establish "
+            f"{condition}"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -897,6 +1028,8 @@ class RunSemanticGuard:
             self._validate_retry_preparation(run, semantics)
         elif isinstance(semantics, RunReassignmentSemantics):
             self._validate_reassignment(run, semantics)
+        elif isinstance(semantics, RunFailureSemantics):
+            self._validate_failure(semantics)
         else:
             self._validate_resume(run, semantics)
 
@@ -1155,3 +1288,24 @@ class RunSemanticGuard:
                     "Transfer exclusivity does not match the accepted human handoff"
                 )
             _require_passed(handoff, "accepted human handoff")
+
+    @staticmethod
+    def _validate_failure(semantics: RunFailureSemantics) -> None:
+        _require_passed(
+            semantics.failure_classification, "normalized failure classification"
+        )
+        _require_non_worker_authority(
+            semantics.failure_classification, "normalized failure classification"
+        )
+        _require_passed(semantics.recovery_path_closure, "recovery-path closure")
+        _require_failed_closure_authority(
+            semantics.recovery_path_closure, "recovery-path closure"
+        )
+        _require_passed(semantics.ownership_fencing, "ended or fenced ownership")
+        _require_non_worker_authority(
+            semantics.ownership_fencing, "ended or fenced ownership"
+        )
+        _require_passed(semantics.failed_decision, "explicit scoped FAILED decision")
+        _require_failed_closure_authority(
+            semantics.failed_decision, "explicit scoped FAILED decision"
+        )
