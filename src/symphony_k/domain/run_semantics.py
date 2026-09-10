@@ -41,6 +41,10 @@ _FAILED_DECISION_ACTOR_TYPES: Final[frozenset[ActorType]] = frozenset(
     {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
 )
 
+_ABORT_DECISION_ACTOR_TYPES: Final[frozenset[ActorType]] = frozenset(
+    {ActorType.SCHEDULER, ActorType.RUN_CONTROLLER}
+)
+
 
 class RunVerificationResolutionStatus(Enum):
     """A resolved verification may be favorable or unfavorable to the candidate."""
@@ -73,6 +77,15 @@ class RunRecoveryPathClosureReason(Enum):
     RECOVERY_EXHAUSTED = "RECOVERY_EXHAUSTED"
     RECOVERY_RULED_OUT = "RECOVERY_RULED_OUT"
     CONTINUATION_INVALID = "CONTINUATION_INVALID"
+
+
+class RunAbortStopBasis(Enum):
+    """Closed categories for the accepted basis of an ABORTED Run closure."""
+
+    SCHEDULER_CONTROL = "SCHEDULER_CONTROL"
+    POLICY = "POLICY"
+    SAFETY = "SAFETY"
+    AUTHORIZED_HUMAN = "AUTHORIZED_HUMAN"
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,6 +306,30 @@ class RunReassignDecision(_EvidenceBackedRunDecision):
 @dataclass(frozen=True, slots=True)
 class RunOwnershipFencingDecision(_EvidenceBackedRunDecision):
     """Evidence-backed decision that old-Run authority is stopped or fenced."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunAbortStopBasisDecision(_EvidenceBackedRunDecision):
+    """Evidence-backed stop basis; it does not itself select Run ABORTED."""
+
+    basis: RunAbortStopBasis
+
+    def __post_init__(self) -> None:
+        super(RunAbortStopBasisDecision, self).__post_init__()
+        if not isinstance(self.basis, RunAbortStopBasis):
+            raise InvalidDomainValue("basis must be a RunAbortStopBasis")
+
+
+@dataclass(frozen=True, slots=True)
+class RunAbortedDecision(_EvidenceBackedRunDecision):
+    """Explicit R-authorized selection to close one exact Run as ABORTED."""
+
+    def __post_init__(self) -> None:
+        super(RunAbortedDecision, self).__post_init__()
+        if self.decided_by.actor_type not in _ABORT_DECISION_ACTOR_TYPES:
+            raise InvalidDomainValue(
+                "RunAbortedDecision must be decided by SCHEDULER or RUN_CONTROLLER"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -814,6 +851,24 @@ class RunFailureSemantics:
                 raise InvalidDomainValue(f"{name} has the wrong decision type")
 
 
+@dataclass(frozen=True, slots=True)
+class RunAbortSemantics:
+    """Canonical evidence-backed semantics for closing one Run as ABORTED."""
+
+    stop_basis: RunAbortStopBasisDecision
+    ownership_fencing: RunOwnershipFencingDecision
+    aborted_decision: RunAbortedDecision
+
+    def __post_init__(self) -> None:
+        for value, expected, name in (
+            (self.stop_basis, RunAbortStopBasisDecision, "stop_basis"),
+            (self.ownership_fencing, RunOwnershipFencingDecision, "ownership_fencing"),
+            (self.aborted_decision, RunAbortedDecision, "aborted_decision"),
+        ):
+            if not isinstance(value, expected):
+                raise InvalidDomainValue(f"{name} has the wrong decision type")
+
+
 type RunSemanticInput = (
     RunStartSemantics
     | RunVerificationWaitSemantics
@@ -823,6 +878,7 @@ type RunSemanticInput = (
     | RunResumeSemantics
     | RunReassignmentSemantics
     | RunFailureSemantics
+    | RunAbortSemantics
 )
 
 type _RunSnapshotBoundSemanticDecision = (
@@ -890,6 +946,12 @@ def _semantic_decisions_for(
             semantics.ownership_fencing,
             semantics.failed_decision,
         )
+    if isinstance(semantics, RunAbortSemantics):
+        return (
+            semantics.stop_basis,
+            semantics.ownership_fencing,
+            semantics.aborted_decision,
+        )
     return (
         semantics.same_attempt_continuity,
         semantics.resume_decision,
@@ -927,6 +989,10 @@ _INPUT_TYPE_BY_EDGE: Final[
         (RunState.RUNNING, RunState.FAILED): RunFailureSemantics,
         (RunState.WAITING_FOR_VERIFICATION, RunState.FAILED): RunFailureSemantics,
         (RunState.RETRYING, RunState.FAILED): RunFailureSemantics,
+        (RunState.PENDING, RunState.ABORTED): RunAbortSemantics,
+        (RunState.RUNNING, RunState.ABORTED): RunAbortSemantics,
+        (RunState.WAITING_FOR_VERIFICATION, RunState.ABORTED): RunAbortSemantics,
+        (RunState.RETRYING, RunState.ABORTED): RunAbortSemantics,
     }
 )
 
@@ -951,6 +1017,17 @@ def _require_failed_closure_authority(
     condition: str,
 ) -> None:
     if decision.decided_by.actor_type not in _FAILED_DECISION_ACTOR_TYPES:
+        raise InvariantViolation(
+            f"Only SCHEDULER or RUN_CONTROLLER can authoritatively establish "
+            f"{condition}"
+        )
+
+
+def _require_abort_closure_authority(
+    decision: _EvidenceBackedRunDecision,
+    condition: str,
+) -> None:
+    if decision.decided_by.actor_type not in _ABORT_DECISION_ACTOR_TYPES:
         raise InvariantViolation(
             f"Only SCHEDULER or RUN_CONTROLLER can authoritatively establish "
             f"{condition}"
@@ -1030,6 +1107,8 @@ class RunSemanticGuard:
             self._validate_reassignment(run, semantics)
         elif isinstance(semantics, RunFailureSemantics):
             self._validate_failure(semantics)
+        elif isinstance(semantics, RunAbortSemantics):
+            self._validate_abort(semantics)
         else:
             self._validate_resume(run, semantics)
 
@@ -1308,4 +1387,16 @@ class RunSemanticGuard:
         _require_passed(semantics.failed_decision, "explicit scoped FAILED decision")
         _require_failed_closure_authority(
             semantics.failed_decision, "explicit scoped FAILED decision"
+        )
+
+    @staticmethod
+    def _validate_abort(semantics: RunAbortSemantics) -> None:
+        _require_passed(semantics.stop_basis, "valid stop basis")
+        _require_passed(semantics.ownership_fencing, "ended or fenced ownership")
+        _require_non_worker_authority(
+            semantics.ownership_fencing, "ended or fenced ownership"
+        )
+        _require_passed(semantics.aborted_decision, "explicit scoped ABORTED decision")
+        _require_abort_closure_authority(
+            semantics.aborted_decision, "explicit scoped ABORTED decision"
         )

@@ -182,6 +182,10 @@ from .outcome import (
 )
 from .run import RUN_CREATION_STATE, Run, RunState, can_run_transition
 from .run_semantics import (
+    RunAbortedDecision,
+    RunAbortSemantics,
+    RunAbortStopBasis,
+    RunAbortStopBasisDecision,
     RunAcceptedHumanHandoffDecision,
     RunArtifactUsagePersistenceDecision,
     RunBudgetValidityDecision,
@@ -413,6 +417,10 @@ __all__ = [
     "PlannedEffectOrigin",
     "Run",
     "RunAcceptedHumanHandoffDecision",
+    "RunAbortSemantics",
+    "RunAbortStopBasis",
+    "RunAbortStopBasisDecision",
+    "RunAbortedDecision",
     "RunArtifactUsagePersistenceDecision",
     "RunBudgetValidityDecision",
     "RunCandidateOutcomeObservation",
