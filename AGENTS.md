@@ -71,6 +71,67 @@ If a remote mutation occurs, the final execution report MUST state:
 
 Do not report a remote mutation as absent merely because it occurred after an earlier execution segment or after recovery from an interrupted session.
 
+## Durable TaskSpec Precondition
+
+Before any repository mutation, an implementation Worker MUST establish a
+concrete, pre-existing durable TaskSpec identity and record it in its execution
+evidence. This is an execution-governance precondition: it does not make GitHub
+Issues a future Symphony-K product-domain requirement. GitHub Issue is the
+current manual durable TaskSpec carrier.
+
+A valid TaskSpec reference identifies an already-materialized durable work item,
+for example `GitHub Issue #32` or its full Issue URL. A title-only task, a future
+Issue, a placeholder Issue number such as `<ISSUE_NUMBER>`, or conversation-only
+text describing an uncreated TaskSpec is insufficient.
+
+Workers MUST distinguish TaskSpec source access from TaskSpec materialization.
+Either of the following access modes is valid:
+
+1. `direct-read`: the Worker has a concrete durable TaskSpec identity and
+   successfully reads that TaskSpec from its source.
+2. `materialized-handoff`: the Worker has a concrete durable TaskSpec identity,
+   and a trusted launch boundary has supplied the exact TaskSpec content in the
+   execution context.
+
+Direct GitHub or network access is not required for `materialized-handoff`.
+Regardless of access mode, the durable TaskSpec MUST already exist before the
+Worker begins mutation. If the Worker cannot establish this precondition, it
+MUST stop: it MUST NOT infer a future Issue number, proceed from a title alone,
+create the Issue itself unless separately authorized, or expect governance
+metadata to be backfilled later.
+
+Post-hoc Issue creation MUST NOT be treated as retroactive authorization or as
+satisfying the original Run's TaskSpec precondition. In particular, Issue #31 is
+a retrospective provenance record: commit
+`7948852c4b319f241d6bc03ecab086145d8242e0` was produced before its intended
+Issue #31 existed. Its subsequent independent review and acceptance do not
+change that historical chronology.
+
+The current manual two-phase workflow is:
+
+```text
+Planner drafts TaskSpec
+    ->
+Human materializes GitHub Issue
+    ->
+concrete Issue number exists
+    ->
+executable Worker launch prompt
+    ->
+Worker execution
+```
+
+The executable Worker launch prompt MUST contain the concrete Issue number or
+URL. It MUST NOT be issued against an uncreated TaskSpec.
+
+Final Worker evidence MUST report:
+
+```text
+TaskSpec reference:
+TaskSpec access mode: direct-read | materialized-handoff
+TaskSpec precondition: PASS
+```
+
 
 ## Development Discipline
 
