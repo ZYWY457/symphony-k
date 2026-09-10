@@ -106,7 +106,9 @@ def semantics(
             OutcomeValidationPolicyRef("validation-policy", "v3"),
         ),
         OutcomeEvaluationRequestObservation(
-            OutcomeEvaluationRequestRef("evaluation-request"),
+            OutcomeEvaluationRequestRef(
+                "evaluation-request", EvaluationId(OTHER), EVALUATION_VERSION
+            ),
             EvaluationId(OTHER),
             EVALUATION_VERSION,
             EvaluationState.PENDING,
@@ -397,6 +399,53 @@ def test_evaluation_version_is_distinct_from_outcome_version() -> None:
         snapshot, request(snapshot), context(snapshot, request(snapshot))
     )
     assert result.entity.version == EntityVersion(18)
+
+
+@pytest.mark.parametrize(
+    "attribute,value",
+    [
+        ("evaluation_id", EvaluationId(VALUE)),
+        ("observed_evaluation_version", EntityVersion(30)),
+    ],
+)
+def test_evaluation_request_provenance_rejects_snapshot_substitution(
+    attribute: str, value: EvaluationId | EntityVersion
+) -> None:
+    snapshot = outcome()
+    semantic_input = semantics(snapshot)
+    observation = semantic_input.evaluation_request
+    object.__setattr__(observation, attribute, value)
+    transition_request = request(snapshot)
+
+    with pytest.raises(InvariantViolation, match="provenance does not match"):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(
+                snapshot,
+                transition_request,
+                guard(snapshot, semantic_input=semantic_input),
+            ),
+        )
+
+
+def test_outcome_version_cannot_substitute_for_evaluation_version() -> None:
+    snapshot = outcome()
+    semantic_input = semantics(snapshot)
+    observation = semantic_input.evaluation_request
+    object.__setattr__(observation, "observed_evaluation_version", snapshot.version)
+    transition_request = request(snapshot)
+
+    with pytest.raises(InvariantViolation, match="provenance does not match"):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(
+                snapshot,
+                transition_request,
+                guard(snapshot, semantic_input=semantic_input),
+            ),
+        )
 
 
 @pytest.mark.parametrize(

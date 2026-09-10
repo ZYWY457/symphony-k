@@ -58,14 +58,22 @@ class OutcomeValidationPolicyRef:
 
 @dataclass(frozen=True, slots=True)
 class OutcomeEvaluationRequestRef:
-    """Opaque immutable provenance for a distinct existing Evaluation request."""
+    """Immutable provenance for one exact durable Evaluation request snapshot."""
 
     value: str
+    evaluation_id: EvaluationId
+    observed_evaluation_version: EntityVersion
 
     def __post_init__(self) -> None:
         if not isinstance(self.value, str) or not self.value.strip():
             raise InvalidDomainValue(
                 "Outcome Evaluation request reference must contain non-whitespace text"
+            )
+        if not isinstance(self.evaluation_id, EvaluationId):
+            raise InvalidDomainValue("evaluation_id must be an EvaluationId")
+        if not isinstance(self.observed_evaluation_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_evaluation_version must be an EntityVersion"
             )
 
 
@@ -303,6 +311,14 @@ class OutcomeSemanticGuard:
         )
         if observation.observed_state is not EvaluationState.PENDING:
             raise InvariantViolation("Evaluation request is not in PENDING state")
+        if not (
+            observation.request_ref.evaluation_id == observation.evaluation_id
+            and observation.request_ref.observed_evaluation_version
+            == observation.observed_evaluation_version
+        ):
+            raise InvariantViolation(
+                "Evaluation request provenance does not match the exact snapshot"
+            )
         if not (
             observation.target.reference == outcome.outcome_id
             and observation.target.version == outcome.version

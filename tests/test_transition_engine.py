@@ -424,7 +424,9 @@ def outcome_validation_start_guard(
                 OutcomeValidationPolicyRef("validation", "v1"),
             ),
             OutcomeEvaluationRequestObservation(
-                OutcomeEvaluationRequestRef("evaluation-request"),
+                OutcomeEvaluationRequestRef(
+                    "evaluation-request", EvaluationId(VALUE), EntityVersion(5)
+                ),
                 EvaluationId(VALUE),
                 EntityVersion(5),
                 EvaluationState.PENDING,
