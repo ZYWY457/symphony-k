@@ -60,8 +60,17 @@ from symphony_k.domain import (
     ObjectiveState,
     ObjectiveTimeHorizonValidityDecision,
     Outcome,
+    OutcomeEvaluationRequestObservation,
+    OutcomeEvaluationRequestRef,
     OutcomeId,
+    OutcomeSemanticDecisionRef,
+    OutcomeSemanticDecisionStatus,
+    OutcomeSemanticGuard,
     OutcomeState,
+    OutcomeValidationArtifactScope,
+    OutcomeValidationPolicyDecision,
+    OutcomeValidationPolicyRef,
+    OutcomeValidationStartSemantics,
     PlannedEffectOrigin,
     Run,
     RunBudgetValidityDecision,
@@ -196,12 +205,21 @@ def authorized_context(
             RunState.RUNNING,
         ):
             run_guard = run_start_guard(entity, request.target_state)
+    outcome_guard = None
+    if isinstance(entity, Outcome):
+        assert isinstance(request.target_state, OutcomeState)
+        if (entity.state, request.target_state) == (
+            OutcomeState.PROPOSED,
+            OutcomeState.VALIDATING,
+        ):
+            outcome_guard = outcome_validation_start_guard(entity, request.target_state)
     return TransitionContext(
         guards,
         authority_decision(entity, request),
         objective_guard,
         task_guard,
         run_guard,
+        outcome_guard,
     )
 
 
@@ -375,6 +393,49 @@ def run_start_guard(entity: Run, target: RunState) -> RunSemanticGuard:
             decision(RunGrantValidityDecision, "grants"),
             decision(RunBudgetValidityDecision, "budget"),
             decision(RunTrustedStartConfirmationDecision, "start"),
+        ),
+    )
+
+
+def outcome_validation_start_guard(
+    entity: Outcome, target: OutcomeState
+) -> OutcomeSemanticGuard:
+    return OutcomeSemanticGuard(
+        entity.outcome_id,
+        entity.version,
+        entity.state,
+        target,
+        CORRELATION_ID,
+        OutcomeValidationStartSemantics(
+            OutcomeValidationArtifactScope(
+                entity.outcome_id,
+                entity.version,
+                CORRELATION_ID,
+                entity.artifact_refs,
+            ),
+            OutcomeValidationPolicyDecision(
+                OutcomeSemanticDecisionRef("validation-policy"),
+                OutcomeSemanticDecisionStatus.PASSED,
+                actor(ActorType.POLICY_ENGINE),
+                frozenset({EvidenceRef("validation-policy")}),
+                entity.outcome_id,
+                entity.version,
+                CORRELATION_ID,
+                OutcomeValidationPolicyRef("validation", "v1"),
+            ),
+            OutcomeEvaluationRequestObservation(
+                OutcomeEvaluationRequestRef("evaluation-request"),
+                EvaluationId(VALUE),
+                EntityVersion(5),
+                EvaluationState.PENDING,
+                EvaluationTargetRef(entity.outcome_id, entity.version),
+                EvaluationMethodRef("method", "v1"),
+                actor(ActorType.SCHEDULER),
+                None,
+                entity.outcome_id,
+                entity.version,
+                CORRELATION_ID,
+            ),
         ),
     )
 
@@ -777,6 +838,7 @@ def test_context_requires_explicit_typed_guards_and_has_no_permissive_default() 
     assert definitions["objective_semantic_guard"].default is None
     assert definitions["task_semantic_guard"].default is None
     assert definitions["run_semantic_guard"].default is None
+    assert definitions["outcome_semantic_guard"].default is None
     with pytest.raises(InvalidDomainValue):
         TransitionContext((PASSING_GUARD,), object())  # type: ignore[arg-type]
 

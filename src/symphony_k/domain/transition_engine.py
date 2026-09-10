@@ -3,10 +3,10 @@
 M7A validates caller-supplied versions and canonical structural topology. M7B1
 requires a separate exact-bound authority decision. M7B2 additionally requires
 the decision actor's type to be canonically eligible for the exact lifecycle edge.
-M7C1/M7C2 and M7C3A require the canonical Objective/Task/normal-Run semantic
-guard before ordinary additional guards, then return a new snapshot and one
-DomainEvent. Eligibility is not a scoped grant. This module performs no loading,
-persistence, transaction, or external action.
+M7C1–M7C4A require the canonical Objective/Task/Run/Outcome semantic guard before
+ordinary additional guards, then return a new snapshot and one DomainEvent.
+Eligibility is not a scoped grant. This module performs no loading, persistence,
+transaction, or external action.
 """
 
 from collections.abc import Mapping
@@ -45,6 +45,7 @@ from .ids import (
 from .objective import Objective, ObjectiveState
 from .objective_semantics import ObjectiveSemanticGuard
 from .outcome import Outcome, OutcomeState
+from .outcome_semantics import OutcomeSemanticGuard
 from .run import Run, RunState
 from .run_semantics import RunSemanticGuard
 from .task import Task, TaskState
@@ -659,6 +660,7 @@ class TransitionContext:
     objective_semantic_guard: ObjectiveSemanticGuard | None = None
     task_semantic_guard: TaskSemanticGuard | None = None
     run_semantic_guard: RunSemanticGuard | None = None
+    outcome_semantic_guard: OutcomeSemanticGuard | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
@@ -688,6 +690,12 @@ class TransitionContext:
         ):
             raise InvalidDomainValue(
                 "run_semantic_guard must be a RunSemanticGuard or None"
+            )
+        if self.outcome_semantic_guard is not None and not isinstance(
+            self.outcome_semantic_guard, OutcomeSemanticGuard
+        ):
+            raise InvalidDomainValue(
+                "outcome_semantic_guard must be an OutcomeSemanticGuard or None"
             )
 
 
@@ -864,6 +872,13 @@ def transition_entity(
         if not isinstance(request.target_state, RunState):
             raise InvalidTransition("Target state belongs to a different entity family")
         run_guard.validate(entity, request.target_state, request.correlation_id)
+    elif isinstance(entity, Outcome):
+        outcome_guard = context.outcome_semantic_guard
+        if outcome_guard is None:
+            raise InvariantViolation("Canonical Outcome semantic guard is required")
+        if not isinstance(request.target_state, OutcomeState):
+            raise InvalidTransition("Target state belongs to a different entity family")
+        outcome_guard.validate(entity, request.target_state, request.correlation_id)
 
     for guard in context.guards:
         guard.validate(entity, request)

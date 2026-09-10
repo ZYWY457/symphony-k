@@ -180,6 +180,17 @@ from .outcome import (
     OutcomeState,
     can_outcome_transition,
 )
+from .outcome_semantics import (
+    OutcomeEvaluationRequestObservation,
+    OutcomeEvaluationRequestRef,
+    OutcomeSemanticDecisionRef,
+    OutcomeSemanticDecisionStatus,
+    OutcomeSemanticGuard,
+    OutcomeValidationArtifactScope,
+    OutcomeValidationPolicyDecision,
+    OutcomeValidationPolicyRef,
+    OutcomeValidationStartSemantics,
+)
 from .run import RUN_CREATION_STATE, Run, RunState, can_run_transition
 from .run_semantics import (
     RunAbortedDecision,
@@ -411,8 +422,17 @@ __all__ = [
     "ObjectiveTimeHorizonValidityDecision",
     "ObjectiveValidityDecision",
     "Outcome",
+    "OutcomeEvaluationRequestObservation",
+    "OutcomeEvaluationRequestRef",
     "OutcomeId",
+    "OutcomeSemanticDecisionRef",
+    "OutcomeSemanticDecisionStatus",
+    "OutcomeSemanticGuard",
     "OutcomeState",
+    "OutcomeValidationArtifactScope",
+    "OutcomeValidationPolicyDecision",
+    "OutcomeValidationPolicyRef",
+    "OutcomeValidationStartSemantics",
     "ObservedEffectOrigin",
     "PlannedEffectOrigin",
     "Run",
