@@ -1,4 +1,4 @@
-"""Canonical Outcome validation-start inputs for lifecycle transitions.
+"""Canonical Outcome validation and disposition lifecycle inputs.
 
 These immutable records consume already-made decisions and observations. They do
 not evaluate policy, load artifacts or Evaluations, create validation work, or
@@ -12,7 +12,8 @@ from .actors import ActorIdentity, ActorType
 from .candidate_refs import ArtifactRef, EvidenceRef
 from .errors import InvalidDomainValue, InvariantViolation
 from .evaluation import EvaluationState
-from .evaluation_result import EvaluationMethodRef
+from .evaluation_effective_use import EvaluationEffectiveUseView
+from .evaluation_result import EvaluationMethodRef, EvaluationVerdict
 from .evaluation_target import EvaluationTargetRef
 from .ids import CorrelationId, EvaluationId, OutcomeId
 from .outcome import Outcome, OutcomeState
@@ -43,6 +44,29 @@ class OutcomeSemanticDecisionRef:
 @dataclass(frozen=True, slots=True)
 class OutcomeValidationPolicyRef:
     """Opaque validation-policy identity/version, distinct from completion policy."""
+
+    policy_id: str
+    policy_version: str
+
+    def __post_init__(self) -> None:
+        for value, field in (
+            (self.policy_id, "policy_id"),
+            (self.policy_version, "policy_version"),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise InvalidDomainValue(f"{field} must contain non-whitespace text")
+
+
+class OutcomeDisposition(Enum):
+    """Explicit Outcome-side interpretation, never an Evaluation verdict taxonomy."""
+
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeDispositionPolicyRef:
+    """Dedicated Outcome disposition-policy identity and version."""
 
     policy_id: str
     policy_version: str
@@ -216,30 +240,237 @@ class OutcomeValidationStartSemantics:
 
 
 @dataclass(frozen=True, slots=True)
+class OutcomeValidationLineage:
+    """Exact immutable link from a VALIDATING snapshot to validation start."""
+
+    outcome_id: OutcomeId
+    candidate_version: EntityVersion
+    validating_version: EntityVersion
+    correlation_id: CorrelationId
+    artifact_refs: frozenset[ArtifactRef]
+    evaluation_request_ref: OutcomeEvaluationRequestRef
+
+    def __post_init__(self) -> None:
+        _require_outcome_snapshot_scope(
+            self.outcome_id, self.validating_version, self.correlation_id
+        )
+        if not isinstance(self.candidate_version, EntityVersion):
+            raise InvalidDomainValue("candidate_version must be an EntityVersion")
+        if self.validating_version != self.candidate_version.next():
+            raise InvalidDomainValue(
+                "validating_version must immediately follow candidate_version"
+            )
+        if not isinstance(self.artifact_refs, frozenset) or not self.artifact_refs:
+            raise InvalidDomainValue("artifact_refs must be a nonempty frozenset")
+        if any(
+            not isinstance(reference, ArtifactRef) for reference in self.artifact_refs
+        ):
+            raise InvalidDomainValue("Every artifact reference must be an ArtifactRef")
+        if not isinstance(self.evaluation_request_ref, OutcomeEvaluationRequestRef):
+            raise InvalidDomainValue(
+                "evaluation_request_ref must be an OutcomeEvaluationRequestRef"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeEvaluationEffectiveUseObservation:
+    """Exact observed Evaluation snapshot plus its accepted effective-use view."""
+
+    request_ref: OutcomeEvaluationRequestRef
+    evaluation_id: EvaluationId
+    observed_evaluation_version: EntityVersion
+    observed_state: EvaluationState
+    target: EvaluationTargetRef
+    verifier: ActorIdentity | None
+    effective_use: EvaluationEffectiveUseView
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.request_ref, OutcomeEvaluationRequestRef):
+            raise InvalidDomainValue(
+                "request_ref must be an OutcomeEvaluationRequestRef"
+            )
+        if not isinstance(self.evaluation_id, EvaluationId):
+            raise InvalidDomainValue("evaluation_id must be an EvaluationId")
+        if not isinstance(self.observed_evaluation_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_evaluation_version must be an EntityVersion"
+            )
+        if not isinstance(self.observed_state, EvaluationState):
+            raise InvalidDomainValue("observed_state must be an EvaluationState")
+        if not isinstance(self.target, EvaluationTargetRef):
+            raise InvalidDomainValue("target must be an EvaluationTargetRef")
+        if self.verifier is not None and not isinstance(self.verifier, ActorIdentity):
+            raise InvalidDomainValue("verifier must be an ActorIdentity or None")
+        if not isinstance(self.effective_use, EvaluationEffectiveUseView):
+            raise InvalidDomainValue(
+                "effective_use must be an EvaluationEffectiveUseView"
+            )
+        if not isinstance(self.correlation_id, CorrelationId):
+            raise InvalidDomainValue("correlation_id must be a CorrelationId")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeDispositionPolicyDecision:
+    """Explicit policy interpretation of one effective judgement for one candidate."""
+
+    decision_ref: OutcomeSemanticDecisionRef
+    status: OutcomeSemanticDecisionStatus
+    decided_by: ActorIdentity
+    evidence_refs: frozenset[EvidenceRef]
+    validation_lineage: OutcomeValidationLineage
+    evaluation_id: EvaluationId
+    observed_evaluation_version: EntityVersion
+    effective_judgement: EvaluationVerdict
+    disposition: OutcomeDisposition
+    policy_ref: OutcomeDispositionPolicyRef
+    human_acceptance_required: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision_ref, OutcomeSemanticDecisionRef):
+            raise InvalidDomainValue(
+                "decision_ref must be an OutcomeSemanticDecisionRef"
+            )
+        if not isinstance(self.status, OutcomeSemanticDecisionStatus):
+            raise InvalidDomainValue("status must be an OutcomeSemanticDecisionStatus")
+        if not isinstance(self.decided_by, ActorIdentity):
+            raise InvalidDomainValue("decided_by must be an ActorIdentity")
+        _require_evidence(self.evidence_refs)
+        if not isinstance(self.validation_lineage, OutcomeValidationLineage):
+            raise InvalidDomainValue(
+                "validation_lineage must be an OutcomeValidationLineage"
+            )
+        if not isinstance(self.evaluation_id, EvaluationId):
+            raise InvalidDomainValue("evaluation_id must be an EvaluationId")
+        if not isinstance(self.observed_evaluation_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_evaluation_version must be an EntityVersion"
+            )
+        if not isinstance(self.effective_judgement, EvaluationVerdict):
+            raise InvalidDomainValue("effective_judgement must be an EvaluationVerdict")
+        if not isinstance(self.disposition, OutcomeDisposition):
+            raise InvalidDomainValue("disposition must be an OutcomeDisposition")
+        if not isinstance(self.policy_ref, OutcomeDispositionPolicyRef):
+            raise InvalidDomainValue(
+                "policy_ref must be an OutcomeDispositionPolicyRef"
+            )
+        if not isinstance(self.human_acceptance_required, bool):
+            raise InvalidDomainValue("human_acceptance_required must be a bool")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeHumanAcceptanceDecision:
+    """Affirmative human input to authority C, never direct lifecycle authority."""
+
+    decision_ref: OutcomeSemanticDecisionRef
+    affirmative: bool
+    decided_by: ActorIdentity
+    evidence_refs: frozenset[EvidenceRef]
+    validation_lineage: OutcomeValidationLineage
+    evaluation_id: EvaluationId
+    observed_evaluation_version: EntityVersion
+    effective_judgement: EvaluationVerdict
+    disposition: OutcomeDisposition
+    policy_ref: OutcomeDispositionPolicyRef
+    policy_decision_ref: OutcomeSemanticDecisionRef
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision_ref, OutcomeSemanticDecisionRef):
+            raise InvalidDomainValue(
+                "decision_ref must be an OutcomeSemanticDecisionRef"
+            )
+        if not isinstance(self.affirmative, bool):
+            raise InvalidDomainValue("affirmative must be a bool")
+        if not isinstance(self.decided_by, ActorIdentity):
+            raise InvalidDomainValue("decided_by must be an ActorIdentity")
+        _require_evidence(self.evidence_refs)
+        if not isinstance(self.validation_lineage, OutcomeValidationLineage):
+            raise InvalidDomainValue(
+                "validation_lineage must be an OutcomeValidationLineage"
+            )
+        if not isinstance(self.evaluation_id, EvaluationId):
+            raise InvalidDomainValue("evaluation_id must be an EvaluationId")
+        if not isinstance(self.observed_evaluation_version, EntityVersion):
+            raise InvalidDomainValue(
+                "observed_evaluation_version must be an EntityVersion"
+            )
+        if not isinstance(self.effective_judgement, EvaluationVerdict):
+            raise InvalidDomainValue("effective_judgement must be an EvaluationVerdict")
+        if not isinstance(self.disposition, OutcomeDisposition):
+            raise InvalidDomainValue("disposition must be an OutcomeDisposition")
+        if not isinstance(self.policy_ref, OutcomeDispositionPolicyRef):
+            raise InvalidDomainValue(
+                "policy_ref must be an OutcomeDispositionPolicyRef"
+            )
+        if not isinstance(self.policy_decision_ref, OutcomeSemanticDecisionRef):
+            raise InvalidDomainValue(
+                "policy_decision_ref must be an OutcomeSemanticDecisionRef"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeDispositionSemantics:
+    """Complete explicit Outcome disposition inputs for one VALIDATING snapshot."""
+
+    validation_lineage: OutcomeValidationLineage
+    evaluation: OutcomeEvaluationEffectiveUseObservation
+    policy_decision: OutcomeDispositionPolicyDecision
+    human_acceptance: OutcomeHumanAcceptanceDecision | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.validation_lineage, OutcomeValidationLineage):
+            raise InvalidDomainValue(
+                "validation_lineage must be an OutcomeValidationLineage"
+            )
+        if not isinstance(self.evaluation, OutcomeEvaluationEffectiveUseObservation):
+            raise InvalidDomainValue(
+                "evaluation must be an OutcomeEvaluationEffectiveUseObservation"
+            )
+        if not isinstance(self.policy_decision, OutcomeDispositionPolicyDecision):
+            raise InvalidDomainValue(
+                "policy_decision must be an OutcomeDispositionPolicyDecision"
+            )
+        if self.human_acceptance is not None and not isinstance(
+            self.human_acceptance, OutcomeHumanAcceptanceDecision
+        ):
+            raise InvalidDomainValue(
+                "human_acceptance must be an OutcomeHumanAcceptanceDecision or None"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class OutcomeSemanticGuard:
-    """Canonical guard for the exact `PROPOSED -> VALIDATING` transition."""
+    """Canonical guard for implemented Outcome semantic edges through M7C4B."""
 
     outcome_id: OutcomeId
     observed_entity_version: EntityVersion
     prior_state: OutcomeState
     target_state: OutcomeState
     correlation_id: CorrelationId
-    semantic_input: OutcomeValidationStartSemantics
+    semantic_input: OutcomeValidationStartSemantics | OutcomeDispositionSemantics
 
     def __post_init__(self) -> None:
         _require_outcome_snapshot_scope(
             self.outcome_id, self.observed_entity_version, self.correlation_id
         )
-        if (
-            self.prior_state is not OutcomeState.PROPOSED
-            or self.target_state is not OutcomeState.VALIDATING
-        ):
+        edge = (self.prior_state, self.target_state)
+        expected_input: (
+            type[OutcomeValidationStartSemantics] | type[OutcomeDispositionSemantics]
+        )
+        if edge == (OutcomeState.PROPOSED, OutcomeState.VALIDATING):
+            expected_input = OutcomeValidationStartSemantics
+        elif edge in {
+            (OutcomeState.VALIDATING, OutcomeState.ACCEPTED),
+            (OutcomeState.VALIDATING, OutcomeState.REJECTED),
+        }:
+            expected_input = OutcomeDispositionSemantics
+        else:
             raise InvalidDomainValue(
-                "Outcome semantic guard supports only PROPOSED -> VALIDATING"
+                "Outcome semantic guard does not support this lifecycle edge"
             )
-        if not isinstance(self.semantic_input, OutcomeValidationStartSemantics):
+        if not isinstance(self.semantic_input, expected_input):
             raise InvalidDomainValue(
-                "semantic_input must be OutcomeValidationStartSemantics"
+                f"semantic_input must be {expected_input.__name__} for this edge"
             )
 
     def validate(
@@ -267,9 +498,122 @@ class OutcomeSemanticGuard:
             )
 
         semantics = self.semantic_input
-        self._validate_artifact_scope(outcome, semantics.artifact_scope)
-        self._validate_policy(semantics.validation_policy)
-        self._validate_evaluation_request(outcome, semantics.evaluation_request)
+        if isinstance(semantics, OutcomeValidationStartSemantics):
+            self._validate_artifact_scope(outcome, semantics.artifact_scope)
+            self._validate_policy(semantics.validation_policy)
+            self._validate_evaluation_request(outcome, semantics.evaluation_request)
+            return
+        self._validate_disposition(outcome, target_state, semantics)
+
+    def _validate_disposition(
+        self,
+        outcome: Outcome,
+        target_state: OutcomeState,
+        semantics: OutcomeDispositionSemantics,
+    ) -> None:
+        lineage = semantics.validation_lineage
+        if not (
+            lineage.outcome_id == outcome.outcome_id
+            and lineage.validating_version == outcome.version
+            and lineage.correlation_id == self.correlation_id
+            and lineage.artifact_refs.issubset(outcome.artifact_refs)
+        ):
+            raise InvariantViolation(
+                "Validation lineage does not match the exact VALIDATING snapshot"
+            )
+
+        observation = semantics.evaluation
+        effective_use = observation.effective_use
+        if not (
+            observation.request_ref == lineage.evaluation_request_ref
+            and observation.evaluation_id == observation.request_ref.evaluation_id
+            and observation.evaluation_id == effective_use.evaluation_id
+            and observation.observed_evaluation_version.value
+            >= observation.request_ref.observed_evaluation_version.value
+            and observation.target.reference == outcome.outcome_id
+            and observation.target.version == lineage.candidate_version
+            and observation.correlation_id == lineage.correlation_id
+        ):
+            raise InvariantViolation(
+                "Evaluation effective-use observation does not match validation lineage"
+            )
+        if observation.observed_state not in {
+            EvaluationState.COMPLETED,
+            EvaluationState.ARBITRATED,
+        }:
+            raise InvariantViolation(
+                "Evaluation lifecycle state is not usable for Outcome disposition"
+            )
+        if (
+            observation.verifier is None
+            or observation.verifier.actor_type is not ActorType.EVALUATOR
+        ):
+            raise InvariantViolation(
+                "Outcome disposition requires an independent EVALUATOR"
+            )
+        if observation.verifier.actor_id == outcome.producer.actor_id:
+            raise InvariantViolation(
+                "Outcome producer cannot be the independent validation authority"
+            )
+        if not effective_use.eligible_for_effective_use:
+            raise InvariantViolation("Evaluation is ineligible for effective use")
+        if effective_use.effective_judgement is None:
+            raise InvariantViolation("Evaluation effective judgement is missing")
+        if effective_use.unresolved_conflicts:
+            raise InvariantViolation("Evaluation has unresolved applicable conflict")
+        if effective_use.arbitration_ambiguous:
+            raise InvariantViolation("Evaluation terminal arbitration is ambiguous")
+        if effective_use.invalidation_ids:
+            raise InvariantViolation("Evaluation is invalidated and unusable")
+
+        disposition = (
+            OutcomeDisposition.ACCEPTED
+            if target_state is OutcomeState.ACCEPTED
+            else OutcomeDisposition.REJECTED
+        )
+        policy = semantics.policy_decision
+        if not (
+            policy.status is OutcomeSemanticDecisionStatus.PASSED
+            and policy.decided_by.actor_type is ActorType.POLICY_ENGINE
+            and policy.decided_by.actor_id != outcome.producer.actor_id
+            and policy.validation_lineage == lineage
+            and policy.evaluation_id == observation.evaluation_id
+            and policy.observed_evaluation_version
+            == observation.observed_evaluation_version
+            and policy.effective_judgement == effective_use.effective_judgement
+            and policy.disposition is disposition
+        ):
+            raise InvariantViolation(
+                "Outcome disposition-policy decision is not exact, current, and passed"
+            )
+
+        human = semantics.human_acceptance
+        if disposition is OutcomeDisposition.REJECTED:
+            if human is not None:
+                raise InvariantViolation(
+                    "Human acceptance cannot authorize an Outcome rejection"
+                )
+            return
+        if policy.human_acceptance_required and human is None:
+            raise InvariantViolation("Required human acceptance is missing")
+        if human is None:
+            return
+        if not (
+            human.affirmative
+            and human.decided_by.actor_type is ActorType.HUMAN_OPERATOR
+            and human.decided_by.actor_id != outcome.producer.actor_id
+            and human.validation_lineage == lineage
+            and human.evaluation_id == observation.evaluation_id
+            and human.observed_evaluation_version
+            == observation.observed_evaluation_version
+            and human.effective_judgement == effective_use.effective_judgement
+            and human.disposition is OutcomeDisposition.ACCEPTED
+            and human.policy_ref == policy.policy_ref
+            and human.policy_decision_ref == policy.decision_ref
+        ):
+            raise InvariantViolation(
+                "Human acceptance is not affirmative and exact-bound"
+            )
 
     def _validate_artifact_scope(
         self,
@@ -330,7 +674,10 @@ class OutcomeSemanticGuard:
             raise InvariantViolation(
                 "Worker request cannot establish independent validation"
             )
-        if observation.verifier == outcome.producer:
+        if (
+            observation.verifier is not None
+            and observation.verifier.actor_id == outcome.producer.actor_id
+        ):
             raise InvariantViolation(
                 "Outcome producer cannot be the assigned independent verifier"
             )

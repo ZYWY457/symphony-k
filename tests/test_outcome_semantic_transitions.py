@@ -366,6 +366,7 @@ def test_evaluation_must_target_the_exact_current_outcome_snapshot(
         lambda value: replace(value, correlation_id=CorrelationId(OTHER)),
         lambda value: replace(value, requested_by=identity(ActorType.WORKER)),
         lambda value: replace(value, verifier=identity(ActorType.WORKER)),
+        lambda value: replace(value, verifier=identity(ActorType.EVALUATOR)),
     ],
 )
 def test_evaluation_request_must_remain_independent_current_and_pending(
@@ -451,8 +452,6 @@ def test_outcome_version_cannot_substitute_for_evaluation_version() -> None:
 @pytest.mark.parametrize(
     ("source", "target"),
     [
-        (OutcomeState.VALIDATING, OutcomeState.ACCEPTED),
-        (OutcomeState.VALIDATING, OutcomeState.REJECTED),
         (OutcomeState.PROPOSED, OutcomeState.SUPERSEDED),
         (OutcomeState.VALIDATING, OutcomeState.SUPERSEDED),
         (OutcomeState.ACCEPTED, OutcomeState.SUPERSEDED),
@@ -463,7 +462,7 @@ def test_outcome_version_cannot_substitute_for_evaluation_version() -> None:
         (OutcomeState.REJECTED, OutcomeState.EXPIRED),
     ],
 )
-def test_other_outcome_edges_remain_semantically_deny_by_default(
+def test_future_outcome_edges_remain_semantically_deny_by_default(
     source: OutcomeState, target: OutcomeState
 ) -> None:
     snapshot = replace(outcome(), state=source)
