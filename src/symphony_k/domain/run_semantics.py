@@ -316,7 +316,38 @@ class RunAcceptedHumanHandoffDecision(_EvidenceBackedRunDecision):
 
 @dataclass(frozen=True, slots=True)
 class RunTransferExclusivityDecision(_EvidenceBackedRunDecision):
-    """Evidence-backed decision that transfer cannot duplicate execution authority."""
+    """Evidence-backed exclusivity decision for exactly one durable transfer target."""
+
+    successor_run_id: RunId | None
+    observed_successor_version: EntityVersion | None
+    human_handoff_ref: RunHumanHandoffRef | None
+
+    def __post_init__(self) -> None:
+        super(RunTransferExclusivityDecision, self).__post_init__()
+        has_successor = (
+            self.successor_run_id is not None
+            or self.observed_successor_version is not None
+        )
+        has_handoff = self.human_handoff_ref is not None
+        if has_successor == has_handoff:
+            raise InvalidDomainValue(
+                "Run transfer exclusivity requires exactly one target kind"
+            )
+        if has_successor:
+            if not isinstance(self.successor_run_id, RunId):
+                raise InvalidDomainValue(
+                    "successor_run_id must be a RunId for successor transfer target"
+                )
+            if not isinstance(self.observed_successor_version, EntityVersion):
+                raise InvalidDomainValue(
+                    "observed_successor_version must be an EntityVersion for "
+                    "successor transfer target"
+                )
+        elif not isinstance(self.human_handoff_ref, RunHumanHandoffRef):
+            raise InvalidDomainValue(
+                "human_handoff_ref must be a RunHumanHandoffRef for human handoff "
+                "transfer target"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1085,6 +1116,16 @@ class RunSemanticGuard:
         )
         if semantics.successor_run is not None:
             successor = semantics.successor_run
+            if (
+                semantics.transfer_exclusivity.successor_run_id
+                != successor.successor_run_id
+                or semantics.transfer_exclusivity.observed_successor_version
+                != successor.observed_successor_version
+            ):
+                raise InvariantViolation(
+                    "Transfer exclusivity does not match the selected successor Run "
+                    "snapshot"
+                )
             _require_passed(successor, "durable successor Run")
             _require_non_worker_authority(successor, "durable successor Run acceptance")
             if successor.successor_run_id == run.run_id:
@@ -1108,5 +1149,9 @@ class RunSemanticGuard:
             if handoff is None:
                 raise InvariantViolation(
                     "Reassignment requires exactly one durable transfer target"
+                )
+            if semantics.transfer_exclusivity.human_handoff_ref != handoff.handoff_ref:
+                raise InvariantViolation(
+                    "Transfer exclusivity does not match the accepted human handoff"
                 )
             _require_passed(handoff, "accepted human handoff")

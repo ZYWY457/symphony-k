@@ -113,9 +113,12 @@ def successor_observation(
 
 def human_handoff(
     *,
+    handoff_ref: RunHumanHandoffRef | None = None,
     status: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
     actor: ActorIdentity = RECOVERY_AUTHORITY,
 ) -> RunAcceptedHumanHandoffDecision:
+    if handoff_ref is None:
+        handoff_ref = RunHumanHandoffRef("handoff/record-1")
     return RunAcceptedHumanHandoffDecision(
         RunSemanticDecisionRef("human-handoff"),
         status,
@@ -124,7 +127,30 @@ def human_handoff(
         CURRENT_RUN_ID,
         RUN_VERSION,
         CORRELATION,
-        RunHumanHandoffRef("handoff/record-1"),
+        handoff_ref,
+    )
+
+
+def transfer_exclusivity(
+    *,
+    successor: RunSuccessorRunObservation | None = None,
+    handoff: RunAcceptedHumanHandoffDecision | None = None,
+    status: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
+    actor: ActorIdentity = DECISION_AUTHORITY,
+) -> RunTransferExclusivityDecision:
+    if successor is None and handoff is None:
+        successor = successor_observation()
+    return RunTransferExclusivityDecision(
+        RunSemanticDecisionRef("transfer-exclusivity"),
+        status,
+        actor,
+        evidence("transfer-exclusivity"),
+        CURRENT_RUN_ID,
+        RUN_VERSION,
+        CORRELATION,
+        successor.successor_run_id if successor is not None else None,
+        successor.observed_successor_version if successor is not None else None,
+        handoff.handoff_ref if handoff is not None else None,
     )
 
 
@@ -141,6 +167,9 @@ def semantics(
     exclusivity: RunSemanticDecisionStatus = RunSemanticDecisionStatus.PASSED,
     exclusivity_actor: ActorIdentity = DECISION_AUTHORITY,
 ) -> RunReassignmentSemantics:
+    selected_successor = (
+        successor_observation() if successor is None and handoff is None else successor
+    )
     return RunReassignmentSemantics(
         decision(
             RunReassignDecision, "reassign", status=reassign, actor=reassign_actor
@@ -157,11 +186,11 @@ def semantics(
             status=unsuitable,
             actor=unsuitable_actor,
         ),
-        successor_observation() if successor is None and handoff is None else successor,
+        selected_successor,
         handoff,
-        decision(
-            RunTransferExclusivityDecision,
-            "transfer-exclusivity",
+        transfer_exclusivity(
+            successor=selected_successor,
+            handoff=handoff,
             status=exclusivity,
             actor=exclusivity_actor,
         ),
@@ -258,6 +287,115 @@ def test_accepted_human_handoff_is_an_alternative_durable_transfer_target() -> N
         ).entity.state
         is RunState.REASSIGNED
     )
+
+
+def test_successor_exclusivity_binds_the_exact_successor_snapshot() -> None:
+    successor = successor_observation()
+    exclusivity = transfer_exclusivity(successor=successor)
+    assert exclusivity.successor_run_id == successor.successor_run_id
+    assert (
+        exclusivity.observed_successor_version == successor.observed_successor_version
+    )
+    assert exclusivity.human_handoff_ref is None
+
+
+def test_handoff_exclusivity_binds_the_exact_accepted_handoff() -> None:
+    handoff = human_handoff()
+    exclusivity = transfer_exclusivity(handoff=handoff)
+    assert exclusivity.successor_run_id is None
+    assert exclusivity.observed_successor_version is None
+    assert exclusivity.human_handoff_ref == handoff.handoff_ref
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    (
+        lambda semantic: transfer_exclusivity(
+            successor=successor_observation(successor_id=RunId(VALUE))
+        ),
+        lambda semantic: transfer_exclusivity(
+            successor=replace(
+                semantic.successor_run,
+                observed_successor_version=EntityVersion(4),
+            )
+        ),
+        lambda semantic: transfer_exclusivity(handoff=human_handoff()),
+    ),
+)
+def test_successor_exclusivity_cannot_be_reused_for_a_different_target(
+    replacement: object,
+) -> None:
+    snapshot = run(RunState.RUNNING)
+    transition_request = request(RunState.REASSIGNED)
+    semantic = semantics()
+    semantic = replace(
+        semantic,
+        transfer_exclusivity=replacement(semantic),  # type: ignore[operator]
+    )
+    with pytest.raises(InvariantViolation, match="selected successor Run snapshot"):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(snapshot, transition_request, guard(snapshot, semantic)),
+        )
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    (
+        lambda: transfer_exclusivity(
+            handoff=human_handoff(handoff_ref=RunHumanHandoffRef("handoff/record-2"))
+        ),
+        lambda: transfer_exclusivity(successor=successor_observation()),
+    ),
+)
+def test_handoff_exclusivity_cannot_be_reused_for_a_different_target(
+    replacement: object,
+) -> None:
+    snapshot = run(RunState.RUNNING)
+    transition_request = request(RunState.REASSIGNED)
+    semantic = semantics(successor=None, handoff=human_handoff())
+    semantic = replace(
+        semantic,
+        transfer_exclusivity=replacement(),  # type: ignore[operator]
+    )
+    with pytest.raises(InvariantViolation, match="accepted human handoff"):
+        transition_entity(
+            snapshot,
+            transition_request,
+            context(snapshot, transition_request, guard(snapshot, semantic)),
+        )
+
+
+@pytest.mark.parametrize(
+    ("successor_id", "successor_version", "handoff_ref"),
+    (
+        (None, None, None),
+        (SUCCESSOR_RUN_ID, SUCCESSOR_VERSION, RunHumanHandoffRef("handoff/record-1")),
+        (SUCCESSOR_RUN_ID, None, None),
+        ("not-a-run-id", SUCCESSOR_VERSION, None),
+        (SUCCESSOR_RUN_ID, "not-a-version", None),
+        (None, None, "not-a-handoff-ref"),
+    ),
+)
+def test_exclusivity_rejects_ambiguous_incomplete_and_untyped_targets(
+    successor_id: object,
+    successor_version: object,
+    handoff_ref: object,
+) -> None:
+    with pytest.raises(InvalidDomainValue):
+        RunTransferExclusivityDecision(
+            RunSemanticDecisionRef("transfer-exclusivity"),
+            RunSemanticDecisionStatus.PASSED,
+            DECISION_AUTHORITY,
+            evidence("transfer-exclusivity"),
+            CURRENT_RUN_ID,
+            RUN_VERSION,
+            CORRELATION,
+            successor_id,  # type: ignore[arg-type]
+            successor_version,  # type: ignore[arg-type]
+            handoff_ref,  # type: ignore[arg-type]
+        )
 
 
 @pytest.mark.parametrize("actor_type", ActorType)
