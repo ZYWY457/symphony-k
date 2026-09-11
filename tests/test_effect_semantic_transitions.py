@@ -58,6 +58,7 @@ from symphony_k.domain import (
 from symphony_k.domain.transition_engine import LifecycleEntity, LifecycleState
 
 VALUE = UUID("12345678-1234-4234-8234-123456789abc")
+PRODUCER = UUID("00000000-1234-4234-8234-123456789abc")
 PREPARER = UUID("11111111-1234-4234-8234-123456789abc")
 VERIFIER = UUID("22222222-1234-4234-8234-123456789abc")
 CONTROLLER = UUID("33333333-1234-4234-8234-123456789abc")
@@ -74,12 +75,18 @@ def identity(actor_type: ActorType, value: UUID) -> ActorIdentity:
     return ActorIdentity(ActorId(value), actor_type)
 
 
-def effect(state: EffectState = EffectState.PLANNED) -> Effect:
+def effect(
+    state: EffectState = EffectState.PLANNED,
+    *,
+    proposed_by: ActorIdentity | None = None,
+) -> Effect:
     return Effect(
         EffectId(VALUE),
         state,
         VERSION,
-        PlannedEffectOrigin(TaskId(VALUE), identity(ActorType.WORKER, PREPARER)),
+        PlannedEffectOrigin(
+            TaskId(VALUE), proposed_by or identity(ActorType.WORKER, PRODUCER)
+        ),
         EffectTargetRef("target-a"),
         EffectPayloadRef("payload-a"),
     )
@@ -121,14 +128,17 @@ def simulation(
 
 
 def preparation(
-    current: Effect, *, correlation: CorrelationId = CORRELATION
+    current: Effect,
+    *,
+    correlation: CorrelationId = CORRELATION,
+    prepared_by: ActorIdentity | None = None,
 ) -> EffectPreparationRecord:
     return EffectPreparationRecord(
         EffectPreparationRecordId(VALUE),
         current.effect_id,
         current.version,
         "Prepared exact intended operation for pre-commit review.",
-        identity(ActorType.WORKER, PREPARER),
+        prepared_by or identity(ActorType.WORKER, PREPARER),
         identity(ActorType.SCHEDULER, OTHER),
         NOW,
         NOW,
@@ -370,6 +380,14 @@ def test_pending_commit_requires_guard_and_remaining_effect_edges_are_denied() -
         if can_effect_transition(source, target)
         and (source, target) not in scoped_edges
     }
+    assert (
+        sum(
+            can_effect_transition(source, target)
+            for source in EffectState
+            for target in EffectState
+        )
+        == 19
+    )
     assert len(remaining) == 16
     for source, target in remaining:
         snapshot = effect(source)
@@ -499,6 +517,32 @@ def test_pending_commit_rejects_worker_only_or_nonindependent_verifier(
                     current,
                     verification=verification(
                         current, prepared, verified_by=verified_by
+                    ),
+                ),
+            ),
+        )
+
+
+@pytest.mark.parametrize("state", [EffectState.PLANNED, EffectState.SIMULATED])
+def test_pending_commit_rejects_producer_verifying_under_evaluator_role(
+    state: EffectState,
+) -> None:
+    current = effect(state)
+    transition_request = request(current, EffectState.PENDING_COMMIT)
+    prepared = preparation(current, prepared_by=identity(ActorType.WORKER, PREPARER))
+    producer_as_evaluator = identity(ActorType.EVALUATOR, PRODUCER)
+
+    with pytest.raises(InvariantViolation, match="producing principal"):
+        transition_entity(
+            current,
+            transition_request,
+            context(
+                current,
+                transition_request,
+                pending_semantics(
+                    current,
+                    verification=verification(
+                        current, prepared, verified_by=producer_as_evaluator
                     ),
                 ),
             ),

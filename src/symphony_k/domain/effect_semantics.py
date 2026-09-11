@@ -18,6 +18,7 @@ from .effect import (
     EffectPayloadRef,
     EffectState,
     EffectTargetRef,
+    PlannedEffectOrigin,
 )
 from .effect_execution import (
     EffectPreparationRecord,
@@ -412,6 +413,14 @@ class EffectSemanticGuard:
             raise InvariantViolation("Verification does not match the preparation")
         if semantics.verification.verified_by.actor_type is not ActorType.EVALUATOR:
             raise InvariantViolation("Independent verification requires an EVALUATOR")
+        if (
+            isinstance(effect.origin, PlannedEffectOrigin)
+            and semantics.verification.verified_by.actor_id
+            == effect.origin.proposed_by.actor_id
+        ):
+            raise InvariantViolation(
+                "Verifier must be distinct from the planned Effect producing principal"
+            )
         separated_ids = {
             semantics.preparation.prepared_by.actor_id,
             semantics.verification.verified_by.actor_id,
