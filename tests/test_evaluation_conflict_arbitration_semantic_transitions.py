@@ -1,7 +1,7 @@
 """Canonical conflict and arbitration guards for the final Evaluation edges."""
 
 from collections.abc import Callable
-from dataclasses import fields
+from dataclasses import fields, replace
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -404,6 +404,160 @@ def test_direct_arbitration_preserves_result_and_annotations() -> None:
     assert transitioned.event.metadata.annotations == frozenset(
         {("arbitration_id", str(record.arbitration_id.value))}
     )
+
+
+@pytest.mark.parametrize(
+    ("disposition", "effective"),
+    [
+        (ArbitrationDisposition.UPHELD, None),
+        (ArbitrationDisposition.MODIFIED, EvaluationVerdict("revised judgement")),
+    ],
+)
+def test_direct_arbitration_exactly_binds_original_root_judgement(
+    disposition: ArbitrationDisposition,
+    effective: EvaluationVerdict | None,
+) -> None:
+    current = evaluation(EvaluationState.COMPLETED)
+    original = current.result
+    assert original is not None
+    effective_judgement = effective or original.verdict
+    record = replace(
+        arbitration(current),
+        decisions=frozenset(
+            {
+                EvaluationArbitrationMemberDecision(
+                    current.evaluation_id,
+                    current.version,
+                    disposition,
+                    original.verdict,
+                    effective_judgement,
+                )
+            }
+        ),
+    )
+    transition_request = request(current, EvaluationState.ARBITRATED, ARBITRATOR)
+    transitioned = transition_entity(
+        current,
+        transition_request,
+        context(
+            current,
+            transition_request,
+            arbitration_semantics(current, record=record),
+        ),
+    ).entity
+    assert transitioned.state is EvaluationState.ARBITRATED
+    assert transitioned.result == current.result
+
+
+@pytest.mark.parametrize(
+    "prior",
+    [None, EvaluationVerdict("substituted original judgement")],
+)
+@pytest.mark.parametrize(
+    "source", [EvaluationState.COMPLETED, EvaluationState.CONFLICTED]
+)
+def test_arbitration_rejects_missing_or_substituted_original_root_judgement(
+    source: EvaluationState, prior: EvaluationVerdict | None
+) -> None:
+    current = evaluation(source)
+    original = current.result
+    assert original is not None
+    conflict = (
+        conflict_record(current) if source is EvaluationState.CONFLICTED else None
+    )
+    record = replace(
+        arbitration(current, conflict=conflict),
+        decisions=frozenset(
+            {
+                EvaluationArbitrationMemberDecision(
+                    current.evaluation_id,
+                    current.version,
+                    ArbitrationDisposition.MODIFIED,
+                    prior,
+                    EvaluationVerdict("revised judgement"),
+                ),
+                *(
+                    {
+                        EvaluationArbitrationMemberDecision(
+                            EvaluationId(OTHER),
+                            EntityVersion(4),
+                            ArbitrationDisposition.MODIFIED,
+                            None,
+                            EvaluationVerdict("other effective judgement"),
+                        )
+                    }
+                    if conflict is not None
+                    else set()
+                ),
+            }
+        ),
+    )
+    transition_request = request(current, EvaluationState.ARBITRATED, ARBITRATOR)
+    with pytest.raises(InvariantViolation, match="must exactly bind the original"):
+        transition_entity(
+            current,
+            transition_request,
+            context(
+                current,
+                transition_request,
+                arbitration_semantics(
+                    current,
+                    record=record,
+                    conflicts=frozenset()
+                    if conflict is None
+                    else frozenset({conflict}),
+                ),
+            ),
+        )
+
+
+def test_conflicted_without_original_result_preserves_modified_none_arbitration() -> (
+    None
+):
+    current = replace(evaluation(EvaluationState.CONFLICTED), result=None)
+    conflict = conflict_record(current)
+    record = EvaluationArbitrationRecord(
+        ARBITRATION_ID,
+        EvaluationConflictSetRef(conflict.conflict_set_id, conflict.version),
+        frozenset(
+            {
+                EvaluationArbitrationMemberDecision(
+                    current.evaluation_id,
+                    current.version,
+                    ArbitrationDisposition.MODIFIED,
+                    None,
+                    EvaluationVerdict("first effective judgement"),
+                ),
+                EvaluationArbitrationMemberDecision(
+                    EvaluationId(OTHER),
+                    EntityVersion(4),
+                    ArbitrationDisposition.MODIFIED,
+                    None,
+                    EvaluationVerdict("other effective judgement"),
+                ),
+            }
+        ),
+        "Arbitration rationale.",
+        frozenset({EvidenceRef("arbitration evidence")}),
+        EvaluationArbitrationPolicyRef("arbitration", "v1"),
+        ARBITRATOR,
+        NOW,
+        CORRELATION,
+    )
+    transition_request = request(current, EvaluationState.ARBITRATED, ARBITRATOR)
+    transitioned = transition_entity(
+        current,
+        transition_request,
+        context(
+            current,
+            transition_request,
+            arbitration_semantics(
+                current, record=record, conflicts=frozenset({conflict})
+            ),
+        ),
+    ).entity
+    assert transitioned.state is EvaluationState.ARBITRATED
+    assert transitioned.result is None
 
 
 def test_conflict_linked_arbitration_requires_every_current_conflict_to_resolve() -> (

@@ -206,11 +206,10 @@ def _derive_arbitration_lineage(
                 raise InvariantViolation(
                     "First arbitration fabricated a prior effective judgement"
                 )
-            if original is not None and claimed_prior is not None:
-                if claimed_prior != original:
-                    raise InvariantViolation(
-                        "First arbitration prior judgement differs from the original"
-                    )
+            if original is not None and claimed_prior != original:
+                raise InvariantViolation(
+                    "First arbitration prior judgement must exactly bind the original"
+                )
         elif claimed_prior != previous:
             raise InvariantViolation(
                 "Arbitration judgement chain is historically inconsistent"

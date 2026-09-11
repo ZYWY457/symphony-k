@@ -383,7 +383,13 @@ def test_forked_lineage_has_multiple_terminal_heads_and_is_ambiguous() -> None:
 
 def test_first_arbitration_cannot_fabricate_a_prior_judgement() -> None:
     record = arbitration(1, decision(MODIFIED, prior=NEGATIVE))
-    with pytest.raises(InvariantViolation, match="differs from the original"):
+    with pytest.raises(InvariantViolation, match="must exactly bind the original"):
+        derive(evaluation(EvaluationState.ARBITRATED), arbitrations=frozenset({record}))
+
+
+def test_first_arbitration_with_original_result_cannot_omit_prior_judgement() -> None:
+    record = arbitration(1, decision(MODIFIED, prior=None))
+    with pytest.raises(InvariantViolation, match="must exactly bind the original"):
         derive(evaluation(EvaluationState.ARBITRATED), arbitrations=frozenset({record}))
 
 
