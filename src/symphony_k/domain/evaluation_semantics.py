@@ -245,10 +245,13 @@ class EvaluationStartSemantics:
 class EvaluationCompletionSemantics:
     """Canonical input for RUNNING -> COMPLETED only."""
 
+    intended_result: EvaluationResult
     completion: EvaluationCompletionDecision
     conflict_clearance: EvaluationConflictClearanceDecision
 
     def __post_init__(self) -> None:
+        if not isinstance(self.intended_result, EvaluationResult):
+            raise InvalidDomainValue("intended_result must be an EvaluationResult")
         if not isinstance(self.completion, EvaluationCompletionDecision):
             raise InvalidDomainValue(
                 "completion must be an EvaluationCompletionDecision"
@@ -389,12 +392,12 @@ class EvaluationSemanticGuard:
         return self.semantic_input.assigned_verifier
 
     def validated_completion_result(self) -> EvaluationResult:
-        """Return the one original result recorded by a completion guard."""
+        """Return the independently scoped result from a validated completion guard."""
         if not isinstance(self.semantic_input, EvaluationCompletionSemantics):
             raise InvariantViolation(
                 "Evaluation semantic input is not completion semantics"
             )
-        return self.semantic_input.completion.result
+        return self.semantic_input.intended_result
 
     def _validate_start(
         self,
@@ -471,11 +474,14 @@ class EvaluationSemanticGuard:
             raise InvariantViolation(
                 "Evaluation conflict-clearance decision lacks trusted provenance"
             )
-        if completion.result != clearance.result:
+        if not (
+            completion.result == semantics.intended_result
+            and clearance.result == semantics.intended_result
+        ):
             raise InvariantViolation(
-                "Completion and conflict-clearance provenance name different results"
+                "Completion provenance does not match the intended result"
             )
-        if not completion.result.evidence_refs:
+        if not semantics.intended_result.evidence_refs:
             raise InvariantViolation("Evaluation completion result requires evidence")
 
     def _validate_invalidation(

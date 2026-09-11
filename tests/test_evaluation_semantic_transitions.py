@@ -166,12 +166,14 @@ def completion_semantics(
     ),
     completion_by: ActorIdentity | None = None,
     clearance_by: ActorIdentity | None = None,
+    completion_result: EvaluationResult | None = None,
     clearance_result: EvaluationResult | None = None,
     correlation: CorrelationId = CORRELATION,
 ) -> EvaluationCompletionSemantics:
     assert current.verifier is not None
     supplied_result = original_result or result()
     return EvaluationCompletionSemantics(
+        supplied_result,
         EvaluationCompletionDecision(
             EvaluationSemanticDecisionRef("completion"),
             completion_status,
@@ -182,7 +184,7 @@ def completion_semantics(
             current.target,
             current.method,
             current.verifier,
-            supplied_result,
+            completion_result or supplied_result,
             correlation,
         ),
         EvaluationConflictClearanceDecision(
@@ -406,6 +408,88 @@ def test_completion_appends_exact_result_and_preserves_evaluation_content() -> N
         current.method,
         current.verifier,
     )
+
+
+@pytest.mark.parametrize(
+    "semantic",
+    [
+        lambda current: completion_semantics(
+            current, completion_result=different_result()
+        ),
+        lambda current: completion_semantics(
+            current, clearance_result=different_result()
+        ),
+        lambda current: completion_semantics(
+            current,
+            original_result=result(),
+            completion_result=different_result(),
+            clearance_result=different_result(),
+        ),
+        lambda current: completion_semantics(
+            current,
+            original_result=different_result(),
+            completion_result=result(),
+            clearance_result=result(),
+        ),
+    ],
+    ids=(
+        "completion-result-substitution",
+        "conflict-clearance-result-substitution",
+        "paired-decision-result-substitution",
+        "intended-result-substitution",
+    ),
+)
+def test_completion_rejects_result_substitution_against_intended_result(
+    semantic: object,
+) -> None:
+    current = evaluation(EvaluationState.RUNNING, verifier=EVALUATOR)
+    transition_request = request(current, EvaluationState.COMPLETED)
+    with pytest.raises(InvariantViolation):
+        transition_entity(
+            current,
+            transition_request,
+            context(current, transition_request, semantic(current)),  # type: ignore[operator]
+        )
+    assert (current.state, current.version, current.result) == (
+        EvaluationState.RUNNING,
+        VERSION,
+        None,
+    )
+
+
+def test_completion_projects_the_validated_independently_scoped_result() -> None:
+    current = evaluation(EvaluationState.RUNNING, verifier=EVALUATOR)
+    intended_result = result()
+    transition_request = request(current, EvaluationState.COMPLETED)
+    semantic = completion_semantics(current, original_result=intended_result)
+    guard = EvaluationSemanticGuard(
+        current.evaluation_id,
+        current.version,
+        current.state,
+        transition_request.target_state,
+        transition_request.correlation_id,
+        semantic,
+    )
+    transitioned = transition_entity(
+        current,
+        transition_request,
+        TransitionContext(
+            (PassingGuard(),),
+            TransitionAuthorityDecision(
+                transition_request.actor,
+                DomainEntityType.EVALUATION,
+                current.evaluation_id,
+                current.version,
+                current.state,
+                transition_request.target_state,
+                TransitionAuthorityStatus.AUTHORIZED,
+                transition_request.correlation_id,
+            ),
+            evaluation_semantic_guard=guard,
+        ),
+    ).entity
+    assert guard.validated_completion_result() is intended_result
+    assert transitioned.result is intended_result
 
 
 @pytest.mark.parametrize(
