@@ -113,6 +113,7 @@ def semantics(
             EntityVersion(21),
             task_id,
         ),
+        OutcomeAcceptanceScopeRef("acceptance-scope", "v1"),
         OutcomeAcceptanceScopeCompatibilityDecision(
             OutcomeSemanticDecisionRef("scope-decision"),
             OutcomeSemanticDecisionStatus.PASSED,
@@ -120,8 +121,12 @@ def semantics(
             frozenset({EvidenceRef("scope-evidence")}),
             current.outcome_id,
             current.version,
+            current.run_id,
+            EntityVersion(20),
             candidate.outcome_id,
             candidate.version,
+            candidate.run_id,
+            EntityVersion(21),
             task_id,
             OutcomeAcceptanceScopeRef("acceptance-scope", "v1"),
             CORRELATION,
@@ -257,8 +262,26 @@ def test_valid_supersession_projects_only_source(
         ),
         lambda current, candidate, value: replace(
             value,
+            source_run=replace(
+                value.source_run, observed_run_version=EntityVersion(22)
+            ),
+        ),
+        lambda current, candidate, value: replace(
+            value,
+            replacement_run=replace(
+                value.replacement_run, originating_run_id=RunId(THIRD)
+            ),
+        ),
+        lambda current, candidate, value: replace(
+            value,
             replacement_run=replace(
                 value.replacement_run, observed_outcome_version=EntityVersion(4)
+            ),
+        ),
+        lambda current, candidate, value: replace(
+            value,
+            replacement_run=replace(
+                value.replacement_run, observed_run_version=EntityVersion(22)
             ),
         ),
         lambda current, candidate, value: replace(
@@ -270,6 +293,12 @@ def test_valid_supersession_projects_only_source(
                 value.acceptance_scope_decision,
                 source_outcome_version=EntityVersion(11),
             ),
+        ),
+        lambda current, candidate, value: replace(
+            value, acceptance_scope=OutcomeAcceptanceScopeRef("other-scope", "v1")
+        ),
+        lambda current, candidate, value: replace(
+            value, acceptance_scope=OutcomeAcceptanceScopeRef("acceptance-scope", "v2")
         ),
         lambda current, candidate, value: replace(
             value,
@@ -378,6 +407,19 @@ def test_existing_source_replacement_link_is_not_overwritten() -> None:
     candidate = replacement()
     transition_request = request(current)
     with pytest.raises(InvariantViolation, match="already has a replacement"):
+        transition_entity(
+            current,
+            transition_request,
+            context(current, transition_request, semantics(current, candidate)),
+        )
+
+
+def test_replacement_with_an_existing_successor_link_rejects() -> None:
+    current = source()
+    candidate = replace(replacement(), superseded_by_outcome_id=OutcomeId(THIRD))
+    transition_request = request(current)
+
+    with pytest.raises(InvariantViolation, match="current direct successor"):
         transition_entity(
             current,
             transition_request,

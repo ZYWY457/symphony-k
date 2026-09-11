@@ -556,8 +556,12 @@ class OutcomeAcceptanceScopeCompatibilityDecision:
     evidence_refs: frozenset[EvidenceRef]
     source_outcome_id: OutcomeId
     source_outcome_version: EntityVersion
+    source_originating_run_id: RunId
+    source_observed_run_version: EntityVersion
     replacement_outcome_id: OutcomeId
     replacement_outcome_version: EntityVersion
+    replacement_originating_run_id: RunId
+    replacement_observed_run_version: EntityVersion
     task_id: TaskId
     acceptance_scope: OutcomeAcceptanceScopeRef
     correlation_id: CorrelationId
@@ -575,11 +579,27 @@ class OutcomeAcceptanceScopeCompatibilityDecision:
         for value, expected, field in (
             (self.source_outcome_id, OutcomeId, "source_outcome_id"),
             (self.source_outcome_version, EntityVersion, "source_outcome_version"),
+            (self.source_originating_run_id, RunId, "source_originating_run_id"),
+            (
+                self.source_observed_run_version,
+                EntityVersion,
+                "source_observed_run_version",
+            ),
             (self.replacement_outcome_id, OutcomeId, "replacement_outcome_id"),
             (
                 self.replacement_outcome_version,
                 EntityVersion,
                 "replacement_outcome_version",
+            ),
+            (
+                self.replacement_originating_run_id,
+                RunId,
+                "replacement_originating_run_id",
+            ),
+            (
+                self.replacement_observed_run_version,
+                EntityVersion,
+                "replacement_observed_run_version",
             ),
             (self.task_id, TaskId, "task_id"),
             (self.correlation_id, CorrelationId, "correlation_id"),
@@ -618,6 +638,7 @@ class OutcomeSupersessionSemantics:
     replacement: OutcomeReplacementObservation
     source_run: OutcomeOriginatingRunObservation
     replacement_run: OutcomeOriginatingRunObservation
+    acceptance_scope: OutcomeAcceptanceScopeRef
     acceptance_scope_decision: OutcomeAcceptanceScopeCompatibilityDecision
     source_prior_lineage: tuple[OutcomePriorLineageObservation, ...]
 
@@ -633,6 +654,10 @@ class OutcomeSupersessionSemantics:
         if not isinstance(self.replacement_run, OutcomeOriginatingRunObservation):
             raise InvalidDomainValue(
                 "replacement_run must be an OutcomeOriginatingRunObservation"
+            )
+        if not isinstance(self.acceptance_scope, OutcomeAcceptanceScopeRef):
+            raise InvalidDomainValue(
+                "acceptance_scope must be an OutcomeAcceptanceScopeRef"
             )
         if not isinstance(
             self.acceptance_scope_decision, OutcomeAcceptanceScopeCompatibilityDecision
@@ -757,6 +782,7 @@ class OutcomeSemanticGuard:
             replacement.correlation_id == self.correlation_id
             and replacement.outcome_id != source.outcome_id
             and replacement.prior_outcome_id == source.outcome_id
+            and replacement.superseded_by_outcome_id is None
             and replacement.observed_state
             not in {OutcomeState.SUPERSEDED, OutcomeState.EXPIRED}
         ):
@@ -795,10 +821,17 @@ class OutcomeSemanticGuard:
             and decision.decided_by.actor_type is ActorType.POLICY_ENGINE
             and decision.source_outcome_id == source.outcome_id
             and decision.source_outcome_version == source.version
+            and decision.source_originating_run_id == source_run.originating_run_id
+            and decision.source_observed_run_version == source_run.observed_run_version
             and decision.replacement_outcome_id == replacement.outcome_id
             and decision.replacement_outcome_version
             == replacement.observed_entity_version
+            and decision.replacement_originating_run_id
+            == replacement_run.originating_run_id
+            and decision.replacement_observed_run_version
+            == replacement_run.observed_run_version
             and decision.task_id == source_run.task_id
+            and decision.acceptance_scope == semantics.acceptance_scope
             and decision.correlation_id == self.correlation_id
         ):
             raise InvariantViolation(
