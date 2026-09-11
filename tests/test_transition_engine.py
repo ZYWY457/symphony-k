@@ -39,9 +39,15 @@ from symphony_k.domain import (
     EntityVersion,
     Evaluation,
     EvaluationId,
+    EvaluationInputReadinessDecision,
     EvaluationMethodRef,
+    EvaluationSemanticDecisionRef,
+    EvaluationSemanticDecisionStatus,
+    EvaluationSemanticGuard,
+    EvaluationStartSemantics,
     EvaluationState,
     EvaluationTargetRef,
+    EvaluationVerifierIndependenceDecision,
     EventId,
     EvidenceRef,
     ExecutionProfileRef,
@@ -213,6 +219,48 @@ def authorized_context(
             OutcomeState.VALIDATING,
         ):
             outcome_guard = outcome_validation_start_guard(entity, request.target_state)
+    evaluation_guard = None
+    if isinstance(entity, Evaluation):
+        assert isinstance(request.target_state, EvaluationState)
+        if (entity.state, request.target_state) == (
+            EvaluationState.PENDING,
+            EvaluationState.RUNNING,
+        ):
+            verifier = request.actor
+            evaluation_guard = EvaluationSemanticGuard(
+                entity.evaluation_id,
+                entity.version,
+                entity.state,
+                request.target_state,
+                request.correlation_id,
+                EvaluationStartSemantics(
+                    verifier,
+                    EvaluationVerifierIndependenceDecision(
+                        EvaluationSemanticDecisionRef("independence"),
+                        EvaluationSemanticDecisionStatus.PASSED,
+                        actor(ActorType.POLICY_ENGINE),
+                        frozenset({EvidenceRef("independence")}),
+                        entity.evaluation_id,
+                        entity.version,
+                        entity.target,
+                        entity.method,
+                        verifier,
+                        request.correlation_id,
+                    ),
+                    EvaluationInputReadinessDecision(
+                        EvaluationSemanticDecisionRef("input-readiness"),
+                        EvaluationSemanticDecisionStatus.PASSED,
+                        actor(ActorType.SCHEDULER),
+                        frozenset({EvidenceRef("input-readiness")}),
+                        entity.evaluation_id,
+                        entity.version,
+                        entity.target,
+                        entity.method,
+                        verifier,
+                        request.correlation_id,
+                    ),
+                ),
+            )
     return TransitionContext(
         guards,
         authority_decision(entity, request),
@@ -220,6 +268,7 @@ def authorized_context(
         task_guard,
         run_guard,
         outcome_guard,
+        evaluation_guard,
     )
 
 
@@ -590,8 +639,17 @@ def test_success_returns_new_snapshot_and_exactly_one_matching_event(
     assert result.entity.version == EntityVersion(18)
     assert snapshot.version == VERSION
     assert tuple(getattr(snapshot, field.name) for field in fields(snapshot)) == before
+    changed_fields = {"state", "version"}
+    if (
+        isinstance(snapshot, Evaluation)
+        and isinstance(target, EvaluationState)
+        and target is EvaluationState.RUNNING
+    ):
+        changed_fields.add("verifier")
+        assert isinstance(result.entity, Evaluation)
+        assert result.entity.verifier == request.actor
     for field in fields(snapshot):
-        if field.name not in {"state", "version"}:
+        if field.name not in changed_fields:
             assert getattr(result.entity, field.name) == getattr(snapshot, field.name)
     assert result.event.event_id == EVENT_ID
     assert result.event.event_type is event_type
@@ -1068,7 +1126,7 @@ def test_existing_snapshot_invariant_rejection_is_typed_and_has_no_partial_resul
 ):
     snapshot = replace(evaluation(), state=EvaluationState.RUNNING)
     request = transition_request(EvaluationState.COMPLETED)
-    with pytest.raises(InvalidDomainValue):
+    with pytest.raises(InvariantViolation, match="Canonical Evaluation semantic guard"):
         transition_entity(
             snapshot,
             request,

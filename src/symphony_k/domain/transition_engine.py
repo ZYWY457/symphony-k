@@ -31,6 +31,7 @@ from .errors import (
     UnauthorizedTransition,
 )
 from .evaluation import Evaluation, EvaluationState
+from .evaluation_semantics import EvaluationSemanticGuard
 from .ids import (
     CausationId,
     CorrelationId,
@@ -675,6 +676,7 @@ class TransitionContext:
     task_semantic_guard: TaskSemanticGuard | None = None
     run_semantic_guard: RunSemanticGuard | None = None
     outcome_semantic_guard: OutcomeSemanticGuard | None = None
+    evaluation_semantic_guard: EvaluationSemanticGuard | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
@@ -710,6 +712,12 @@ class TransitionContext:
         ):
             raise InvalidDomainValue(
                 "outcome_semantic_guard must be an OutcomeSemanticGuard or None"
+            )
+        if self.evaluation_semantic_guard is not None and not isinstance(
+            self.evaluation_semantic_guard, EvaluationSemanticGuard
+        ):
+            raise InvalidDomainValue(
+                "evaluation_semantic_guard must be an EvaluationSemanticGuard or None"
             )
 
 
@@ -898,6 +906,18 @@ def transition_entity(
             request.timestamp,
             request.correlation_id,
         )
+    elif isinstance(entity, Evaluation):
+        evaluation_guard = context.evaluation_semantic_guard
+        if evaluation_guard is None:
+            raise InvariantViolation("Canonical Evaluation semantic guard is required")
+        if not isinstance(request.target_state, EvaluationState):
+            raise InvalidTransition("Target state belongs to a different entity family")
+        evaluation_guard.validate(
+            entity,
+            request.target_state,
+            request.actor,
+            request.correlation_id,
+        )
 
     for guard in context.guards:
         guard.validate(entity, request)
@@ -914,6 +934,30 @@ def transition_entity(
         )
         annotations = frozenset(
             {("replacement_outcome_id", str(replacement_outcome_id.value))}
+        )
+    elif (
+        isinstance(entity, Evaluation)
+        and request.target_state is EvaluationState.RUNNING
+    ):
+        evaluation_guard = context.evaluation_semantic_guard
+        assert evaluation_guard is not None
+        updated = replace(
+            entity,
+            state=EvaluationState.RUNNING,
+            version=next_version,
+            verifier=evaluation_guard.validated_start_verifier(),
+        )
+    elif (
+        isinstance(entity, Evaluation)
+        and request.target_state is EvaluationState.COMPLETED
+    ):
+        evaluation_guard = context.evaluation_semantic_guard
+        assert evaluation_guard is not None
+        updated = replace(
+            entity,
+            state=EvaluationState.COMPLETED,
+            version=next_version,
+            result=evaluation_guard.validated_completion_result(),
         )
     else:
         updated = _replace_entity_state(entity, request.target_state, next_version)

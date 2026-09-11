@@ -108,6 +108,19 @@ from .evaluation_result import (
     EvaluationResult,
     EvaluationVerdict,
 )
+from .evaluation_semantics import (
+    EvaluationCompletionDecision,
+    EvaluationCompletionSemantics,
+    EvaluationConflictClearanceDecision,
+    EvaluationInputReadinessDecision,
+    EvaluationInvalidationSemantics,
+    EvaluationSemanticDecisionRef,
+    EvaluationSemanticDecisionStatus,
+    EvaluationSemanticGuard,
+    EvaluationSemanticInput,
+    EvaluationStartSemantics,
+    EvaluationVerifierIndependenceDecision,
+)
 from .evaluation_target import EvaluationTargetRef
 from .execution_profile import ExecutionProfileRef
 from .ids import (
@@ -393,11 +406,22 @@ __all__ = [
     "EvaluationId",
     "EvaluationInvalidationId",
     "EvaluationInvalidationRecord",
+    "EvaluationInvalidationSemantics",
     "EvaluationMethodRef",
     "EvaluationResult",
+    "EvaluationCompletionDecision",
+    "EvaluationCompletionSemantics",
+    "EvaluationConflictClearanceDecision",
+    "EvaluationInputReadinessDecision",
+    "EvaluationSemanticDecisionRef",
+    "EvaluationSemanticDecisionStatus",
+    "EvaluationSemanticGuard",
+    "EvaluationSemanticInput",
+    "EvaluationStartSemantics",
     "EvaluationState",
     "EvaluationTargetRef",
     "EvaluationVerdict",
+    "EvaluationVerifierIndependenceDecision",
     "EvidenceRef",
     "EventId",
     "ExecutionProfileRef",
