@@ -32,6 +32,8 @@ from symphony_k.domain import (
     EvaluationConflictSetRecord,
     EvaluationConflictSetRef,
     EvaluationId,
+    EvaluationInvalidationId,
+    EvaluationInvalidationRecord,
     EvaluationMethodRef,
     EvaluationResult,
     EvaluationSemanticGuard,
@@ -40,6 +42,7 @@ from symphony_k.domain import (
     EvaluationVerdict,
     EventId,
     EvidenceRef,
+    InvalidRelationship,
     InvariantViolation,
     OutcomeId,
     Timestamp,
@@ -160,6 +163,7 @@ def conflict_record(
     version: int = 2,
     members: frozenset[EvaluationConflictMemberRef] | None = None,
     previous_version: int | None = None,
+    evidence_refs: frozenset[EvidenceRef] = frozenset(),
 ) -> EvaluationConflictSetRecord:
     return EvaluationConflictSetRecord(
         conflict_id,
@@ -174,7 +178,7 @@ def conflict_record(
         ),
         EvaluationConflictScopeRef("same acceptance scope"),
         "Material disagreement.",
-        frozenset(),
+        evidence_refs,
         EVALUATOR,
         NOW,
         CORRELATION,
@@ -647,4 +651,331 @@ def test_conflict_event_has_exact_conflict_reference_and_worker_is_ineligible() 
     with pytest.raises(UnauthorizedTransition):
         transition_entity(
             current, worker_request, context(current, worker_request, semantic)
+        )
+
+
+@pytest.mark.parametrize(
+    "semantic",
+    [
+        lambda current: replace(
+            conflict_semantics(current),
+            conflict_set=replace(
+                conflict_record(current), correlation_id=CorrelationId(OTHER)
+            ),
+        ),
+        lambda current: replace(
+            conflict_semantics(current),
+            conflict_set=replace(
+                conflict_record(current), recorded_by=actor(ActorType.EVALUATOR, OTHER)
+            ),
+        ),
+        lambda current: replace(
+            conflict_semantics(current),
+            scope_materiality=replace(
+                conflict_semantics(current).scope_materiality,
+                conflict_set_ref=EvaluationConflictSetRef(
+                    CONFLICT_ID, ConflictSetVersion(9)
+                ),
+            ),
+        ),
+        lambda current: replace(
+            conflict_semantics(current),
+            scope_materiality=replace(
+                conflict_semantics(current).scope_materiality,
+                affected_scope=EvaluationConflictScopeRef("substituted scope"),
+            ),
+        ),
+        lambda current: replace(
+            conflict_semantics(current),
+            scope_materiality=replace(
+                conflict_semantics(current).scope_materiality,
+                members=frozenset(
+                    {
+                        EvaluationConflictMemberRef(
+                            current.evaluation_id, current.version
+                        )
+                    }
+                ),
+            ),
+        ),
+    ],
+    ids=(
+        "correlation",
+        "recording-principal",
+        "conflict-version",
+        "scope",
+        "scope-members",
+    ),
+)
+def test_conflict_rejects_exact_provenance_substitution(
+    semantic: Callable[[Evaluation], EvaluationConflictSemantics],
+) -> None:
+    current = evaluation(EvaluationState.RUNNING)
+    transition_request = request(current, EvaluationState.CONFLICTED, EVALUATOR)
+    with pytest.raises(InvariantViolation):
+        transition_entity(
+            current,
+            transition_request,
+            context(current, transition_request, semantic(current)),
+        )
+
+
+def test_single_evaluation_member_with_external_conflict_evidence_is_accepted() -> None:
+    current = evaluation(EvaluationState.COMPLETED)
+    record = conflict_record(
+        current,
+        members=frozenset(
+            {EvaluationConflictMemberRef(current.evaluation_id, current.version)}
+        ),
+        evidence_refs=frozenset({EvidenceRef("external conflict evidence")}),
+    )
+    semantics = conflict_semantics(
+        current,
+        record=record,
+        observations=frozenset(
+            {
+                EvaluationConflictParticipantObservation(
+                    current.evaluation_id,
+                    current.version,
+                    current.state,
+                    current.target,
+                )
+            }
+        ),
+        intended=frozenset({current.evaluation_id}),
+    )
+    transitioned = transition_entity(
+        current,
+        request(current, EvaluationState.CONFLICTED, EVALUATOR),
+        context(
+            current, request(current, EvaluationState.CONFLICTED, EVALUATOR), semantics
+        ),
+    ).entity
+    assert (transitioned.state, transitioned.version) == (
+        EvaluationState.CONFLICTED,
+        VERSION.next(),
+    )
+
+
+def test_conflict_excludes_existing_conflicted_member_from_new_projection() -> None:
+    current = evaluation(EvaluationState.RUNNING)
+    semantics = conflict_semantics(
+        current,
+        observations=frozenset(
+            {
+                EvaluationConflictParticipantObservation(
+                    current.evaluation_id,
+                    current.version,
+                    current.state,
+                    current.target,
+                ),
+                EvaluationConflictParticipantObservation(
+                    EvaluationId(OTHER),
+                    EntityVersion(4),
+                    EvaluationState.CONFLICTED,
+                    OTHER_TARGET,
+                ),
+            }
+        ),
+        intended=frozenset({current.evaluation_id}),
+    )
+    transition_request = request(current, EvaluationState.CONFLICTED, EVALUATOR)
+    assert (
+        transition_entity(
+            current, transition_request, context(current, transition_request, semantics)
+        ).entity.state
+        is EvaluationState.CONFLICTED
+    )
+
+
+def test_conflict_rejects_extra_participant_observation() -> None:
+    current = evaluation(EvaluationState.RUNNING)
+    semantic = conflict_semantics(
+        current,
+        observations=frozenset(
+            {
+                *conflict_semantics(current).participant_observations,
+                EvaluationConflictParticipantObservation(
+                    EvaluationId(THIRD),
+                    EntityVersion(5),
+                    EvaluationState.COMPLETED,
+                    OTHER_TARGET,
+                ),
+            }
+        ),
+    )
+    transition_request = request(current, EvaluationState.CONFLICTED, EVALUATOR)
+    with pytest.raises(InvariantViolation):
+        transition_entity(
+            current, transition_request, context(current, transition_request, semantic)
+        )
+
+
+@pytest.mark.parametrize(
+    "record_mutation",
+    [
+        lambda current, record: replace(record, correlation_id=CorrelationId(OTHER)),
+        lambda current, record: replace(record, decided_by=HUMAN),
+        lambda current, record: replace(
+            record,
+            decisions=frozenset(
+                {replace(decision(current), evaluation_id=EvaluationId(OTHER))}
+            ),
+        ),
+        lambda current, record: replace(
+            record,
+            decisions=frozenset(
+                {replace(decision(current), observed_version=EntityVersion(8))}
+            ),
+        ),
+    ],
+    ids=("correlation", "principal", "subject", "subject-version"),
+)
+def test_direct_arbitration_rejects_exact_binding_substitution(
+    record_mutation: Callable[
+        [Evaluation, EvaluationArbitrationRecord], EvaluationArbitrationRecord
+    ],
+) -> None:
+    current = evaluation(EvaluationState.COMPLETED)
+    record = record_mutation(current, arbitration(current))
+    transition_request = request(current, EvaluationState.ARBITRATED, ARBITRATOR)
+    with pytest.raises(InvariantViolation):
+        transition_entity(
+            current,
+            transition_request,
+            context(
+                current,
+                transition_request,
+                arbitration_semantics(
+                    current, record=record, history=frozenset({record})
+                ),
+            ),
+        )
+
+
+def test_arbitration_rejects_absent_history_ambiguous_lineage_and_invalidation() -> (
+    None
+):
+    current = evaluation(EvaluationState.COMPLETED)
+    intended = arbitration(current)
+    transition_request = request(current, EvaluationState.ARBITRATED, ARBITRATOR)
+    invalidation = EvaluationInvalidationRecord(
+        EvaluationInvalidationId(OTHER),
+        current.evaluation_id,
+        current.version,
+        "invalid",
+        frozenset({EvidenceRef("invalidation")}),
+        EVALUATOR,
+        NOW,
+        CORRELATION,
+    )
+    fork = arbitration(current, arbitration_id=EvaluationArbitrationId(OTHER))
+    for semantics in (
+        EvaluationArbitrationSemantics(intended, frozenset(), frozenset(), frozenset()),
+        arbitration_semantics(
+            current, record=intended, history=frozenset({intended, fork})
+        ),
+        replace(
+            arbitration_semantics(current, record=intended),
+            invalidation_history=frozenset({invalidation}),
+        ),
+    ):
+        with pytest.raises(InvariantViolation):
+            transition_entity(
+                current,
+                transition_request,
+                context(current, transition_request, semantics),
+            )
+
+
+@pytest.mark.parametrize("history_kind", ["incomplete", "cycle"])
+def test_arbitration_rejects_incomplete_or_cyclic_history(history_kind: str) -> None:
+    current = evaluation(EvaluationState.COMPLETED)
+    intended = arbitration(current)
+    if history_kind == "incomplete":
+        intended = replace(
+            intended, prior_arbitration_id=EvaluationArbitrationId(OTHER)
+        )
+        history = frozenset({intended})
+    else:
+        predecessor = arbitration(
+            current,
+            arbitration_id=EvaluationArbitrationId(OTHER),
+            prior=intended.arbitration_id,
+        )
+        intended = replace(intended, prior_arbitration_id=predecessor.arbitration_id)
+        history = frozenset({intended, predecessor})
+    transition_request = request(current, EvaluationState.ARBITRATED, ARBITRATOR)
+    with pytest.raises((InvariantViolation, InvalidRelationship)):
+        transition_entity(
+            current,
+            transition_request,
+            context(
+                current,
+                transition_request,
+                arbitration_semantics(current, record=intended, history=history),
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    "status",
+    [None, TransitionAuthorityStatus.DENIED, TransitionAuthorityStatus.UNRESOLVED],
+)
+def test_conflict_requires_authorized_m7b1_decision(
+    status: TransitionAuthorityStatus | None,
+) -> None:
+    current = evaluation(EvaluationState.RUNNING)
+    transition_request = request(current, EvaluationState.CONFLICTED, EVALUATOR)
+    semantic = conflict_semantics(current)
+    if status is None:
+        transition_context = TransitionContext(
+            (PassingGuard(),),
+            evaluation_semantic_guard=EvaluationSemanticGuard(
+                current.evaluation_id,
+                current.version,
+                current.state,
+                transition_request.target_state,
+                CORRELATION,
+                semantic,
+            ),
+        )
+    else:
+        transition_context = context(
+            current, transition_request, semantic, status=status
+        )
+    with pytest.raises(UnauthorizedTransition):
+        transition_entity(current, transition_request, transition_context)
+
+
+@pytest.mark.parametrize("principal", [EVALUATOR, HUMAN])
+def test_arbitration_authority_eligibility_and_authorized_human_path(
+    principal: ActorIdentity,
+) -> None:
+    current = evaluation(EvaluationState.COMPLETED)
+    record = replace(arbitration(current), decided_by=principal)
+    transition_request = request(current, EvaluationState.ARBITRATED, principal)
+    if principal is EVALUATOR:
+        with pytest.raises(UnauthorizedTransition):
+            transition_entity(
+                current,
+                transition_request,
+                context(
+                    current,
+                    transition_request,
+                    arbitration_semantics(current, record=record),
+                ),
+            )
+    else:
+        assert (
+            transition_entity(
+                current,
+                transition_request,
+                context(
+                    current,
+                    transition_request,
+                    arbitration_semantics(current, record=record),
+                ),
+            ).entity.state
+            is EvaluationState.ARBITRATED
         )
