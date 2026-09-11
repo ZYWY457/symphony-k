@@ -439,10 +439,10 @@ def test_worker_cannot_self_authorize_supersession() -> None:
         )
 
 
-def test_expiry_edges_remain_outside_canonical_semantic_coverage() -> None:
+def test_expiry_edges_require_their_dedicated_canonical_semantics() -> None:
     current = source()
     candidate = replacement()
-    with pytest.raises(InvalidDomainValue, match="does not support"):
+    with pytest.raises(InvalidDomainValue, match="OutcomeExpirySemantics"):
         OutcomeSemanticGuard(
             current.outcome_id,
             current.version,

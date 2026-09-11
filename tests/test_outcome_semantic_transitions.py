@@ -275,7 +275,12 @@ def test_guard_exact_snapshot_binding_rejects_laundering(
 def test_guard_source_binding_rejects_a_snapshot_in_another_source_state() -> None:
     snapshot = replace(outcome(), state=OutcomeState.VALIDATING)
     with pytest.raises(InvariantViolation, match="exact request snapshot"):
-        guard(outcome()).validate(snapshot, OutcomeState.VALIDATING, CORRELATION_ID)
+        guard(outcome()).validate(
+            snapshot,
+            OutcomeState.VALIDATING,
+            Timestamp(datetime(2026, 9, 10, tzinfo=UTC)),
+            CORRELATION_ID,
+        )
 
 
 @pytest.mark.parametrize(

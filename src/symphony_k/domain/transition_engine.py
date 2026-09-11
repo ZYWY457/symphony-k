@@ -892,7 +892,12 @@ def transition_entity(
             raise InvariantViolation("Canonical Outcome semantic guard is required")
         if not isinstance(request.target_state, OutcomeState):
             raise InvalidTransition("Target state belongs to a different entity family")
-        outcome_guard.validate(entity, request.target_state, request.correlation_id)
+        outcome_guard.validate(
+            entity,
+            request.target_state,
+            request.timestamp,
+            request.correlation_id,
+        )
 
     for guard in context.guards:
         guard.validate(entity, request)

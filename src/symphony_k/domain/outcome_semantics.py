@@ -17,6 +17,7 @@ from .evaluation_result import EvaluationMethodRef, EvaluationVerdict
 from .evaluation_target import EvaluationTargetRef
 from .ids import CorrelationId, EvaluationId, OutcomeId, RunId, TaskId
 from .outcome import Outcome, OutcomeState
+from .time import Timestamp
 from .version import EntityVersion
 
 
@@ -26,6 +27,15 @@ class OutcomeSemanticDecisionStatus(Enum):
     PASSED = "PASSED"
     REJECTED = "REJECTED"
     UNRESOLVED = "UNRESOLVED"
+
+
+class OutcomeStaleBasis(Enum):
+    """Closed, explicit reasons that an Outcome is no longer currently usable."""
+
+    VALIDITY_HORIZON_ELAPSED = "VALIDITY_HORIZON_ELAPSED"
+    ASSUMPTIONS_STALE = "ASSUMPTIONS_STALE"
+    DEPENDENCY_STALE = "DEPENDENCY_STALE"
+    EXTERNAL_CONDITION_STALE = "EXTERNAL_CONDITION_STALE"
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +49,47 @@ class OutcomeSemanticDecisionRef:
             raise InvalidDomainValue(
                 "Outcome semantic decision reference must contain non-whitespace text"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeExpiryDecision:
+    """Evidence-backed stale-input decision for one exact Outcome snapshot."""
+
+    decision_ref: OutcomeSemanticDecisionRef
+    status: OutcomeSemanticDecisionStatus
+    decided_by: ActorIdentity
+    evidence_refs: frozenset[EvidenceRef]
+    outcome_id: OutcomeId
+    observed_entity_version: EntityVersion
+    stale_basis: OutcomeStaleBasis
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision_ref, OutcomeSemanticDecisionRef):
+            raise InvalidDomainValue(
+                "decision_ref must be an OutcomeSemanticDecisionRef"
+            )
+        if not isinstance(self.status, OutcomeSemanticDecisionStatus):
+            raise InvalidDomainValue("status must be an OutcomeSemanticDecisionStatus")
+        if not isinstance(self.decided_by, ActorIdentity):
+            raise InvalidDomainValue("decided_by must be an ActorIdentity")
+        _require_evidence(self.evidence_refs)
+        _require_outcome_snapshot_scope(
+            self.outcome_id, self.observed_entity_version, self.correlation_id
+        )
+        if not isinstance(self.stale_basis, OutcomeStaleBasis):
+            raise InvalidDomainValue("stale_basis must be an OutcomeStaleBasis")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeExpirySemantics:
+    """Complete stale-input semantics for one Outcome expiry attempt."""
+
+    stale_input: OutcomeExpiryDecision
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.stale_input, OutcomeExpiryDecision):
+            raise InvalidDomainValue("stale_input must be an OutcomeExpiryDecision")
 
 
 @dataclass(frozen=True, slots=True)
@@ -683,7 +734,7 @@ class OutcomeSupersessionSemantics:
 
 @dataclass(frozen=True, slots=True)
 class OutcomeSemanticGuard:
-    """Canonical guard for implemented Outcome semantic edges through M7C4C."""
+    """Canonical guard for implemented Outcome semantic edges through M7C4D."""
 
     outcome_id: OutcomeId
     observed_entity_version: EntityVersion
@@ -694,6 +745,7 @@ class OutcomeSemanticGuard:
         OutcomeValidationStartSemantics
         | OutcomeDispositionSemantics
         | OutcomeSupersessionSemantics
+        | OutcomeExpirySemantics
     )
 
     def __post_init__(self) -> None:
@@ -705,6 +757,7 @@ class OutcomeSemanticGuard:
             type[OutcomeValidationStartSemantics]
             | type[OutcomeDispositionSemantics]
             | type[OutcomeSupersessionSemantics]
+            | type[OutcomeExpirySemantics]
         )
         if edge == (OutcomeState.PROPOSED, OutcomeState.VALIDATING):
             expected_input = OutcomeValidationStartSemantics
@@ -720,6 +773,13 @@ class OutcomeSemanticGuard:
             (OutcomeState.REJECTED, OutcomeState.SUPERSEDED),
         }:
             expected_input = OutcomeSupersessionSemantics
+        elif edge in {
+            (OutcomeState.PROPOSED, OutcomeState.EXPIRED),
+            (OutcomeState.VALIDATING, OutcomeState.EXPIRED),
+            (OutcomeState.ACCEPTED, OutcomeState.EXPIRED),
+            (OutcomeState.REJECTED, OutcomeState.EXPIRED),
+        }:
+            expected_input = OutcomeExpirySemantics
         else:
             raise InvalidDomainValue(
                 "Outcome semantic guard does not support this lifecycle edge"
@@ -733,6 +793,7 @@ class OutcomeSemanticGuard:
         self,
         outcome: Outcome,
         target_state: OutcomeState,
+        request_timestamp: Timestamp,
         correlation_id: CorrelationId,
     ) -> None:
         """Validate the binding and start validation without a verdict."""
@@ -740,6 +801,8 @@ class OutcomeSemanticGuard:
             raise InvalidDomainValue("outcome must be an Outcome")
         if not isinstance(target_state, OutcomeState):
             raise InvalidDomainValue("target_state must be an OutcomeState")
+        if not isinstance(request_timestamp, Timestamp):
+            raise InvalidDomainValue("request_timestamp must be a Timestamp")
         if not isinstance(correlation_id, CorrelationId):
             raise InvalidDomainValue("correlation_id must be a CorrelationId")
         if not (
@@ -762,7 +825,37 @@ class OutcomeSemanticGuard:
         if isinstance(semantics, OutcomeDispositionSemantics):
             self._validate_disposition(outcome, target_state, semantics)
             return
+        if isinstance(semantics, OutcomeExpirySemantics):
+            self._validate_expiry(outcome, request_timestamp, semantics)
+            return
         self._validate_supersession(outcome, semantics)
+
+    def _validate_expiry(
+        self,
+        outcome: Outcome,
+        request_timestamp: Timestamp,
+        semantics: OutcomeExpirySemantics,
+    ) -> None:
+        decision = semantics.stale_input
+        self._require_bound(
+            decision.outcome_id,
+            decision.observed_entity_version,
+            decision.correlation_id,
+        )
+        if decision.status is not OutcomeSemanticDecisionStatus.PASSED:
+            raise InvariantViolation("Outcome stale-input decision is not passed")
+        if decision.decided_by.actor_type not in {
+            ActorType.SCHEDULER,
+            ActorType.POLICY_ENGINE,
+        }:
+            raise InvariantViolation(
+                "Outcome stale-input decision lacks lifecycle authority"
+            )
+        if decision.stale_basis is OutcomeStaleBasis.VALIDITY_HORIZON_ELAPSED:
+            if outcome.valid_until is None:
+                raise InvariantViolation("Outcome has no validity horizon")
+            if request_timestamp.value < outcome.valid_until.value:
+                raise InvariantViolation("Outcome validity horizon has not elapsed")
 
     def validated_replacement_outcome_id(self) -> OutcomeId:
         """Return the replacement only for an already exact-bound supersession guard."""

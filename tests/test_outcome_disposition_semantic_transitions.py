@@ -353,10 +353,16 @@ def test_disposition_guard_binds_exact_source_and_target_state() -> None:
         accepted_guard.validate(
             replace(snapshot, state=OutcomeState.ACCEPTED),
             OutcomeState.ACCEPTED,
+            Timestamp(datetime(2026, 9, 10, tzinfo=UTC)),
             CORRELATION_ID,
         )
     with pytest.raises(InvariantViolation, match="exact request snapshot"):
-        accepted_guard.validate(snapshot, OutcomeState.REJECTED, CORRELATION_ID)
+        accepted_guard.validate(
+            snapshot,
+            OutcomeState.REJECTED,
+            Timestamp(datetime(2026, 9, 10, tzinfo=UTC)),
+            CORRELATION_ID,
+        )
 
 
 @pytest.mark.parametrize(
