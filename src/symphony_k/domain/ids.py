@@ -103,6 +103,21 @@ class EffectExecutionAuthorizationId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EffectSimulationRecordId(_UuidId):
+    """Identity of one immutable dry-run provenance record."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectRemediationReadinessId(_UuidId):
+    """Identity of one immutable pre-commit remediation-readiness record."""
+
+
+@dataclass(frozen=True, slots=True)
+class EffectSimulationBypassDecisionId(_UuidId):
+    """Identity of one immutable decision to bypass an Effect simulation."""
+
+
+@dataclass(frozen=True, slots=True)
 class EffectAttributionId(_UuidId):
     """Identity of one immutable supporting Effect attribution record."""
 

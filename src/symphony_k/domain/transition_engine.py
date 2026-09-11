@@ -23,6 +23,7 @@ from . import run as run_domain
 from . import task as task_domain
 from .actors import ActorIdentity, ActorType
 from .effect import Effect, EffectState
+from .effect_semantics import EffectSemanticGuard
 from .errors import (
     ConcurrencyConflict,
     InvalidDomainValue,
@@ -677,6 +678,7 @@ class TransitionContext:
     run_semantic_guard: RunSemanticGuard | None = None
     outcome_semantic_guard: OutcomeSemanticGuard | None = None
     evaluation_semantic_guard: EvaluationSemanticGuard | None = None
+    effect_semantic_guard: EffectSemanticGuard | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
@@ -718,6 +720,12 @@ class TransitionContext:
         ):
             raise InvalidDomainValue(
                 "evaluation_semantic_guard must be an EvaluationSemanticGuard or None"
+            )
+        if self.effect_semantic_guard is not None and not isinstance(
+            self.effect_semantic_guard, EffectSemanticGuard
+        ):
+            raise InvalidDomainValue(
+                "effect_semantic_guard must be an EffectSemanticGuard or None"
             )
 
 
@@ -913,6 +921,27 @@ def transition_entity(
         if not isinstance(request.target_state, EvaluationState):
             raise InvalidTransition("Target state belongs to a different entity family")
         evaluation_guard.validate(
+            entity,
+            request.target_state,
+            request.actor,
+            request.correlation_id,
+        )
+    elif isinstance(entity, Effect):
+        effect_guard = context.effect_semantic_guard
+        scoped_effect_edge = (entity.state, request.target_state) in {
+            (EffectState.PLANNED, EffectState.SIMULATED),
+            (EffectState.PLANNED, EffectState.PENDING_COMMIT),
+            (EffectState.SIMULATED, EffectState.PENDING_COMMIT),
+        }
+        if not scoped_effect_edge:
+            raise InvariantViolation(
+                "Effect canonical semantic guard denies this unimplemented edge"
+            )
+        if effect_guard is None:
+            raise InvariantViolation("Canonical Effect semantic guard is required")
+        if not isinstance(request.target_state, EffectState):
+            raise InvalidTransition("Target state belongs to a different entity family")
+        effect_guard.validate(
             entity,
             request.target_state,
             request.actor,

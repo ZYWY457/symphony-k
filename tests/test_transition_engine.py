@@ -33,7 +33,13 @@ from symphony_k.domain import (
     EffectExecutionAuthorizationRecord,
     EffectGovernanceFindingRecord,
     EffectId,
+    EffectOperationScope,
     EffectPayloadRef,
+    EffectSemanticGuard,
+    EffectSimulationRecord,
+    EffectSimulationRecordId,
+    EffectSimulationScopeRef,
+    EffectSimulationSemantics,
     EffectState,
     EffectTargetRef,
     EntityVersion,
@@ -269,6 +275,48 @@ def authorized_context(
         run_guard,
         outcome_guard,
         evaluation_guard,
+        effect_guard(entity, request) if isinstance(entity, Effect) else None,
+    )
+
+
+def effect_guard(
+    entity: Effect, request: TransitionRequest[LifecycleState]
+) -> EffectSemanticGuard | None:
+    if (entity.state, request.target_state) != (
+        EffectState.PLANNED,
+        EffectState.SIMULATED,
+    ):
+        return None
+    assert isinstance(request.target_state, EffectState)
+    assert entity.payload_ref is not None
+    scope = EffectOperationScope(
+        entity.effect_id,
+        entity.version,
+        entity.target_ref,
+        entity.payload_ref,
+        request.correlation_id,
+    )
+    return EffectSemanticGuard(
+        entity.effect_id,
+        entity.version,
+        entity.state,
+        request.target_state,
+        entity.target_ref,
+        entity.payload_ref,
+        request.correlation_id,
+        EffectSimulationSemantics(
+            EffectSimulationRecord(
+                EffectSimulationRecordId(VALUE),
+                scope,
+                EffectSimulationScopeRef("deterministic dry run"),
+                "Prepared a dry-run representation without external mutation",
+                frozenset({EvidenceRef("dry-run-evidence")}),
+                ActorIdentity(ActorId(OTHER), ActorType.WORKER),
+                actor(ActorType.SCHEDULER),
+                instant(),
+                instant(),
+            )
+        ),
     )
 
 
