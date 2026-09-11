@@ -959,6 +959,14 @@ def transition_entity(
             version=next_version,
             result=evaluation_guard.validated_completion_result(),
         )
+    elif isinstance(entity, Evaluation) and request.target_state in (
+        EvaluationState.CONFLICTED,
+        EvaluationState.ARBITRATED,
+    ):
+        evaluation_guard = context.evaluation_semantic_guard
+        assert evaluation_guard is not None
+        updated = _replace_entity_state(entity, request.target_state, next_version)
+        annotations = evaluation_guard.event_annotations()
     else:
         updated = _replace_entity_state(entity, request.target_state, next_version)
     event = DomainEvent(

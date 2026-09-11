@@ -726,7 +726,7 @@ def test_m7b1_authority_remains_mandatory(authority: object) -> None:
         transition_entity(current, transition_request, transition_context)
 
 
-def test_topology_and_deferred_conflict_arbitration_semantics_remain_denied() -> None:
+def test_topology_includes_all_ten_canonical_evaluation_edges() -> None:
     edges = {
         (source, target)
         for source in EvaluationState
@@ -734,24 +734,13 @@ def test_topology_and_deferred_conflict_arbitration_semantics_remain_denied() ->
         if can_evaluation_transition(source, target)
     }
     assert len(edges) == 10
-    deferred = {
+    conflict_and_arbitration = {
         (EvaluationState.RUNNING, EvaluationState.CONFLICTED),
         (EvaluationState.COMPLETED, EvaluationState.CONFLICTED),
         (EvaluationState.COMPLETED, EvaluationState.ARBITRATED),
         (EvaluationState.CONFLICTED, EvaluationState.ARBITRATED),
     }
-    assert deferred.issubset(edges)
-    sample = evaluation()
-    for source, target in deferred:
-        with pytest.raises(InvalidDomainValue, match="does not support"):
-            EvaluationSemanticGuard(
-                sample.evaluation_id,
-                sample.version,
-                source,
-                target,
-                CORRELATION,
-                invalidation_semantics(sample),
-            )
+    assert conflict_and_arbitration.issubset(edges)
     assert not can_evaluation_transition(
         EvaluationState.ARBITRATED, EvaluationState.INVALID
     )
