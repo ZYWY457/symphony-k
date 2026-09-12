@@ -932,6 +932,15 @@ def transition_entity(
             (EffectState.PLANNED, EffectState.SIMULATED),
             (EffectState.PLANNED, EffectState.PENDING_COMMIT),
             (EffectState.SIMULATED, EffectState.PENDING_COMMIT),
+            (EffectState.PLANNED, EffectState.COMMITTED),
+            (EffectState.SIMULATED, EffectState.COMMITTED),
+            (EffectState.PENDING_COMMIT, EffectState.COMMITTED),
+            (EffectState.QUARANTINED, EffectState.COMMITTED),
+            (EffectState.PLANNED, EffectState.QUARANTINED),
+            (EffectState.SIMULATED, EffectState.QUARANTINED),
+            (EffectState.PENDING_COMMIT, EffectState.QUARANTINED),
+            (EffectState.COMMITTED, EffectState.QUARANTINED),
+            (EffectState.COMPENSATING, EffectState.QUARANTINED),
         }
         if not scoped_effect_edge:
             raise InvariantViolation(

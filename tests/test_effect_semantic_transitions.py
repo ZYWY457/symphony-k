@@ -368,17 +368,26 @@ def test_pending_commit_requires_guard_and_remaining_effect_edges_are_denied() -
     direct = request(current, EffectState.PENDING_COMMIT)
     with pytest.raises(InvariantViolation, match="semantic guard is required"):
         transition_entity(current, direct, context(current, direct, None))
-    scoped_edges = {
+    canonical_edges = {
         (EffectState.PLANNED, EffectState.SIMULATED),
         (EffectState.PLANNED, EffectState.PENDING_COMMIT),
         (EffectState.SIMULATED, EffectState.PENDING_COMMIT),
+        (EffectState.PLANNED, EffectState.COMMITTED),
+        (EffectState.SIMULATED, EffectState.COMMITTED),
+        (EffectState.PENDING_COMMIT, EffectState.COMMITTED),
+        (EffectState.QUARANTINED, EffectState.COMMITTED),
+        (EffectState.PLANNED, EffectState.QUARANTINED),
+        (EffectState.SIMULATED, EffectState.QUARANTINED),
+        (EffectState.PENDING_COMMIT, EffectState.QUARANTINED),
+        (EffectState.COMMITTED, EffectState.QUARANTINED),
+        (EffectState.COMPENSATING, EffectState.QUARANTINED),
     }
     remaining = {
         (source, target)
         for source in EffectState
         for target in EffectState
         if can_effect_transition(source, target)
-        and (source, target) not in scoped_edges
+        and (source, target) not in canonical_edges
     }
     assert (
         sum(
@@ -388,7 +397,7 @@ def test_pending_commit_requires_guard_and_remaining_effect_edges_are_denied() -
         )
         == 19
     )
-    assert len(remaining) == 16
+    assert len(remaining) == 7
     for source, target in remaining:
         snapshot = effect(source)
         unimplemented = request(snapshot, target)

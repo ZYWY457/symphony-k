@@ -15,10 +15,15 @@ from .candidate_refs import EvidenceRef
 from .effect import (
     Effect,
     EffectDeduplicationRef,
+    EffectExternalOperationRef,
     EffectPayloadRef,
     EffectState,
     EffectTargetRef,
     PlannedEffectOrigin,
+)
+from .effect_authorization import (
+    EffectAuthorizationFindingRecord,
+    can_attach_effect_authorization_finding,
 )
 from .effect_execution import (
     EffectPreparationRecord,
@@ -26,10 +31,29 @@ from .effect_execution import (
     can_attach_effect_preparation_record,
     can_verify_effect_preparation,
 )
+from .effect_governance import (
+    EffectGovernanceFindingRecord,
+    can_attach_effect_governance_finding,
+)
+from .effect_incident import (
+    EffectIncidentRecord,
+    can_attach_effect_incident_record,
+)
+from .effect_observation import (
+    EffectObservationRecord,
+    EffectOccurrenceStatus,
+    can_attach_effect_observation,
+    can_follow_effect_observation,
+)
+from .effect_remediation import EffectCompensationPlanRecord
 from .errors import InvalidDomainValue, InvariantViolation
 from .ids import (
     CorrelationId,
+    EffectCompensationPlanId,
     EffectId,
+    EffectIncidentRecordId,
+    EffectObservationId,
+    EffectQuarantineContextId,
     EffectRemediationReadinessId,
     EffectSimulationBypassDecisionId,
     EffectSimulationRecordId,
@@ -71,6 +95,111 @@ class EffectOperationScope:
             raise InvalidDomainValue("payload_ref must be an EffectPayloadRef")
         if not isinstance(self.correlation_id, CorrelationId):
             raise InvalidDomainValue("correlation_id must be a CorrelationId")
+
+
+@dataclass(frozen=True, slots=True)
+class EffectObservationScope:
+    """Immutable canonical scope for one observation-only lifecycle attempt."""
+
+    effect_id: EffectId
+    observed_effect_version: EntityVersion
+    source_state: EffectState
+    target_state: EffectState
+    target_ref: EffectTargetRef
+    external_operation_ref: EffectExternalOperationRef
+    deduplication_ref: EffectDeduplicationRef
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.effect_id, EffectId):
+            raise InvalidDomainValue("effect_id must be an EffectId")
+        if not isinstance(self.observed_effect_version, EntityVersion):
+            raise InvalidDomainValue("observed_effect_version must be an EntityVersion")
+        if not isinstance(self.source_state, EffectState) or not isinstance(
+            self.target_state, EffectState
+        ):
+            raise InvalidDomainValue(
+                "source_state and target_state must be EffectState"
+            )
+        if not isinstance(self.target_ref, EffectTargetRef):
+            raise InvalidDomainValue("target_ref must be an EffectTargetRef")
+        if not isinstance(self.external_operation_ref, EffectExternalOperationRef):
+            raise InvalidDomainValue(
+                "external_operation_ref must be an EffectExternalOperationRef"
+            )
+        if not isinstance(self.deduplication_ref, EffectDeduplicationRef):
+            raise InvalidDomainValue(
+                "deduplication_ref must be an EffectDeduplicationRef"
+            )
+        if not isinstance(self.correlation_id, CorrelationId):
+            raise InvalidDomainValue("correlation_id must be a CorrelationId")
+
+
+class EffectQuarantineReason(Enum):
+    """Closed reconciliation categories; none is occurrence or authority truth."""
+
+    UNKNOWN_OR_SUSPECTED_OCCURRENCE = "UNKNOWN_OR_SUSPECTED_OCCURRENCE"
+    POST_COMMIT_PROBLEM = "POST_COMMIT_PROBLEM"
+    COMPENSATION_OR_REMEDIATION_UNCERTAINTY = "COMPENSATION_OR_REMEDIATION_UNCERTAINTY"
+
+
+@dataclass(frozen=True, slots=True)
+class EffectQuarantineContext:
+    """Immutable evidence-backed context for an exact quarantine attempt."""
+
+    context_id: EffectQuarantineContextId
+    observation_scope: EffectObservationScope
+    reason: EffectQuarantineReason
+    context_summary: str
+    evidence_refs: frozenset[EvidenceRef]
+    recorded_by: ActorIdentity
+    recorded_at: Timestamp
+    prior_observation_id: EffectObservationId | None = None
+    original_commit_observation_id: EffectObservationId | None = None
+    incident_record_id: EffectIncidentRecordId | None = None
+    compensation_plan_id: EffectCompensationPlanId | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.context_id, EffectQuarantineContextId):
+            raise InvalidDomainValue("context_id must be an EffectQuarantineContextId")
+        if not isinstance(self.observation_scope, EffectObservationScope):
+            raise InvalidDomainValue(
+                "observation_scope must be an EffectObservationScope"
+            )
+        if self.observation_scope.target_state is not EffectState.QUARANTINED:
+            raise InvalidDomainValue("Quarantine context must target QUARANTINED")
+        if not isinstance(self.reason, EffectQuarantineReason):
+            raise InvalidDomainValue("reason must be an EffectQuarantineReason")
+        _require_text(self.context_summary, "context_summary")
+        _require_evidence(self.evidence_refs)
+        if not isinstance(self.recorded_by, ActorIdentity):
+            raise InvalidDomainValue("recorded_by must be an ActorIdentity")
+        if not isinstance(self.recorded_at, Timestamp):
+            raise InvalidDomainValue("recorded_at must be a Timestamp")
+        if self.prior_observation_id is not None and not isinstance(
+            self.prior_observation_id, EffectObservationId
+        ):
+            raise InvalidDomainValue(
+                "prior_observation_id must be an EffectObservationId or None"
+            )
+        if self.original_commit_observation_id is not None and not isinstance(
+            self.original_commit_observation_id, EffectObservationId
+        ):
+            raise InvalidDomainValue(
+                "original_commit_observation_id must be an EffectObservationId or None"
+            )
+        if self.incident_record_id is not None and not isinstance(
+            self.incident_record_id, EffectIncidentRecordId
+        ):
+            raise InvalidDomainValue(
+                "incident_record_id must be an EffectIncidentRecordId or None"
+            )
+        if self.compensation_plan_id is not None and not isinstance(
+            self.compensation_plan_id, EffectCompensationPlanId
+        ):
+            raise InvalidDomainValue(
+                "compensation_plan_id must be an EffectCompensationPlanId or None"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,7 +400,107 @@ class EffectPendingCommitSemantics:
             )
 
 
-type EffectSemanticInput = EffectSimulationSemantics | EffectPendingCommitSemantics
+@dataclass(frozen=True, slots=True)
+class EffectConfirmedOccurrenceSemantics:
+    """Exact observation provenance for a factual, non-dispatch COMMITTED edge."""
+
+    observation_scope: EffectObservationScope
+    observation: EffectObservationRecord
+    authorization_finding: EffectAuthorizationFindingRecord
+    governance_finding: EffectGovernanceFindingRecord | None = None
+    quarantine_context: EffectQuarantineContext | None = None
+    prior_observation: EffectObservationRecord | None = None
+    prior_incident_record: EffectIncidentRecord | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.observation_scope, EffectObservationScope):
+            raise InvalidDomainValue(
+                "observation_scope must be an EffectObservationScope"
+            )
+        if not isinstance(self.observation, EffectObservationRecord):
+            raise InvalidDomainValue("observation must be an EffectObservationRecord")
+        if not isinstance(self.authorization_finding, EffectAuthorizationFindingRecord):
+            raise InvalidDomainValue(
+                "authorization_finding must be an EffectAuthorizationFindingRecord"
+            )
+        if self.governance_finding is not None and not isinstance(
+            self.governance_finding, EffectGovernanceFindingRecord
+        ):
+            raise InvalidDomainValue(
+                "governance_finding must be an EffectGovernanceFindingRecord or None"
+            )
+        if self.quarantine_context is not None and not isinstance(
+            self.quarantine_context, EffectQuarantineContext
+        ):
+            raise InvalidDomainValue(
+                "quarantine_context must be an EffectQuarantineContext or None"
+            )
+        if self.prior_observation is not None and not isinstance(
+            self.prior_observation, EffectObservationRecord
+        ):
+            raise InvalidDomainValue(
+                "prior_observation must be an EffectObservationRecord or None"
+            )
+        if self.prior_incident_record is not None and not isinstance(
+            self.prior_incident_record, EffectIncidentRecord
+        ):
+            raise InvalidDomainValue(
+                "prior_incident_record must be an EffectIncidentRecord or None"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class EffectQuarantineSemantics:
+    """Exact observation or remediation provenance for a QUARANTINED edge."""
+
+    observation_scope: EffectObservationScope
+    quarantine_context: EffectQuarantineContext
+    observation: EffectObservationRecord | None = None
+    original_commit_observation: EffectObservationRecord | None = None
+    incident_record: EffectIncidentRecord | None = None
+    compensation_plan: EffectCompensationPlanRecord | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.observation_scope, EffectObservationScope):
+            raise InvalidDomainValue(
+                "observation_scope must be an EffectObservationScope"
+            )
+        if not isinstance(self.quarantine_context, EffectQuarantineContext):
+            raise InvalidDomainValue(
+                "quarantine_context must be an EffectQuarantineContext"
+            )
+        if self.observation is not None and not isinstance(
+            self.observation, EffectObservationRecord
+        ):
+            raise InvalidDomainValue(
+                "observation must be an EffectObservationRecord or None"
+            )
+        if self.original_commit_observation is not None and not isinstance(
+            self.original_commit_observation, EffectObservationRecord
+        ):
+            raise InvalidDomainValue(
+                "original_commit_observation must be an EffectObservationRecord or None"
+            )
+        if self.incident_record is not None and not isinstance(
+            self.incident_record, EffectIncidentRecord
+        ):
+            raise InvalidDomainValue(
+                "incident_record must be an EffectIncidentRecord or None"
+            )
+        if self.compensation_plan is not None and not isinstance(
+            self.compensation_plan, EffectCompensationPlanRecord
+        ):
+            raise InvalidDomainValue(
+                "compensation_plan must be an EffectCompensationPlanRecord or None"
+            )
+
+
+type EffectSemanticInput = (
+    EffectSimulationSemantics
+    | EffectPendingCommitSemantics
+    | EffectConfirmedOccurrenceSemantics
+    | EffectQuarantineSemantics
+)
 
 
 _INPUT_TYPE_BY_EDGE: Final[
@@ -284,6 +513,33 @@ _INPUT_TYPE_BY_EDGE: Final[
             EffectState.SIMULATED,
             EffectState.PENDING_COMMIT,
         ): EffectPendingCommitSemantics,
+        (
+            EffectState.PLANNED,
+            EffectState.COMMITTED,
+        ): EffectConfirmedOccurrenceSemantics,
+        (
+            EffectState.SIMULATED,
+            EffectState.COMMITTED,
+        ): EffectConfirmedOccurrenceSemantics,
+        (
+            EffectState.PENDING_COMMIT,
+            EffectState.COMMITTED,
+        ): EffectConfirmedOccurrenceSemantics,
+        (
+            EffectState.QUARANTINED,
+            EffectState.COMMITTED,
+        ): EffectConfirmedOccurrenceSemantics,
+        (EffectState.PLANNED, EffectState.QUARANTINED): EffectQuarantineSemantics,
+        (EffectState.SIMULATED, EffectState.QUARANTINED): EffectQuarantineSemantics,
+        (
+            EffectState.PENDING_COMMIT,
+            EffectState.QUARANTINED,
+        ): EffectQuarantineSemantics,
+        (EffectState.COMMITTED, EffectState.QUARANTINED): EffectQuarantineSemantics,
+        (
+            EffectState.COMPENSATING,
+            EffectState.QUARANTINED,
+        ): EffectQuarantineSemantics,
     }
 )
 
@@ -302,14 +558,14 @@ def _scope_matches_effect(
 
 @dataclass(frozen=True, slots=True)
 class EffectSemanticGuard:
-    """Canonical semantic guard for exactly three exact-bound Effect edges."""
+    """Canonical semantic guard for accepted exact-bound Effect edges only."""
 
     effect_id: EffectId
     observed_entity_version: EntityVersion
     prior_state: EffectState
     target_state: EffectState
     target_ref: EffectTargetRef
-    payload_ref: EffectPayloadRef
+    payload_ref: EffectPayloadRef | None
     correlation_id: CorrelationId
     semantic_input: EffectSemanticInput
 
@@ -324,8 +580,10 @@ class EffectSemanticGuard:
             raise InvalidDomainValue("prior_state and target_state must be EffectState")
         if not isinstance(self.target_ref, EffectTargetRef):
             raise InvalidDomainValue("target_ref must be an EffectTargetRef")
-        if not isinstance(self.payload_ref, EffectPayloadRef):
-            raise InvalidDomainValue("payload_ref must be an EffectPayloadRef")
+        if self.payload_ref is not None and not isinstance(
+            self.payload_ref, EffectPayloadRef
+        ):
+            raise InvalidDomainValue("payload_ref must be an EffectPayloadRef or None")
         if not isinstance(self.correlation_id, CorrelationId):
             raise InvalidDomainValue("correlation_id must be a CorrelationId")
         expected = _INPUT_TYPE_BY_EDGE.get((self.prior_state, self.target_state))
@@ -362,14 +620,24 @@ class EffectSemanticGuard:
             raise InvariantViolation(
                 "Effect semantic guard does not match the exact request snapshot"
             )
-        if effect.payload_ref is None:
-            raise InvariantViolation(
-                "Canonical Effect preparation requires concrete payload"
-            )
         if isinstance(self.semantic_input, EffectSimulationSemantics):
+            if effect.payload_ref is None:
+                raise InvariantViolation(
+                    "Canonical Effect preparation requires concrete payload"
+                )
             self._validate_simulation(effect, controller, correlation_id)
             return
-        self._validate_pending_commit(effect, controller, correlation_id)
+        if isinstance(self.semantic_input, EffectPendingCommitSemantics):
+            if effect.payload_ref is None:
+                raise InvariantViolation(
+                    "Canonical Effect preparation requires concrete payload"
+                )
+            self._validate_pending_commit(effect, controller, correlation_id)
+            return
+        if isinstance(self.semantic_input, EffectConfirmedOccurrenceSemantics):
+            self._validate_confirmed_occurrence(effect, controller, correlation_id)
+            return
+        self._validate_quarantine(effect, controller, correlation_id)
 
     def _validate_simulation(
         self,
@@ -377,8 +645,9 @@ class EffectSemanticGuard:
         controller: ActorIdentity,
         correlation_id: CorrelationId,
     ) -> None:
-        simulation = self.semantic_input.simulation
-        assert isinstance(simulation, EffectSimulationRecord)
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectSimulationSemantics)
+        simulation = semantics.simulation
         if not _scope_matches_effect(
             simulation.operation_scope, effect, correlation_id
         ):
@@ -477,3 +746,312 @@ class EffectSemanticGuard:
                     "Bypass decision maker must be separate from preparer, verifier, "
                     "and Effect controller"
                 )
+
+    def _validate_observation_scope(
+        self,
+        effect: Effect,
+        target_state: EffectState,
+        scope: EffectObservationScope,
+        correlation_id: CorrelationId,
+    ) -> None:
+        if not (
+            scope.effect_id == effect.effect_id
+            and scope.observed_effect_version == effect.version
+            and scope.source_state is effect.state
+            and scope.target_state is target_state
+            and scope.target_ref == effect.target_ref
+            and scope.correlation_id == correlation_id
+        ):
+            raise InvariantViolation(
+                "Observation scope does not match the exact Effect transition snapshot"
+            )
+
+    def _validate_observation(
+        self,
+        effect: Effect,
+        controller: ActorIdentity,
+        scope: EffectObservationScope,
+        observation: EffectObservationRecord,
+    ) -> None:
+        if not can_attach_effect_observation(effect, observation):
+            raise InvariantViolation(
+                "Observation does not match the exact Effect snapshot"
+            )
+        if not (
+            observation.external_operation_ref == scope.external_operation_ref
+            and observation.deduplication_ref == scope.deduplication_ref
+            and observation.correlation_id == scope.correlation_id
+        ):
+            raise InvariantViolation(
+                "Observation does not match external-operation, deduplication, or "
+                "correlation scope"
+            )
+        if observation.recorded_by.actor_id != controller.actor_id:
+            raise InvariantViolation(
+                "Observation must be recorded by the authoritative Effect controller"
+            )
+
+    def _validate_confirmed_occurrence(
+        self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectConfirmedOccurrenceSemantics)
+        self._validate_observation_scope(
+            effect, EffectState.COMMITTED, semantics.observation_scope, correlation_id
+        )
+        self._validate_observation(
+            effect, controller, semantics.observation_scope, semantics.observation
+        )
+        observation = semantics.observation
+        if observation.occurrence_status is not EffectOccurrenceStatus.CONFIRMED:
+            raise InvariantViolation(
+                "COMMITTED requires a CONFIRMED occurrence observation"
+            )
+        if observation.occurrence_at is None:
+            raise InvariantViolation("Confirmed occurrence requires occurrence_at")
+        if observation.observed_by.actor_type is ActorType.WORKER:
+            raise InvariantViolation(
+                "Worker-only observation cannot confirm occurrence"
+            )
+        if (
+            isinstance(effect.origin, PlannedEffectOrigin)
+            and observation.observed_by.actor_id == effect.origin.proposed_by.actor_id
+        ):
+            raise InvariantViolation(
+                "Planned Effect producing principal cannot independently confirm "
+                "occurrence"
+            )
+        if (
+            not can_attach_effect_authorization_finding(
+                effect, semantics.authorization_finding
+            )
+            or semantics.authorization_finding.correlation_id != correlation_id
+        ):
+            raise InvariantViolation(
+                "Authorization finding does not match the exact observation context"
+            )
+        if semantics.governance_finding is not None and (
+            not can_attach_effect_governance_finding(
+                effect, semantics.governance_finding
+            )
+            or semantics.governance_finding.correlation_id != correlation_id
+        ):
+            raise InvariantViolation(
+                "Governance finding does not match the exact observation context"
+            )
+        if effect.state is not EffectState.QUARANTINED:
+            if semantics.quarantine_context is not None:
+                raise InvariantViolation(
+                    "Only QUARANTINED reconciliation may carry quarantine context"
+                )
+            return
+        context = semantics.quarantine_context
+        if context is None:
+            raise InvariantViolation(
+                "QUARANTINED reconciliation requires quarantine context"
+            )
+        self._validate_reconciliation_context(
+            effect, semantics.observation_scope, context, semantics
+        )
+
+    def _validate_reconciliation_context(
+        self,
+        effect: Effect,
+        scope: EffectObservationScope,
+        context: EffectQuarantineContext,
+        semantics: EffectConfirmedOccurrenceSemantics,
+    ) -> None:
+        context_scope = context.observation_scope
+        if not (
+            context_scope.effect_id == effect.effect_id
+            and context_scope.observed_effect_version == effect.version
+            and context_scope.source_state is EffectState.QUARANTINED
+            and context_scope.target_ref == scope.target_ref
+            and context_scope.external_operation_ref == scope.external_operation_ref
+            and context_scope.deduplication_ref == scope.deduplication_ref
+            and context_scope.correlation_id == scope.correlation_id
+        ):
+            raise InvariantViolation(
+                "Quarantine context does not resolve the exact observation scope"
+            )
+        if context.reason is EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE:
+            prior = semantics.prior_observation
+            if (
+                prior is None
+                or context.prior_observation_id != prior.observation_id
+                or prior.occurrence_status is not EffectOccurrenceStatus.UNCERTAIN
+                or not can_follow_effect_observation(prior, semantics.observation)
+            ):
+                raise InvariantViolation(
+                    "Uncertain quarantine reconciliation requires compatible prior "
+                    "observation"
+                )
+        elif context.original_commit_observation_id is None:
+            raise InvariantViolation(
+                "Post-commit reconciliation requires original commit observation "
+                "context"
+            )
+        if semantics.prior_incident_record is not None and (
+            context.incident_record_id != semantics.prior_incident_record.record_id
+            or not can_attach_effect_incident_record(
+                effect, semantics.prior_incident_record
+            )
+            or semantics.prior_incident_record.correlation_id != scope.correlation_id
+        ):
+            raise InvariantViolation(
+                "Prior incident record does not match quarantine reconciliation context"
+            )
+
+    def _validate_quarantine(
+        self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectQuarantineSemantics)
+        self._validate_observation_scope(
+            effect, EffectState.QUARANTINED, semantics.observation_scope, correlation_id
+        )
+        context = semantics.quarantine_context
+        if context.observation_scope != semantics.observation_scope:
+            raise InvariantViolation(
+                "Quarantine context does not match exact transition observation scope"
+            )
+        if context.recorded_by.actor_id != controller.actor_id:
+            raise InvariantViolation(
+                "Quarantine context must be recorded by the authoritative Effect "
+                "controller"
+            )
+        if effect.state in {
+            EffectState.PLANNED,
+            EffectState.SIMULATED,
+            EffectState.PENDING_COMMIT,
+        }:
+            self._validate_pre_commit_quarantine(effect, controller, semantics)
+            return
+        self._validate_post_commit_quarantine(effect, semantics)
+
+    def _validate_pre_commit_quarantine(
+        self,
+        effect: Effect,
+        controller: ActorIdentity,
+        semantics: EffectQuarantineSemantics,
+    ) -> None:
+        observation = semantics.observation
+        context = semantics.quarantine_context
+        if observation is None:
+            raise InvariantViolation(
+                "Pre-commit quarantine requires uncertainty observation"
+            )
+        self._validate_observation(
+            effect, controller, semantics.observation_scope, observation
+        )
+        if observation.occurrence_status is not EffectOccurrenceStatus.UNCERTAIN:
+            raise InvariantViolation(
+                "Pre-commit quarantine requires UNCERTAIN occurrence"
+            )
+        if observation.occurrence_at is not None:
+            raise InvariantViolation(
+                "Uncertain occurrence must not invent occurrence_at"
+            )
+        if context.reason is not EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE:
+            raise InvariantViolation(
+                "Pre-commit quarantine requires unknown or suspected occurrence context"
+            )
+        if context.prior_observation_id != observation.observation_id:
+            raise InvariantViolation(
+                "Pre-commit quarantine context must retain uncertainty observation "
+                "identity"
+            )
+        self._validate_optional_incident(effect, semantics, context)
+        if (
+            semantics.original_commit_observation is not None
+            or semantics.compensation_plan is not None
+        ):
+            raise InvariantViolation(
+                "Pre-commit quarantine must not fabricate commit or compensation "
+                "context"
+            )
+
+    def _validate_post_commit_quarantine(
+        self, effect: Effect, semantics: EffectQuarantineSemantics
+    ) -> None:
+        context = semantics.quarantine_context
+        original = semantics.original_commit_observation
+        if (
+            original is None
+            or original.occurrence_status is not EffectOccurrenceStatus.CONFIRMED
+        ):
+            raise InvariantViolation(
+                "Post-commit quarantine requires confirmed original commit observation"
+            )
+        if original.occurrence_at is None:
+            raise InvariantViolation(
+                "Original commit observation requires occurrence_at"
+            )
+        if not (
+            original.effect_id == effect.effect_id
+            and original.target_ref == effect.target_ref
+            and original.external_operation_ref
+            == semantics.observation_scope.external_operation_ref
+            and original.deduplication_ref
+            == semantics.observation_scope.deduplication_ref
+            and context.original_commit_observation_id == original.observation_id
+        ):
+            raise InvariantViolation(
+                "Original commit observation does not match quarantine context"
+            )
+        self._validate_optional_incident(effect, semantics, context)
+        if effect.state is EffectState.COMMITTED:
+            if context.reason is not EffectQuarantineReason.POST_COMMIT_PROBLEM:
+                raise InvariantViolation(
+                    "COMMITTED quarantine requires post-commit problem context"
+                )
+            if semantics.compensation_plan is not None:
+                raise InvariantViolation(
+                    "COMMITTED quarantine must not claim compensation context"
+                )
+            return
+        if (
+            context.reason
+            is not EffectQuarantineReason.COMPENSATION_OR_REMEDIATION_UNCERTAINTY
+        ):
+            raise InvariantViolation(
+                "COMPENSATING quarantine requires compensation uncertainty context"
+            )
+        plan = semantics.compensation_plan
+        if (
+            plan is None
+            or context.compensation_plan_id != plan.plan_id
+            or plan.effect_id != effect.effect_id
+            or plan.original_commit_observation_id != original.observation_id
+        ):
+            raise InvariantViolation(
+                "COMPENSATING quarantine requires matching compensation plan context"
+            )
+        if semantics.observation is not None:
+            raise InvariantViolation(
+                "Post-commit quarantine does not replace known occurrence with "
+                "observation"
+            )
+
+    def _validate_optional_incident(
+        self,
+        effect: Effect,
+        semantics: EffectQuarantineSemantics,
+        context: EffectQuarantineContext,
+    ) -> None:
+        record = semantics.incident_record
+        if record is None:
+            if context.incident_record_id is not None:
+                raise InvariantViolation(
+                    "Quarantine context incident identity requires supplied incident "
+                    "record"
+                )
+            return
+        if (
+            context.incident_record_id != record.record_id
+            or not can_attach_effect_incident_record(effect, record)
+            or record.correlation_id != semantics.observation_scope.correlation_id
+        ):
+            raise InvariantViolation(
+                "Incident record does not match exact quarantine context"
+            )
