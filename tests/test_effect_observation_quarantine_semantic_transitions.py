@@ -105,6 +105,8 @@ def observation(
     occurrence_at: Timestamp | None = None,
     observed_by: ActorIdentity | None = None,
     prior: EffectObservationId | None = None,
+    target_ref: EffectTargetRef | None = None,
+    payload_ref: EffectPayloadRef | None = None,
 ) -> EffectObservationRecord:
     return EffectObservationRecord(
         observation_id or EffectObservationId(VALUE),
@@ -113,8 +115,8 @@ def observation(
         OPERATION,
         DEDUPLICATION,
         status,
-        current.target_ref,
-        current.payload_ref,
+        target_ref or current.target_ref,
+        payload_ref if payload_ref is not None else current.payload_ref,
         frozenset({EvidenceRef("independent external receipt")}),
         observed_by or actor(ActorType.EVALUATOR, OBSERVER),
         actor(ActorType.EFFECT_CONTROLLER, CONTROLLER),
@@ -169,10 +171,26 @@ def quarantine_context(
     prior: EffectObservationId | None = None,
     original: EffectObservationId | None = None,
     plan: EffectCompensationPlanId | None = None,
+    source_state: EffectState | None = None,
+    version: EntityVersion | None = None,
 ) -> EffectQuarantineContext:
+    historical_source = source_state or current.state
+    historical_version = version or current.version
+    if current.state is EffectState.QUARANTINED and source_state is None:
+        historical_source = EffectState.PENDING_COMMIT
+        historical_version = EntityVersion(current.version.value - 1)
     return EffectQuarantineContext(
         EffectQuarantineContextId(OTHER),
-        scope(current, EffectState.QUARANTINED),
+        EffectObservationScope(
+            current.effect_id,
+            historical_version,
+            historical_source,
+            EffectState.QUARANTINED,
+            current.target_ref,
+            OPERATION,
+            DEDUPLICATION,
+            CORRELATION,
+        ),
         reason,
         "Evidence requires controlled reconciliation without automatic execution.",
         frozenset({EvidenceRef("quarantine evidence")}),
@@ -353,18 +371,96 @@ def test_reconciliation_preserves_truthful_unknown_observed_payload() -> None:
         scope(current, EffectState.COMMITTED),
         confirmed,
         authorization(current),
-        quarantine_context=quarantine_context(
-            current,
-            reason=EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE,
-            prior=prior.observation_id,
-        ),
-        prior_observation=prior,
     )
     transition_request = request(current, EffectState.COMMITTED)
     result = transition_entity(
         current, transition_request, context(current, transition_request, semantics)
     )
     assert result.entity.payload_ref is None
+
+
+@pytest.mark.parametrize(
+    "prior_change",
+    [
+        lambda current, prior: replace(
+            prior, target_ref=EffectTargetRef("other-target")
+        ),
+        lambda current, prior: replace(
+            prior, payload_ref=EffectPayloadRef("other-payload")
+        ),
+        lambda current, prior: replace(
+            prior, observed_effect_version=EntityVersion(18)
+        ),
+    ],
+)
+def test_reconciliation_rejects_incompatible_historical_prior_observation(
+    prior_change: object,
+) -> None:
+    current = effect(EffectState.QUARANTINED)
+    prior = observation(
+        current,
+        status=EffectOccurrenceStatus.UNCERTAIN,
+        version=EntityVersion(16),
+        observation_id=EffectObservationId(OTHER),
+    )
+    assert callable(prior_change)
+    invalid_prior = prior_change(current, prior)
+    confirmed = observation(
+        current,
+        status=EffectOccurrenceStatus.CONFIRMED,
+        occurrence_at=NOW,
+        prior=invalid_prior.observation_id,
+    )
+    semantics = EffectConfirmedOccurrenceSemantics(
+        scope(current, EffectState.COMMITTED),
+        confirmed,
+        authorization(current),
+        quarantine_context=quarantine_context(
+            current,
+            reason=EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE,
+            prior=invalid_prior.observation_id,
+            version=invalid_prior.observed_effect_version,
+        ),
+        prior_observation=invalid_prior,
+    )
+    transition_request = request(current, EffectState.COMMITTED)
+    with pytest.raises(InvariantViolation):
+        transition_entity(
+            current, transition_request, context(current, transition_request, semantics)
+        )
+
+
+def test_reconciliation_rejects_fabricated_quarantined_self_scope() -> None:
+    current = effect(EffectState.QUARANTINED)
+    prior = observation(
+        current,
+        status=EffectOccurrenceStatus.UNCERTAIN,
+        version=EntityVersion(16),
+        observation_id=EffectObservationId(OTHER),
+    )
+    semantics = EffectConfirmedOccurrenceSemantics(
+        scope(current, EffectState.COMMITTED),
+        observation(
+            current,
+            status=EffectOccurrenceStatus.CONFIRMED,
+            occurrence_at=NOW,
+            prior=prior.observation_id,
+        ),
+        authorization(current),
+        quarantine_context=quarantine_context(
+            current,
+            reason=EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE,
+            prior=prior.observation_id,
+            source_state=EffectState.QUARANTINED,
+            version=EntityVersion(16),
+        ),
+        prior_observation=prior,
+    )
+    transition_request = request(current, EffectState.COMMITTED)
+    with pytest.raises(InvariantViolation):
+        transition_entity(
+            current, transition_request, context(current, transition_request, semantics)
+        )
 
 
 @pytest.mark.parametrize(
@@ -405,6 +501,75 @@ def original_commit(current: Effect) -> EffectObservationRecord:
 def test_committed_quarantine_retains_known_occurrence() -> None:
     current = effect(EffectState.COMMITTED)
     original = original_commit(current)
+    semantics = EffectQuarantineSemantics(
+        scope(current, EffectState.QUARANTINED),
+        quarantine_context(
+            current,
+            reason=EffectQuarantineReason.POST_COMMIT_PROBLEM,
+            original=original.observation_id,
+        ),
+        original_commit_observation=original,
+    )
+    transition_request = request(current, EffectState.QUARANTINED)
+    assert (
+        transition_entity(
+            current, transition_request, context(current, transition_request, semantics)
+        ).entity.state
+        is EffectState.QUARANTINED
+    )
+
+
+@pytest.mark.parametrize("state", [EffectState.COMMITTED, EffectState.COMPENSATING])
+def test_post_commit_quarantine_rejects_incompatible_original_payload(
+    state: EffectState,
+) -> None:
+    current = effect(state)
+    original = replace(
+        original_commit(current), payload_ref=EffectPayloadRef("other-payload")
+    )
+    plan = None
+    if state is EffectState.COMPENSATING:
+        plan = EffectCompensationPlanRecord(
+            EffectCompensationPlanId(OTHER),
+            current.effect_id,
+            current.version,
+            original.observation_id,
+            frozenset({EffectId(OTHER)}),
+            "A separate governed compensation remains incomplete and unsafe.",
+            frozenset({EvidenceRef("compensation incident")}),
+            actor(ActorType.EFFECT_CONTROLLER, CONTROLLER),
+            actor(ActorType.EFFECT_CONTROLLER, CONTROLLER),
+            NOW,
+            NOW,
+            CORRELATION,
+        )
+    semantics = EffectQuarantineSemantics(
+        scope(current, EffectState.QUARANTINED),
+        quarantine_context(
+            current,
+            reason=(
+                EffectQuarantineReason.POST_COMMIT_PROBLEM
+                if state is EffectState.COMMITTED
+                else EffectQuarantineReason.COMPENSATION_OR_REMEDIATION_UNCERTAINTY
+            ),
+            original=original.observation_id,
+            plan=plan.plan_id if plan is not None else None,
+        ),
+        original_commit_observation=original,
+        compensation_plan=plan,
+    )
+    transition_request = request(current, EffectState.QUARANTINED)
+    with pytest.raises(InvariantViolation):
+        transition_entity(
+            current, transition_request, context(current, transition_request, semantics)
+        )
+
+
+def test_post_commit_quarantine_allows_earlier_original_observation_version() -> None:
+    current = effect(EffectState.COMMITTED)
+    original = replace(
+        original_commit(current), observed_effect_version=EntityVersion(16)
+    )
     semantics = EffectQuarantineSemantics(
         scope(current, EffectState.QUARANTINED),
         quarantine_context(

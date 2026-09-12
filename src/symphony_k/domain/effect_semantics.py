@@ -19,6 +19,7 @@ from .effect import (
     EffectPayloadRef,
     EffectState,
     EffectTargetRef,
+    ObservedEffectOrigin,
     PlannedEffectOrigin,
 )
 from .effect_authorization import (
@@ -847,6 +848,8 @@ class EffectSemanticGuard:
             return
         context = semantics.quarantine_context
         if context is None:
+            if isinstance(effect.origin, ObservedEffectOrigin):
+                return
             raise InvariantViolation(
                 "QUARANTINED reconciliation requires quarantine context"
             )
@@ -864,15 +867,16 @@ class EffectSemanticGuard:
         context_scope = context.observation_scope
         if not (
             context_scope.effect_id == effect.effect_id
-            and context_scope.observed_effect_version == effect.version
-            and context_scope.source_state is EffectState.QUARANTINED
             and context_scope.target_ref == scope.target_ref
             and context_scope.external_operation_ref == scope.external_operation_ref
             and context_scope.deduplication_ref == scope.deduplication_ref
             and context_scope.correlation_id == scope.correlation_id
+            and context_scope.observed_effect_version.value < effect.version.value
+            and context_scope.source_state is not EffectState.QUARANTINED
         ):
             raise InvariantViolation(
-                "Quarantine context does not resolve the exact observation scope"
+                "Quarantine context does not preserve compatible historical entry "
+                "provenance"
             )
         if context.reason is EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE:
             prior = semantics.prior_observation
@@ -880,13 +884,33 @@ class EffectSemanticGuard:
                 prior is None
                 or context.prior_observation_id != prior.observation_id
                 or prior.occurrence_status is not EffectOccurrenceStatus.UNCERTAIN
+                or context_scope.source_state
+                not in {
+                    EffectState.PLANNED,
+                    EffectState.SIMULATED,
+                    EffectState.PENDING_COMMIT,
+                }
+                or context_scope.observed_effect_version
+                != prior.observed_effect_version
+                or not self._is_compatible_historical_observation(effect, scope, prior)
                 or not can_follow_effect_observation(prior, semantics.observation)
             ):
                 raise InvariantViolation(
                     "Uncertain quarantine reconciliation requires compatible prior "
                     "observation"
                 )
-        elif context.original_commit_observation_id is None:
+        elif (
+            context.original_commit_observation_id is None
+            or (
+                context.reason is EffectQuarantineReason.POST_COMMIT_PROBLEM
+                and context_scope.source_state is not EffectState.COMMITTED
+            )
+            or (
+                context.reason
+                is EffectQuarantineReason.COMPENSATION_OR_REMEDIATION_UNCERTAINTY
+                and context_scope.source_state is not EffectState.COMPENSATING
+            )
+        ):
             raise InvariantViolation(
                 "Post-commit reconciliation requires original commit observation "
                 "context"
@@ -901,6 +925,27 @@ class EffectSemanticGuard:
             raise InvariantViolation(
                 "Prior incident record does not match quarantine reconciliation context"
             )
+
+    def _is_compatible_historical_observation(
+        self,
+        effect: Effect,
+        scope: EffectObservationScope,
+        observation: EffectObservationRecord,
+    ) -> bool:
+        """Bind immutable historical evidence without requiring current version."""
+        return (
+            observation.effect_id == effect.effect_id
+            and observation.target_ref == effect.target_ref
+            and (
+                effect.payload_ref is None
+                or observation.payload_ref is None
+                or observation.payload_ref == effect.payload_ref
+            )
+            and observation.external_operation_ref == scope.external_operation_ref
+            and observation.deduplication_ref == scope.deduplication_ref
+            and observation.correlation_id == scope.correlation_id
+            and observation.observed_effect_version.value <= effect.version.value
+        )
 
     def _validate_quarantine(
         self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
@@ -988,12 +1033,9 @@ class EffectSemanticGuard:
                 "Original commit observation requires occurrence_at"
             )
         if not (
-            original.effect_id == effect.effect_id
-            and original.target_ref == effect.target_ref
-            and original.external_operation_ref
-            == semantics.observation_scope.external_operation_ref
-            and original.deduplication_ref
-            == semantics.observation_scope.deduplication_ref
+            self._is_compatible_historical_observation(
+                effect, semantics.observation_scope, original
+            )
             and context.original_commit_observation_id == original.observation_id
         ):
             raise InvariantViolation(
