@@ -49,7 +49,7 @@ or new top-level domain concept is introduced.
 
 ## Intended Commit Scope
 
-- docs/exec-plans/active/stage-01-m7c3a-run-normal-semantic-guards-v1.md
+- docs/exec-plans/completed/stage-01-m7c3a-run-normal-semantic-guards-v1.md
 - src/symphony_k/domain/__init__.py
 - src/symphony_k/domain/run_semantics.py
 - src/symphony_k/domain/transition_engine.py

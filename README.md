@@ -2,21 +2,18 @@
 
 An outcome-oriented AI work orchestrator. See [AGENTS.md](AGENTS.md) for the
 repository documentation hierarchy and [ARCHITECTURE.md](ARCHITECTURE.md) for
-system boundaries. The current implementation includes Stage 1 M1 tooling,
-M2 shared value types, and M3 Objective/Task snapshots and structural lifecycle topology.
-M4 adds Run/Outcome snapshots, provenance and their structural lifecycle graphs.
-M5A adds the Evaluation core, immutable original result content and typed targets.
-M5B adds immutable versioned Evaluation conflict-set records, typed member/scope
-references, correlation identity and a pure append-only extension check.
-M5C1 adds immutable direct and exact conflict-set-linked arbitration decisions,
-explicit dispositions/effective judgements, decision provenance and a pure structural
-compatibility check.
-M5C2 adds immutable, evidence-backed Evaluation invalidation records and an exact
-snapshot structural compatibility check.
-M5C3 adds a pure derived effective-use view with explicit arbitration lineage,
-ambiguity detection, exact current conflict-version coverage, multi-conflict blocking,
-invalidation interaction, and lifecycle-aware eligibility.
-Authoritative transition execution remains deferred to the Transition Engine.
+system boundaries.
+
+## Current status
+
+Current roadmap stage: **Stage 1 — Domain Kernel**.
+
+- Architecture source: [Stage 1 Domain Kernel plan](docs/exec-plans/active/stage-01-domain-kernel.md)
+- Current completion/status source: [Stage 1 Completion Map](docs/exec-plans/active/stage-01-completion-v1.md)
+
+Stage 1 is still in progress. Its detailed implementation history belongs in
+Git history, durable Issues, task-specific Exec Plans, code, and tests rather
+than a manually duplicated issue-by-issue ledger in this README.
 
 ## Development
 
