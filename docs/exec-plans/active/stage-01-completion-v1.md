@@ -2,7 +2,7 @@
 
 **Version:** 1
 **Status:** Active
-**Scope:** GitHub Issue #53 — planning and governance reconciliation only
+**Scope:** GitHub Issues #53 and #61 — planning and governance reconciliation only
 
 ## Purpose and baseline
 
@@ -20,7 +20,7 @@ This plan is a status and sequencing artifact. It does not authorize one Run to
 implement the remaining Stage 1 work. Each future implementation boundary
 requires its own durable TaskSpec.
 
-## Current M7 coverage
+## Historical baseline M7 coverage
 
 At the baseline, canonical authoritative semantic execution covers 84 of 91
 non-creation edges:
@@ -66,8 +66,8 @@ canonical authoritative semantic execution covers 87 of 91 non-creation edges:
 | Effect | 15 / 19 |
 | **Total** | **87 / 91** |
 
-The accepted progress closes the normal Effect remediation family. Exactly four
-non-creation Effect edges remain:
+The accepted progress closes the normal Effect remediation family. At that
+historical acceptance boundary, exactly four non-creation Effect edges remained:
 
 ```text
 QUARANTINED -> PENDING_COMMIT
@@ -76,11 +76,31 @@ QUARANTINED -> COMPENSATING
 QUARANTINED -> COMPENSATED
 ```
 
-The likely bounded implementation sequence is first the normal remediation
-family (`COMMITTED -> ROLLED_BACK`, `COMMITTED -> COMPENSATING`, and
+The bounded implementation sequence at that time was first the normal
+remediation family (`COMMITTED -> ROLLED_BACK`, `COMMITTED -> COMPENSATING`, and
 `COMPENSATING -> COMPENSATED`), then the quarantine remediation and re-entry
-family. These are planning boundaries only; no future GitHub Issue numbers are
-reserved here.
+family. This paragraph preserves historical sequencing context; those four
+quarantine edges are no longer current unresolved work.
+
+## Accepted non-creation completion
+
+Through commit `9278f4a21a180e258ef2f302bf66c47977f9c860`
+(`fix(domain): preserve quarantine resume completion lineage`), independent
+Human Review accepted all 91 Stage 1 non-creation lifecycle edges:
+
+| Entity | Covered / accepted non-creation edges |
+| --- | ---: |
+| Objective | 17 / 17 |
+| Task | 16 / 16 |
+| Run | 18 / 18 |
+| Outcome | 11 / 11 |
+| Evaluation | 10 / 10 |
+| Effect | 19 / 19 |
+| **Total** | **91 / 91** |
+
+All non-creation lifecycle semantics are now complete and accepted. The four
+quarantine edges listed above remain only as history of the earlier 87 / 91
+boundary; they are not current unresolved work.
 
 ## Unresolved authoritative creation work
 
@@ -111,13 +131,9 @@ without fabricating planning, authorization, or dispatch history.
 ## Remaining Stage 1 order
 
 ```text
-M7 Effect normal remediation
+91/91 non-creation semantics accepted
     ->
-M7 Effect quarantine remediation/re-entry
-    ->
-91/91 non-creation semantics
-    ->
-M7 authoritative creation closure
+M7 authoritative creation architecture/implementation
     ->
 M7 integrated 99-edge acceptance
     ->
@@ -145,7 +161,15 @@ the constitutional restrictions alongside the completed lifecycle work.
 
 ## Exit boundary
 
-Stage 1 is not complete, and M7 is not complete. M8 and M9 are not complete.
+```text
+M7 non-creation semantics = complete and accepted
+M7 authoritative creation = incomplete
+M7 integrated 99-edge acceptance = incomplete
+Stage 1 = incomplete
+```
+
+M7 remains incomplete because the eight authoritative creation edges listed
+above remain unresolved. M8 and M9 are not complete.
 The required human Stage 1 Exit Review remains the final acceptance boundary;
 Stage 2 is entirely out of scope until that review accepts Stage 1.
 
