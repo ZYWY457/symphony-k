@@ -1,8 +1,8 @@
-"""Canonical pure semantic guards for the first three Effect preparation edges.
+"""Canonical pure semantic guards for accepted Effect lifecycle edges.
 
 These types represent immutable supporting provenance for the exact Effect
-attempt. They do not load records, run validators, authorize dispatch, create
-observations, or cause an external action.
+attempt. They do not load records, run validators, grant lifecycle authority,
+dispatch, remediate, create observations, or cause an external action.
 """
 
 from dataclasses import dataclass
@@ -46,7 +46,13 @@ from .effect_observation import (
     can_attach_effect_observation,
     can_follow_effect_observation,
 )
-from .effect_remediation import EffectCompensationPlanRecord
+from .effect_remediation import (
+    EffectCompensationCompletionRecord,
+    EffectCompensationPlanRecord,
+    EffectRollbackRecord,
+    can_attach_effect_rollback_record,
+    can_complete_effect_compensation_plan,
+)
 from .errors import InvalidDomainValue, InvariantViolation
 from .ids import (
     CorrelationId,
@@ -58,6 +64,7 @@ from .ids import (
     EffectRemediationReadinessId,
     EffectSimulationBypassDecisionId,
     EffectSimulationRecordId,
+    EventId,
 )
 from .time import Timestamp
 from .version import EntityVersion
@@ -295,6 +302,181 @@ class EffectRemediationReadinessRecord:
             raise InvalidDomainValue("recorded_at must be a Timestamp")
 
 
+class EffectRemediationKind(Enum):
+    """Closed remedy kinds; rollback and compensation are never interchangeable."""
+
+    ROLLBACK = "ROLLBACK"
+    COMPENSATION = "COMPENSATION"
+
+
+class EffectRemediationAuthorizationStatus(Enum):
+    """Result of an already-made remediation authorization decision."""
+
+    AUTHORIZED = "AUTHORIZED"
+    DENIED = "DENIED"
+    UNRESOLVED = "UNRESOLVED"
+
+
+@dataclass(frozen=True, slots=True)
+class EffectRemediationAuthorizationRef:
+    """Opaque durable identity of a remediation authorization decision."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        _require_text(self.value, "Effect remediation authorization reference")
+
+
+@dataclass(frozen=True, slots=True)
+class EffectRemediationAuthorizationScope:
+    """Exact restoration operation or compensation plan authorized for one Effect."""
+
+    effect_id: EffectId
+    authorized_effect_version: EntityVersion
+    original_commit_observation_id: EffectObservationId
+    remediation_kind: EffectRemediationKind
+    correlation_id: CorrelationId
+    restoration_operation_ref: EffectExternalOperationRef | None = None
+    compensation_plan_id: EffectCompensationPlanId | None = None
+    compensating_effect_ids: frozenset[EffectId] = frozenset()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.effect_id, EffectId):
+            raise InvalidDomainValue("effect_id must be an EffectId")
+        if not isinstance(self.authorized_effect_version, EntityVersion):
+            raise InvalidDomainValue(
+                "authorized_effect_version must be an EntityVersion"
+            )
+        if not isinstance(self.original_commit_observation_id, EffectObservationId):
+            raise InvalidDomainValue(
+                "original_commit_observation_id must be an EffectObservationId"
+            )
+        if not isinstance(self.remediation_kind, EffectRemediationKind):
+            raise InvalidDomainValue(
+                "remediation_kind must be an EffectRemediationKind"
+            )
+        if not isinstance(self.correlation_id, CorrelationId):
+            raise InvalidDomainValue("correlation_id must be a CorrelationId")
+        if not isinstance(self.compensating_effect_ids, frozenset) or any(
+            not isinstance(effect_id, EffectId)
+            for effect_id in self.compensating_effect_ids
+        ):
+            raise InvalidDomainValue(
+                "compensating_effect_ids must be a frozenset of EffectId values"
+            )
+        if self.remediation_kind is EffectRemediationKind.ROLLBACK:
+            if not isinstance(
+                self.restoration_operation_ref, EffectExternalOperationRef
+            ):
+                raise InvalidDomainValue(
+                    "Rollback authorization requires a restoration operation"
+                )
+            if self.compensation_plan_id is not None or self.compensating_effect_ids:
+                raise InvalidDomainValue(
+                    "Rollback authorization must not contain compensation scope"
+                )
+            return
+        if self.restoration_operation_ref is not None:
+            raise InvalidDomainValue(
+                "Compensation authorization must not contain restoration scope"
+            )
+        if not isinstance(self.compensation_plan_id, EffectCompensationPlanId):
+            raise InvalidDomainValue(
+                "Compensation authorization requires a compensation plan identity"
+            )
+        if not self.compensating_effect_ids:
+            raise InvalidDomainValue(
+                "Compensation authorization requires linked compensating Effects"
+            )
+        if self.effect_id in self.compensating_effect_ids:
+            raise InvalidDomainValue(
+                "An Effect must not authorize itself as compensation"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class EffectRemediationAuthorizationDecision:
+    """Policy authorization for an exact remedy, never M7 lifecycle authority."""
+
+    decision_ref: EffectRemediationAuthorizationRef
+    scope: EffectRemediationAuthorizationScope
+    status: EffectRemediationAuthorizationStatus
+    decided_by: ActorIdentity
+    evidence_refs: frozenset[EvidenceRef]
+    human_authorization_required: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision_ref, EffectRemediationAuthorizationRef):
+            raise InvalidDomainValue(
+                "decision_ref must be an EffectRemediationAuthorizationRef"
+            )
+        if not isinstance(self.scope, EffectRemediationAuthorizationScope):
+            raise InvalidDomainValue(
+                "scope must be an EffectRemediationAuthorizationScope"
+            )
+        if not isinstance(self.status, EffectRemediationAuthorizationStatus):
+            raise InvalidDomainValue(
+                "status must be an EffectRemediationAuthorizationStatus"
+            )
+        if not isinstance(self.decided_by, ActorIdentity):
+            raise InvalidDomainValue("decided_by must be an ActorIdentity")
+        _require_evidence(self.evidence_refs)
+        if not isinstance(self.human_authorization_required, bool):
+            raise InvalidDomainValue("human_authorization_required must be a bool")
+
+
+@dataclass(frozen=True, slots=True)
+class EffectRemediationHumanAuthorization:
+    """Affirmative human authorization exact-bound to one remediation decision."""
+
+    authorization_ref: EffectRemediationAuthorizationRef
+    scope: EffectRemediationAuthorizationScope
+    policy_decision_ref: EffectRemediationAuthorizationRef
+    affirmative: bool
+    authorized_by: ActorIdentity
+    evidence_refs: frozenset[EvidenceRef]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.authorization_ref, EffectRemediationAuthorizationRef):
+            raise InvalidDomainValue(
+                "authorization_ref must be an EffectRemediationAuthorizationRef"
+            )
+        if not isinstance(self.scope, EffectRemediationAuthorizationScope):
+            raise InvalidDomainValue(
+                "scope must be an EffectRemediationAuthorizationScope"
+            )
+        if not isinstance(self.policy_decision_ref, EffectRemediationAuthorizationRef):
+            raise InvalidDomainValue(
+                "policy_decision_ref must be an EffectRemediationAuthorizationRef"
+            )
+        if not isinstance(self.affirmative, bool):
+            raise InvalidDomainValue("affirmative must be a bool")
+        if not isinstance(self.authorized_by, ActorIdentity):
+            raise InvalidDomainValue("authorized_by must be an ActorIdentity")
+        _require_evidence(self.evidence_refs)
+
+
+@dataclass(frozen=True, slots=True)
+class EffectRemediationAuthorizationSemantics:
+    """Complete authorization input for an exact remedy operation or plan."""
+
+    policy_decision: EffectRemediationAuthorizationDecision
+    human_authorization: EffectRemediationHumanAuthorization | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.policy_decision, EffectRemediationAuthorizationDecision):
+            raise InvalidDomainValue(
+                "policy_decision must be an EffectRemediationAuthorizationDecision"
+            )
+        if self.human_authorization is not None and not isinstance(
+            self.human_authorization, EffectRemediationHumanAuthorization
+        ):
+            raise InvalidDomainValue(
+                "human_authorization must be an "
+                "EffectRemediationHumanAuthorization or None"
+            )
+
+
 class EffectSimulationBypassStatus(Enum):
     """Closed decision outcome; only accepted bypasses permit the direct edge."""
 
@@ -496,11 +678,86 @@ class EffectQuarantineSemantics:
             )
 
 
+@dataclass(frozen=True, slots=True)
+class EffectRollbackSemantics:
+    """Restoration evidence and exact authorization for a true rollback."""
+
+    original_commit_observation: EffectObservationRecord
+    rollback_record: EffectRollbackRecord
+    authorization: EffectRemediationAuthorizationSemantics
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.original_commit_observation, EffectObservationRecord):
+            raise InvalidDomainValue(
+                "original_commit_observation must be an EffectObservationRecord"
+            )
+        if not isinstance(self.rollback_record, EffectRollbackRecord):
+            raise InvalidDomainValue("rollback_record must be an EffectRollbackRecord")
+        if not isinstance(self.authorization, EffectRemediationAuthorizationSemantics):
+            raise InvalidDomainValue(
+                "authorization must be an EffectRemediationAuthorizationSemantics"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class EffectCompensationStartSemantics:
+    """Exact authorized plan for entering the COMPENSATING disposition."""
+
+    original_commit_observation: EffectObservationRecord
+    compensation_plan: EffectCompensationPlanRecord
+    authorization: EffectRemediationAuthorizationSemantics
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.original_commit_observation, EffectObservationRecord):
+            raise InvalidDomainValue(
+                "original_commit_observation must be an EffectObservationRecord"
+            )
+        if not isinstance(self.compensation_plan, EffectCompensationPlanRecord):
+            raise InvalidDomainValue(
+                "compensation_plan must be an EffectCompensationPlanRecord"
+            )
+        if not isinstance(self.authorization, EffectRemediationAuthorizationSemantics):
+            raise InvalidDomainValue(
+                "authorization must be an EffectRemediationAuthorizationSemantics"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class EffectCompensationCompletionSemantics:
+    """Independent completion evidence for the exact started compensation plan."""
+
+    original_commit_observation: EffectObservationRecord
+    compensation_plan: EffectCompensationPlanRecord
+    completion_record: EffectCompensationCompletionRecord
+    authorization: EffectRemediationAuthorizationSemantics
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.original_commit_observation, EffectObservationRecord):
+            raise InvalidDomainValue(
+                "original_commit_observation must be an EffectObservationRecord"
+            )
+        if not isinstance(self.compensation_plan, EffectCompensationPlanRecord):
+            raise InvalidDomainValue(
+                "compensation_plan must be an EffectCompensationPlanRecord"
+            )
+        if not isinstance(self.completion_record, EffectCompensationCompletionRecord):
+            raise InvalidDomainValue(
+                "completion_record must be an EffectCompensationCompletionRecord"
+            )
+        if not isinstance(self.authorization, EffectRemediationAuthorizationSemantics):
+            raise InvalidDomainValue(
+                "authorization must be an EffectRemediationAuthorizationSemantics"
+            )
+
+
 type EffectSemanticInput = (
     EffectSimulationSemantics
     | EffectPendingCommitSemantics
     | EffectConfirmedOccurrenceSemantics
     | EffectQuarantineSemantics
+    | EffectRollbackSemantics
+    | EffectCompensationStartSemantics
+    | EffectCompensationCompletionSemantics
 )
 
 
@@ -541,6 +798,15 @@ _INPUT_TYPE_BY_EDGE: Final[
             EffectState.COMPENSATING,
             EffectState.QUARANTINED,
         ): EffectQuarantineSemantics,
+        (EffectState.COMMITTED, EffectState.ROLLED_BACK): EffectRollbackSemantics,
+        (
+            EffectState.COMMITTED,
+            EffectState.COMPENSATING,
+        ): EffectCompensationStartSemantics,
+        (
+            EffectState.COMPENSATING,
+            EffectState.COMPENSATED,
+        ): EffectCompensationCompletionSemantics,
     }
 )
 
@@ -637,6 +903,15 @@ class EffectSemanticGuard:
             return
         if isinstance(self.semantic_input, EffectConfirmedOccurrenceSemantics):
             self._validate_confirmed_occurrence(effect, controller, correlation_id)
+            return
+        if isinstance(self.semantic_input, EffectRollbackSemantics):
+            self._validate_rollback(effect, controller, correlation_id)
+            return
+        if isinstance(self.semantic_input, EffectCompensationStartSemantics):
+            self._validate_compensation_start(effect, controller, correlation_id)
+            return
+        if isinstance(self.semantic_input, EffectCompensationCompletionSemantics):
+            self._validate_compensation_completion(effect, controller, correlation_id)
             return
         self._validate_quarantine(effect, controller, correlation_id)
 
@@ -747,6 +1022,341 @@ class EffectSemanticGuard:
                     "Bypass decision maker must be separate from preparer, verifier, "
                     "and Effect controller"
                 )
+
+    def _validate_original_commit_observation(
+        self,
+        effect: Effect,
+        observation: EffectObservationRecord,
+        expected_observation_id: EffectObservationId,
+    ) -> None:
+        if not (
+            observation.observation_id == expected_observation_id
+            and observation.effect_id == effect.effect_id
+            and observation.occurrence_status is EffectOccurrenceStatus.CONFIRMED
+            and observation.occurrence_at is not None
+            and observation.target_ref == effect.target_ref
+            and (
+                effect.payload_ref is None
+                or observation.payload_ref is None
+                or observation.payload_ref == effect.payload_ref
+            )
+            and observation.observed_effect_version.value <= effect.version.value
+        ):
+            raise InvariantViolation(
+                "Original commit observation is not compatible historical provenance"
+            )
+        if (
+            isinstance(effect.origin, ObservedEffectOrigin)
+            and observation.external_operation_ref
+            != effect.origin.external_operation_ref
+        ):
+            raise InvariantViolation(
+                "Original commit observation does not match observed Effect origin"
+            )
+        if observation.observed_by.actor_type is ActorType.WORKER:
+            raise InvariantViolation(
+                "Worker-only observation cannot establish original commit"
+            )
+
+    def _validate_remediation_authorization(
+        self,
+        authorization: EffectRemediationAuthorizationSemantics,
+        expected_scope: EffectRemediationAuthorizationScope,
+        controller: ActorIdentity,
+    ) -> None:
+        policy = authorization.policy_decision
+        if not (
+            policy.status is EffectRemediationAuthorizationStatus.AUTHORIZED
+            and policy.decided_by.actor_type is ActorType.POLICY_ENGINE
+            and policy.scope == expected_scope
+            and policy.decided_by.actor_id != controller.actor_id
+        ):
+            raise InvariantViolation(
+                "Remediation policy authorization is not exact, authorized, and "
+                "independent"
+            )
+        human = authorization.human_authorization
+        if policy.human_authorization_required and human is None:
+            raise InvariantViolation(
+                "Required human remediation authorization is missing"
+            )
+        if human is None:
+            return
+        if not (
+            human.affirmative
+            and human.authorized_by.actor_type is ActorType.HUMAN_OPERATOR
+            and human.scope == expected_scope
+            and human.policy_decision_ref == policy.decision_ref
+            and human.authorized_by.actor_id != controller.actor_id
+            and human.authorized_by.actor_id != policy.decided_by.actor_id
+        ):
+            raise InvariantViolation(
+                "Human remediation authorization is not affirmative, exact, and "
+                "independent"
+            )
+
+    def _require_independent_remediation_verifier(
+        self,
+        verifier: ActorIdentity,
+        effect: Effect,
+        controller: ActorIdentity,
+        authorization: EffectRemediationAuthorizationSemantics,
+        *additional_principals: ActorIdentity,
+    ) -> None:
+        policy = authorization.policy_decision
+        human = authorization.human_authorization
+        excluded_actor_ids = {
+            controller.actor_id,
+            policy.decided_by.actor_id,
+            *(principal.actor_id for principal in additional_principals),
+        }
+        if human is not None:
+            excluded_actor_ids.add(human.authorized_by.actor_id)
+        if isinstance(effect.origin, PlannedEffectOrigin):
+            excluded_actor_ids.add(effect.origin.proposed_by.actor_id)
+        if (
+            verifier.actor_type is not ActorType.EVALUATOR
+            or verifier.actor_id in excluded_actor_ids
+        ):
+            raise InvariantViolation(
+                "Remediation verification requires an independent EVALUATOR principal"
+            )
+
+    def _validate_rollback(
+        self,
+        effect: Effect,
+        controller: ActorIdentity,
+        correlation_id: CorrelationId,
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectRollbackSemantics)
+        rollback = semantics.rollback_record
+        if not (
+            can_attach_effect_rollback_record(effect, rollback)
+            and rollback.correlation_id == correlation_id
+            and rollback.recorded_by.actor_id == controller.actor_id
+        ):
+            raise InvariantViolation(
+                "Rollback record does not match the exact Effect restoration attempt"
+            )
+        self._validate_original_commit_observation(
+            effect,
+            semantics.original_commit_observation,
+            rollback.original_commit_observation_id,
+        )
+        expected_scope = EffectRemediationAuthorizationScope(
+            effect_id=effect.effect_id,
+            authorized_effect_version=effect.version,
+            original_commit_observation_id=rollback.original_commit_observation_id,
+            remediation_kind=EffectRemediationKind.ROLLBACK,
+            correlation_id=correlation_id,
+            restoration_operation_ref=rollback.restoration_operation_ref,
+        )
+        self._validate_remediation_authorization(
+            semantics.authorization, expected_scope, controller
+        )
+        self._require_independent_remediation_verifier(
+            rollback.verified_by, effect, controller, semantics.authorization
+        )
+
+    def _validate_compensation_plan(
+        self,
+        effect: Effect,
+        plan: EffectCompensationPlanRecord,
+        original_commit_observation: EffectObservationRecord,
+        correlation_id: CorrelationId,
+    ) -> EffectRemediationAuthorizationScope:
+        if not (
+            plan.effect_id == effect.effect_id
+            and plan.correlation_id == correlation_id
+            and plan.original_commit_observation_id
+            == original_commit_observation.observation_id
+        ):
+            raise InvariantViolation(
+                "Compensation plan does not match the exact Effect and correlation"
+            )
+        self._validate_original_commit_observation(
+            effect,
+            original_commit_observation,
+            plan.original_commit_observation_id,
+        )
+        return EffectRemediationAuthorizationScope(
+            effect_id=effect.effect_id,
+            authorized_effect_version=plan.observed_effect_version,
+            original_commit_observation_id=plan.original_commit_observation_id,
+            remediation_kind=EffectRemediationKind.COMPENSATION,
+            correlation_id=correlation_id,
+            compensation_plan_id=plan.plan_id,
+            compensating_effect_ids=plan.compensating_effect_ids,
+        )
+
+    def _validate_compensation_start(
+        self,
+        effect: Effect,
+        controller: ActorIdentity,
+        correlation_id: CorrelationId,
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectCompensationStartSemantics)
+        plan = semantics.compensation_plan
+        if not (
+            plan.observed_effect_version == effect.version
+            and plan.recorded_by.actor_id == controller.actor_id
+        ):
+            raise InvariantViolation(
+                "Compensation plan does not match the exact COMMITTED snapshot"
+            )
+        expected_scope = self._validate_compensation_plan(
+            effect, plan, semantics.original_commit_observation, correlation_id
+        )
+        self._validate_remediation_authorization(
+            semantics.authorization, expected_scope, controller
+        )
+        authorization_principals = {
+            semantics.authorization.policy_decision.decided_by.actor_id,
+            controller.actor_id,
+        }
+        human = semantics.authorization.human_authorization
+        if human is not None:
+            authorization_principals.add(human.authorized_by.actor_id)
+        if plan.planned_by.actor_id in authorization_principals:
+            raise InvariantViolation(
+                "Compensation planner must be separate from authorizers and controller"
+            )
+
+    def _validate_compensation_completion(
+        self,
+        effect: Effect,
+        controller: ActorIdentity,
+        correlation_id: CorrelationId,
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectCompensationCompletionSemantics)
+        plan = semantics.compensation_plan
+        completion = semantics.completion_record
+        if plan.observed_effect_version.next() != effect.version:
+            raise InvariantViolation(
+                "Compensation plan does not establish the current COMPENSATING version"
+            )
+        expected_scope = self._validate_compensation_plan(
+            effect, plan, semantics.original_commit_observation, correlation_id
+        )
+        self._validate_remediation_authorization(
+            semantics.authorization, expected_scope, controller
+        )
+        if not (
+            can_complete_effect_compensation_plan(plan, completion)
+            and completion.observed_effect_version == effect.version
+            and completion.original_commit_observation_id
+            == semantics.original_commit_observation.observation_id
+            and completion.correlation_id == correlation_id
+            and completion.recorded_by.actor_id == controller.actor_id
+        ):
+            raise InvariantViolation(
+                "Compensation completion does not exact-bind the current plan attempt"
+            )
+        self._require_independent_remediation_verifier(
+            completion.verified_by,
+            effect,
+            controller,
+            semantics.authorization,
+            plan.planned_by,
+        )
+
+    @staticmethod
+    def _compensating_effect_ids_annotation(
+        plan: EffectCompensationPlanRecord,
+    ) -> str:
+        return ",".join(
+            sorted(str(effect_id.value) for effect_id in plan.compensating_effect_ids)
+        )
+
+    def compensation_start_annotations(
+        self, start_event_id: EventId
+    ) -> frozenset[tuple[str, str]]:
+        """Return exact stable lineage shared by start and completion events."""
+        if not isinstance(start_event_id, EventId):
+            raise InvalidDomainValue("start_event_id must be an EventId")
+        semantics = self.semantic_input
+        if isinstance(semantics, EffectCompensationStartSemantics):
+            plan = semantics.compensation_plan
+            authorization = semantics.authorization
+        elif isinstance(semantics, EffectCompensationCompletionSemantics):
+            plan = semantics.compensation_plan
+            authorization = semantics.authorization
+        else:
+            raise InvalidDomainValue(
+                "Compensation start annotations require compensation semantics"
+            )
+        return frozenset(
+            {
+                ("compensation_start_event_id", str(start_event_id.value)),
+                ("compensation_plan_id", str(plan.plan_id.value)),
+                (
+                    "compensating_effect_ids",
+                    self._compensating_effect_ids_annotation(plan),
+                ),
+                (
+                    "original_commit_observation_id",
+                    str(plan.original_commit_observation_id.value),
+                ),
+                (
+                    "remediation_authorization_ref",
+                    authorization.policy_decision.decision_ref.value,
+                ),
+            }
+        )
+
+    def remediation_event_annotations(
+        self, compensation_start_event_id: EventId | None = None
+    ) -> frozenset[tuple[str, str]]:
+        """Return narrow remediation provenance for the lifecycle event."""
+        semantics = self.semantic_input
+        if isinstance(semantics, EffectRollbackSemantics):
+            return frozenset(
+                {
+                    (
+                        "rollback_record_id",
+                        str(semantics.rollback_record.rollback_record_id.value),
+                    ),
+                    (
+                        "original_commit_observation_id",
+                        str(semantics.original_commit_observation.observation_id.value),
+                    ),
+                    (
+                        "remediation_authorization_ref",
+                        semantics.authorization.policy_decision.decision_ref.value,
+                    ),
+                }
+            )
+        if compensation_start_event_id is None:
+            raise InvalidDomainValue(
+                "Compensation event annotations require start event identity"
+            )
+        annotations = self.compensation_start_annotations(compensation_start_event_id)
+        if isinstance(semantics, EffectCompensationStartSemantics):
+            return annotations
+        if isinstance(semantics, EffectCompensationCompletionSemantics):
+            return annotations | frozenset(
+                {
+                    (
+                        "compensation_completion_id",
+                        str(semantics.completion_record.completion_id.value),
+                    )
+                }
+            )
+        raise InvalidDomainValue(
+            "Remediation annotations require rollback or compensation semantics"
+        )
+
+    def validated_completion_verifier(self) -> ActorIdentity:
+        """Expose the already-validated completion verifier for lineage checks."""
+        semantics = self.semantic_input
+        if not isinstance(semantics, EffectCompensationCompletionSemantics):
+            raise InvalidDomainValue(
+                "Completion verifier requires compensation-completion semantics"
+            )
+        return semantics.completion_record.verified_by
 
     def _validate_observation_scope(
         self,

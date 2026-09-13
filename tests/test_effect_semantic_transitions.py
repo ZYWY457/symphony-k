@@ -363,7 +363,7 @@ def test_simulation_requires_provenance_and_separate_preparer() -> None:
         )
 
 
-def test_pending_commit_requires_guard_and_remaining_effect_edges_are_denied() -> None:
+def test_pending_commit_requires_guard_and_four_effect_edges_remain_denied() -> None:
     current = effect()
     direct = request(current, EffectState.PENDING_COMMIT)
     with pytest.raises(InvariantViolation, match="semantic guard is required"):
@@ -379,7 +379,10 @@ def test_pending_commit_requires_guard_and_remaining_effect_edges_are_denied() -
         (EffectState.PLANNED, EffectState.QUARANTINED),
         (EffectState.SIMULATED, EffectState.QUARANTINED),
         (EffectState.PENDING_COMMIT, EffectState.QUARANTINED),
+        (EffectState.COMMITTED, EffectState.ROLLED_BACK),
+        (EffectState.COMMITTED, EffectState.COMPENSATING),
         (EffectState.COMMITTED, EffectState.QUARANTINED),
+        (EffectState.COMPENSATING, EffectState.COMPENSATED),
         (EffectState.COMPENSATING, EffectState.QUARANTINED),
     }
     remaining = {
@@ -397,7 +400,8 @@ def test_pending_commit_requires_guard_and_remaining_effect_edges_are_denied() -
         )
         == 19
     )
-    assert len(remaining) == 7
+    assert len(canonical_edges) == 15
+    assert len(remaining) == 4
     for source, target in remaining:
         snapshot = effect(source)
         unimplemented = request(snapshot, target)

@@ -701,7 +701,7 @@ def test_pre_commit_quarantine_rejects_confirmed_or_disproved_occurrence() -> No
             )
 
 
-def test_exact_twelve_edges_are_canonical_and_seven_remain_denied() -> None:
+def test_exact_fifteen_edges_are_canonical_and_four_remain_denied() -> None:
     canonical = {
         (EffectState.PLANNED, EffectState.SIMULATED),
         (EffectState.PLANNED, EffectState.PENDING_COMMIT),
@@ -713,7 +713,10 @@ def test_exact_twelve_edges_are_canonical_and_seven_remain_denied() -> None:
         (EffectState.PLANNED, EffectState.QUARANTINED),
         (EffectState.SIMULATED, EffectState.QUARANTINED),
         (EffectState.PENDING_COMMIT, EffectState.QUARANTINED),
+        (EffectState.COMMITTED, EffectState.ROLLED_BACK),
+        (EffectState.COMMITTED, EffectState.COMPENSATING),
         (EffectState.COMMITTED, EffectState.QUARANTINED),
+        (EffectState.COMPENSATING, EffectState.COMPENSATED),
         (EffectState.COMPENSATING, EffectState.QUARANTINED),
     }
     structural = {
@@ -723,11 +726,8 @@ def test_exact_twelve_edges_are_canonical_and_seven_remain_denied() -> None:
         if can_effect_transition(source, target)
     }
     assert len(structural) == 19
-    assert len(canonical) == 12
+    assert len(canonical) == 15
     assert structural - canonical == {
-        (EffectState.COMMITTED, EffectState.ROLLED_BACK),
-        (EffectState.COMMITTED, EffectState.COMPENSATING),
-        (EffectState.COMPENSATING, EffectState.COMPENSATED),
         (EffectState.QUARANTINED, EffectState.PENDING_COMMIT),
         (EffectState.QUARANTINED, EffectState.ROLLED_BACK),
         (EffectState.QUARANTINED, EffectState.COMPENSATING),

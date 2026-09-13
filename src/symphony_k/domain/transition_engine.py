@@ -3,8 +3,8 @@
 M7A validates caller-supplied versions and canonical structural topology. M7B1
 requires a separate exact-bound authority decision. M7B2 additionally requires
 the decision actor's type to be canonically eligible for the exact lifecycle edge.
-M7C1–M7C4A require the canonical Objective/Task/Run/Outcome semantic guard before
-ordinary additional guards, then return a new snapshot and one DomainEvent.
+M7C requires the applicable canonical entity semantic guard before ordinary
+additional guards, then returns a new snapshot and one DomainEvent.
 Eligibility is not a scoped grant. This module performs no loading, persistence,
 transaction, or external action.
 """
@@ -679,6 +679,7 @@ class TransitionContext:
     outcome_semantic_guard: OutcomeSemanticGuard | None = None
     evaluation_semantic_guard: EvaluationSemanticGuard | None = None
     effect_semantic_guard: EffectSemanticGuard | None = None
+    effect_compensation_start_event: DomainEvent | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
@@ -726,6 +727,12 @@ class TransitionContext:
         ):
             raise InvalidDomainValue(
                 "effect_semantic_guard must be an EffectSemanticGuard or None"
+            )
+        if self.effect_compensation_start_event is not None and not isinstance(
+            self.effect_compensation_start_event, DomainEvent
+        ):
+            raise InvalidDomainValue(
+                "effect_compensation_start_event must be a DomainEvent or None"
             )
 
 
@@ -939,7 +946,10 @@ def transition_entity(
             (EffectState.PLANNED, EffectState.QUARANTINED),
             (EffectState.SIMULATED, EffectState.QUARANTINED),
             (EffectState.PENDING_COMMIT, EffectState.QUARANTINED),
+            (EffectState.COMMITTED, EffectState.ROLLED_BACK),
+            (EffectState.COMMITTED, EffectState.COMPENSATING),
             (EffectState.COMMITTED, EffectState.QUARANTINED),
+            (EffectState.COMPENSATING, EffectState.COMPENSATED),
             (EffectState.COMPENSATING, EffectState.QUARANTINED),
         }
         if not scoped_effect_edge:
@@ -956,6 +966,40 @@ def transition_entity(
             request.actor,
             request.correlation_id,
         )
+        start_event = context.effect_compensation_start_event
+        if request.target_state is EffectState.COMPENSATED:
+            if start_event is None:
+                raise InvariantViolation(
+                    "Compensation completion requires its authoritative start event"
+                )
+            if not (
+                start_event.event_type is DomainEventType.EFFECT_COMPENSATION_STARTED
+                and start_event.entity_type is DomainEntityType.EFFECT
+                and start_event.entity_id == entity.effect_id
+                and start_event.entity_version == entity.version
+                and start_event.actor.actor_type is ActorType.EFFECT_CONTROLLER
+                and start_event.correlation_id == request.correlation_id
+                and start_event.metadata.prior_state is EffectState.COMMITTED
+                and start_event.metadata.new_state is EffectState.COMPENSATING
+                and start_event.metadata.annotations
+                == effect_guard.compensation_start_annotations(start_event.event_id)
+            ):
+                raise InvariantViolation(
+                    "Compensation start event does not exact-bind the current plan "
+                    "lineage"
+                )
+            if (
+                effect_guard.validated_completion_verifier().actor_id
+                == start_event.actor.actor_id
+            ):
+                raise InvariantViolation(
+                    "Completion verifier must be separate from compensation-start "
+                    "controller"
+                )
+        elif start_event is not None:
+            raise InvariantViolation(
+                "Compensation start event is valid only for completion semantics"
+            )
 
     for guard in context.guards:
         guard.validate(entity, request)
@@ -1005,6 +1049,24 @@ def transition_entity(
         assert evaluation_guard is not None
         updated = _replace_entity_state(entity, request.target_state, next_version)
         annotations = evaluation_guard.event_annotations()
+    elif isinstance(entity, Effect) and request.target_state in {
+        EffectState.ROLLED_BACK,
+        EffectState.COMPENSATING,
+        EffectState.COMPENSATED,
+    }:
+        effect_guard = context.effect_semantic_guard
+        assert effect_guard is not None
+        updated = _replace_entity_state(entity, request.target_state, next_version)
+        if request.target_state is EffectState.COMPENSATING:
+            annotations = effect_guard.remediation_event_annotations(request.event_id)
+        elif request.target_state is EffectState.COMPENSATED:
+            start_event = context.effect_compensation_start_event
+            assert start_event is not None
+            annotations = effect_guard.remediation_event_annotations(
+                start_event.event_id
+            )
+        else:
+            annotations = effect_guard.remediation_event_annotations()
     else:
         updated = _replace_entity_state(entity, request.target_state, next_version)
     event = DomainEvent(
