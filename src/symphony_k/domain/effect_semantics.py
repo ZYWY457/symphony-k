@@ -847,6 +847,7 @@ class EffectReconciliationRecord:
 @dataclass(frozen=True, slots=True)
 class EffectQuarantinePendingCommitSemantics:
     quarantine_context: EffectQuarantineContext
+    uncertain_observation: EffectObservationRecord
     disproved_observation: EffectObservationRecord
     reconciliation: EffectReconciliationRecord
     pending_commit: EffectPendingCommitSemantics
@@ -1098,8 +1099,15 @@ class EffectSemanticGuard:
             effect.state is EffectState.QUARANTINED
             and entry.effect_id == effect.effect_id
             and entry.target_state is EffectState.QUARANTINED
-            and entry.source_state is not EffectState.QUARANTINED
-            and entry.observed_effect_version.value < effect.version.value
+            and entry.source_state
+            in {
+                EffectState.PLANNED,
+                EffectState.SIMULATED,
+                EffectState.PENDING_COMMIT,
+                EffectState.COMMITTED,
+                EffectState.COMPENSATING,
+            }
+            and entry.observed_effect_version.next() == effect.version
             and entry.target_ref == effect.target_ref
             and entry.correlation_id == correlation_id
             and reconciliation.effect_id == effect.effect_id
@@ -1109,6 +1117,11 @@ class EffectSemanticGuard:
             and reconciliation.recorded_by.actor_id == controller.actor_id
             and reconciliation.reconciled_by.actor_type is ActorType.EVALUATOR
             and reconciliation.reconciled_by.actor_id != controller.actor_id
+            and not (
+                isinstance(effect.origin, PlannedEffectOrigin)
+                and reconciliation.reconciled_by.actor_id
+                == effect.origin.proposed_by.actor_id
+            )
         ):
             raise InvariantViolation(
                 "Quarantine exit must bind its entry and independent reconciliation"
@@ -1138,6 +1151,20 @@ class EffectSemanticGuard:
             and semantics.disproved_observation.occurrence_status
             is EffectOccurrenceStatus.DISPROVED
             and semantics.disproved_observation.occurrence_at is None
+            and semantics.quarantine_context.prior_observation_id
+            == semantics.uncertain_observation.observation_id
+            and semantics.uncertain_observation.occurrence_status
+            is EffectOccurrenceStatus.UNCERTAIN
+            and semantics.disproved_observation.prior_observation_id
+            == semantics.uncertain_observation.observation_id
+            and can_follow_effect_observation(
+                semantics.uncertain_observation, semantics.disproved_observation
+            )
+            and self._is_compatible_historical_observation(
+                effect,
+                semantics.quarantine_context.observation_scope,
+                semantics.uncertain_observation,
+            )
             and self._is_compatible_historical_observation(
                 effect,
                 semantics.quarantine_context.observation_scope,
@@ -1218,6 +1245,18 @@ class EffectSemanticGuard:
             raise InvariantViolation(
                 "Compensation resume must preserve its prior plan and start lineage"
             )
+        expected_scope = EffectRemediationAuthorizationScope(
+            effect_id=effect.effect_id,
+            authorized_effect_version=effect.version,
+            original_commit_observation_id=plan.original_commit_observation_id,
+            remediation_kind=EffectRemediationKind.COMPENSATION,
+            correlation_id=correlation_id,
+            compensation_plan_id=plan.plan_id,
+            compensating_effect_ids=plan.compensating_effect_ids,
+        )
+        self._validate_remediation_authorization(
+            effect, semantics.compensation.authorization, expected_scope, controller
+        )
 
     def _validate_quarantine_compensation_completion(
         self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
@@ -1642,7 +1681,7 @@ class EffectSemanticGuard:
         )
 
     def compensation_start_annotations(
-        self, start_event_id: EventId
+        self, start_event_id: EventId, prior_start_event_id: EventId | None = None
     ) -> frozenset[tuple[str, str]]:
         """Return exact stable lineage shared by start and completion events."""
         if not isinstance(start_event_id, EventId):
@@ -1664,7 +1703,7 @@ class EffectSemanticGuard:
             raise InvalidDomainValue(
                 "Compensation start annotations require compensation semantics"
             )
-        return frozenset(
+        annotations = frozenset(
             {
                 ("compensation_start_event_id", str(start_event_id.value)),
                 ("compensation_plan_id", str(plan.plan_id.value)),
@@ -1682,9 +1721,18 @@ class EffectSemanticGuard:
                 ),
             }
         )
+        if prior_start_event_id is None:
+            return annotations
+        if not isinstance(prior_start_event_id, EventId):
+            raise InvalidDomainValue("prior_start_event_id must be an EventId or None")
+        return annotations | frozenset(
+            {("prior_compensation_start_event_id", str(prior_start_event_id.value))}
+        )
 
     def remediation_event_annotations(
-        self, compensation_start_event_id: EventId | None = None
+        self,
+        compensation_start_event_id: EventId | None = None,
+        prior_start_event_id: EventId | None = None,
     ) -> frozenset[tuple[str, str]]:
         """Return narrow remediation provenance for the lifecycle event."""
         semantics = self.semantic_input
@@ -1716,7 +1764,9 @@ class EffectSemanticGuard:
             raise InvalidDomainValue(
                 "Compensation event annotations require start event identity"
             )
-        annotations = self.compensation_start_annotations(compensation_start_event_id)
+        annotations = self.compensation_start_annotations(
+            compensation_start_event_id, prior_start_event_id
+        )
         if isinstance(
             semantics,
             (

@@ -680,6 +680,7 @@ class TransitionContext:
     evaluation_semantic_guard: EvaluationSemanticGuard | None = None
     effect_semantic_guard: EffectSemanticGuard | None = None
     effect_compensation_start_event: DomainEvent | None = None
+    effect_prior_compensation_start_event: DomainEvent | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.guards, tuple) or not self.guards:
@@ -733,6 +734,12 @@ class TransitionContext:
         ):
             raise InvalidDomainValue(
                 "effect_compensation_start_event must be a DomainEvent or None"
+            )
+        if self.effect_prior_compensation_start_event is not None and not isinstance(
+            self.effect_prior_compensation_start_event, DomainEvent
+        ):
+            raise InvalidDomainValue(
+                "effect_prior_compensation_start_event must be a DomainEvent or None"
             )
 
 
@@ -971,6 +978,7 @@ def transition_entity(
             request.correlation_id,
         )
         start_event = context.effect_compensation_start_event
+        prior_start_event = context.effect_prior_compensation_start_event
         if (
             request.target_state
             in {
@@ -1021,7 +1029,12 @@ def transition_entity(
                 and start_event.metadata.prior_state is EffectState.COMMITTED
                 and start_event.metadata.new_state is EffectState.COMPENSATING
                 and start_event.metadata.annotations
-                == effect_guard.compensation_start_annotations(start_event.event_id)
+                == effect_guard.compensation_start_annotations(
+                    start_event.event_id,
+                    prior_start_event.event_id
+                    if prior_start_event is not None
+                    else None,
+                )
             ):
                 raise InvariantViolation(
                     "Compensation start event does not exact-bind the current plan "
@@ -1097,14 +1110,21 @@ def transition_entity(
         assert effect_guard is not None
         updated = _replace_entity_state(entity, request.target_state, next_version)
         if request.target_state is EffectState.COMPENSATING:
+            prior_start_event_id: EventId | None = None
+            if effect_guard.requires_prior_compensation_start_event():
+                prior_start_event = context.effect_compensation_start_event
+                assert prior_start_event is not None
+                prior_start_event_id = prior_start_event.event_id
             annotations = effect_guard.remediation_event_annotations(
-                start_event.event_id if start_event is not None else request.event_id
+                request.event_id,
+                prior_start_event_id,
             )
         elif request.target_state is EffectState.COMPENSATED:
             start_event = context.effect_compensation_start_event
             assert start_event is not None
             annotations = effect_guard.remediation_event_annotations(
-                start_event.event_id
+                start_event.event_id,
+                prior_start_event.event_id if prior_start_event is not None else None,
             )
         else:
             annotations = effect_guard.remediation_event_annotations()
