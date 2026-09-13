@@ -1028,6 +1028,39 @@ def transition_entity(
                 raise InvariantViolation(
                     "Compensation completion requires its authoritative start event"
                 )
+            resume_provenance = effect_guard.compensation_resume_provenance()
+            if resume_provenance is not None:
+                if prior_start_event is None:
+                    raise InvariantViolation(
+                        "Resumed compensation completion requires its prior start event"
+                    )
+                if not (
+                    prior_start_event.event_id
+                    == resume_provenance.prior_compensation_start_event_id
+                    and prior_start_event.event_type
+                    is DomainEventType.EFFECT_COMPENSATION_STARTED
+                    and prior_start_event.entity_type is DomainEntityType.EFFECT
+                    and prior_start_event.entity_id == entity.effect_id
+                    and prior_start_event.entity_version
+                    == effect_guard.historical_compensation_start_version()
+                    and prior_start_event.actor
+                    == resume_provenance.prior_authorization.policy_decision.recorded_by
+                    and prior_start_event.correlation_id == request.correlation_id
+                    and prior_start_event.metadata.prior_state is EffectState.COMMITTED
+                    and prior_start_event.metadata.new_state is EffectState.COMPENSATING
+                    and prior_start_event.metadata.annotations
+                    == effect_guard.prior_compensation_start_annotations(
+                        prior_start_event.event_id
+                    )
+                ):
+                    raise InvariantViolation(
+                        "Prior compensation start event does not exact-bind resume "
+                        "lineage"
+                    )
+            elif prior_start_event is not None:
+                raise InvariantViolation(
+                    "Prior compensation start event requires resume provenance"
+                )
             if not (
                 start_event.event_type is DomainEventType.EFFECT_COMPENSATION_STARTED
                 and start_event.entity_type is DomainEntityType.EFFECT
@@ -1035,13 +1068,18 @@ def transition_entity(
                 and start_event.entity_version == entity.version
                 and start_event.actor.actor_type is ActorType.EFFECT_CONTROLLER
                 and start_event.correlation_id == request.correlation_id
-                and start_event.metadata.prior_state is EffectState.COMMITTED
+                and start_event.metadata.prior_state
+                is (
+                    EffectState.QUARANTINED
+                    if resume_provenance is not None
+                    else EffectState.COMMITTED
+                )
                 and start_event.metadata.new_state is EffectState.COMPENSATING
                 and start_event.metadata.annotations
                 == effect_guard.compensation_start_annotations(
                     start_event.event_id,
-                    prior_start_event.event_id
-                    if prior_start_event is not None
+                    resume_provenance.prior_compensation_start_event_id
+                    if resume_provenance is not None
                     else None,
                 )
             ):

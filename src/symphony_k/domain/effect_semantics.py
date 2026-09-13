@@ -760,6 +760,36 @@ class EffectCompensationStartSemantics:
 
 
 @dataclass(frozen=True, slots=True)
+class EffectCompensationResumeProvenance:
+    """Typed identities and historical authority inherited by a resumed start."""
+
+    prior_compensation_start_event_id: EventId
+    prior_authorization: EffectRemediationAuthorizationSemantics
+    quarantine_context_id: EffectQuarantineContextId
+    reconciliation_id: EffectReconciliationRecordId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.prior_compensation_start_event_id, EventId):
+            raise InvalidDomainValue(
+                "prior_compensation_start_event_id must be an EventId"
+            )
+        if not isinstance(
+            self.prior_authorization, EffectRemediationAuthorizationSemantics
+        ):
+            raise InvalidDomainValue(
+                "prior_authorization must be an EffectRemediationAuthorizationSemantics"
+            )
+        if not isinstance(self.quarantine_context_id, EffectQuarantineContextId):
+            raise InvalidDomainValue(
+                "quarantine_context_id must be an EffectQuarantineContextId"
+            )
+        if not isinstance(self.reconciliation_id, EffectReconciliationRecordId):
+            raise InvalidDomainValue(
+                "reconciliation_id must be an EffectReconciliationRecordId"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class EffectCompensationCompletionSemantics:
     """Independent completion evidence for the exact started compensation plan."""
 
@@ -767,6 +797,7 @@ class EffectCompensationCompletionSemantics:
     compensation_plan: EffectCompensationPlanRecord
     completion_record: EffectCompensationCompletionRecord
     authorization: EffectRemediationAuthorizationSemantics
+    resume_provenance: EffectCompensationResumeProvenance | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.original_commit_observation, EffectObservationRecord):
@@ -784,6 +815,13 @@ class EffectCompensationCompletionSemantics:
         if not isinstance(self.authorization, EffectRemediationAuthorizationSemantics):
             raise InvalidDomainValue(
                 "authorization must be an EffectRemediationAuthorizationSemantics"
+            )
+        if self.resume_provenance is not None and not isinstance(
+            self.resume_provenance, EffectCompensationResumeProvenance
+        ):
+            raise InvalidDomainValue(
+                "resume_provenance must be an EffectCompensationResumeProvenance "
+                "or None"
             )
 
 
@@ -1306,6 +1344,8 @@ class EffectSemanticGuard:
             == completion.compensation_plan.plan_id
             and completion.compensation_plan.observed_effect_version.next()
             == entry.observed_effect_version
+            and semantics.quarantine_context.original_commit_observation_id
+            == completion.original_commit_observation.observation_id
             and can_complete_effect_compensation_plan(
                 completion.compensation_plan, completion.completion_record
             )
@@ -1720,16 +1760,39 @@ class EffectSemanticGuard:
         assert isinstance(semantics, EffectCompensationCompletionSemantics)
         plan = semantics.compensation_plan
         completion = semantics.completion_record
-        if plan.observed_effect_version.next() != effect.version:
+        resume = semantics.resume_provenance
+        expected_effect_version = plan.observed_effect_version.next()
+        if resume is not None:
+            expected_effect_version = expected_effect_version.next().next()
+        if expected_effect_version != effect.version:
             raise InvariantViolation(
                 "Compensation plan does not establish the current COMPENSATING version"
             )
         expected_scope = self._validate_compensation_plan(
             effect, plan, semantics.original_commit_observation, correlation_id
         )
-        self._validate_remediation_authorization(
-            effect, semantics.authorization, expected_scope, controller
-        )
+        if resume is None:
+            self._validate_remediation_authorization(
+                effect, semantics.authorization, expected_scope, controller
+            )
+        else:
+            resumed_scope = EffectRemediationAuthorizationScope(
+                effect_id=expected_scope.effect_id,
+                authorized_effect_version=plan.observed_effect_version.next().next(),
+                original_commit_observation_id=(
+                    expected_scope.original_commit_observation_id
+                ),
+                remediation_kind=expected_scope.remediation_kind,
+                correlation_id=expected_scope.correlation_id,
+                compensation_plan_id=expected_scope.compensation_plan_id,
+                compensating_effect_ids=expected_scope.compensating_effect_ids,
+            )
+            self._validate_remediation_authorization(
+                effect, semantics.authorization, resumed_scope, controller
+            )
+            self._validate_historical_compensation_authorization(
+                effect, resume.prior_authorization, expected_scope, controller
+            )
         if not (
             can_complete_effect_compensation_plan(plan, completion)
             and completion.observed_effect_version == effect.version
@@ -1798,13 +1861,87 @@ class EffectSemanticGuard:
                 ),
             }
         )
+        resume_context_id: EffectQuarantineContextId | None = None
+        resume_reconciliation_id: EffectReconciliationRecordId | None = None
+        if isinstance(semantics, EffectCompensationCompletionSemantics):
+            resume = semantics.resume_provenance
+            if resume is not None:
+                if prior_start_event_id is None:
+                    raise InvalidDomainValue(
+                        "Resume completion annotations require prior start identity"
+                    )
+                if prior_start_event_id != resume.prior_compensation_start_event_id:
+                    raise InvalidDomainValue(
+                        "Prior start identity does not match resume provenance"
+                    )
+                resume_context_id = resume.quarantine_context_id
+                resume_reconciliation_id = resume.reconciliation_id
+        elif (
+            isinstance(semantics, EffectQuarantineCompensationStartSemantics)
+            and semantics.mode is EffectQuarantineCompensationMode.RESUME_EXISTING_PLAN
+        ):
+            if prior_start_event_id is not None:
+                resume_context_id = semantics.quarantine_context.context_id
+                resume_reconciliation_id = semantics.reconciliation.reconciliation_id
         if prior_start_event_id is None:
             return annotations
         if not isinstance(prior_start_event_id, EventId):
             raise InvalidDomainValue("prior_start_event_id must be an EventId or None")
-        return annotations | frozenset(
+        annotations |= frozenset(
             {("prior_compensation_start_event_id", str(prior_start_event_id.value))}
         )
+        if resume_context_id is None or resume_reconciliation_id is None:
+            return annotations
+        return annotations | frozenset(
+            {
+                ("quarantine_context_id", str(resume_context_id.value)),
+                ("reconciliation_id", str(resume_reconciliation_id.value)),
+            }
+        )
+
+    def prior_compensation_start_annotations(
+        self, start_event_id: EventId
+    ) -> frozenset[tuple[str, str]]:
+        """Reconstruct the exact historical S1 annotations for resumed completion."""
+        semantics = self.semantic_input
+        if not isinstance(semantics, EffectCompensationCompletionSemantics):
+            raise InvalidDomainValue(
+                "Prior start annotations require compensation-completion semantics"
+            )
+        resume = semantics.resume_provenance
+        if resume is None:
+            raise InvalidDomainValue(
+                "Prior start annotations require resume provenance"
+            )
+        plan = semantics.compensation_plan
+        authorization = resume.prior_authorization
+        return frozenset(
+            {
+                ("compensation_start_event_id", str(start_event_id.value)),
+                ("compensation_plan_id", str(plan.plan_id.value)),
+                (
+                    "compensating_effect_ids",
+                    self._compensating_effect_ids_annotation(plan),
+                ),
+                (
+                    "original_commit_observation_id",
+                    str(plan.original_commit_observation_id.value),
+                ),
+                (
+                    "remediation_authorization_ref",
+                    authorization.policy_decision.decision_ref.value,
+                ),
+            }
+        )
+
+    def compensation_resume_provenance(
+        self,
+    ) -> EffectCompensationResumeProvenance | None:
+        """Expose validated typed resume lineage to the transition boundary."""
+        semantics = self.semantic_input
+        if isinstance(semantics, EffectCompensationCompletionSemantics):
+            return semantics.resume_provenance
+        return None
 
     def remediation_event_annotations(
         self,
@@ -1924,6 +2061,11 @@ class EffectSemanticGuard:
     def historical_compensation_start_version(self) -> EntityVersion:
         """Return the exact COMPENSATING snapshot recorded at quarantine entry."""
         semantics = self.semantic_input
+        if (
+            isinstance(semantics, EffectCompensationCompletionSemantics)
+            and semantics.resume_provenance is not None
+        ):
+            return semantics.compensation_plan.observed_effect_version.next()
         if isinstance(semantics, EffectQuarantineCompensationCompletionSemantics):
             return (
                 semantics.quarantine_context.observation_scope.observed_effect_version

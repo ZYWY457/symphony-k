@@ -64,6 +64,7 @@ from .effect_remediation import (
 )
 from .effect_semantics import (
     EffectCompensationCompletionSemantics,
+    EffectCompensationResumeProvenance,
     EffectCompensationStartSemantics,
     EffectConfirmedOccurrenceSemantics,
     EffectObservationScope,
@@ -407,6 +408,7 @@ __all__ = [
     "EffectCompensationCompletionId",
     "EffectCompensationCompletionRecord",
     "EffectCompensationCompletionSemantics",
+    "EffectCompensationResumeProvenance",
     "EffectCompensationPlanId",
     "EffectCompensationPlanRecord",
     "EffectCompensationStartSemantics",
