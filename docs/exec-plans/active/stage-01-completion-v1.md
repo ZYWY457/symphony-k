@@ -49,6 +49,33 @@ QUARANTINED -> COMPENSATING
 QUARANTINED -> COMPENSATED
 ```
 
+## Accepted progress after the baseline
+
+The original baseline above remains the historical `84 / 91` record. Through
+commit `e0da5b1a32455de9c01f85b46a69c4fc057fbc01`
+(`fix(domain): bind effect remediation authorization provenance`), accepted
+canonical authoritative semantic execution covers 87 of 91 non-creation edges:
+
+| Entity | Covered / accepted non-creation edges |
+| --- | ---: |
+| Objective | 17 / 17 |
+| Task | 16 / 16 |
+| Run | 18 / 18 |
+| Outcome | 11 / 11 |
+| Evaluation | 10 / 10 |
+| Effect | 15 / 19 |
+| **Total** | **87 / 91** |
+
+The accepted progress closes the normal Effect remediation family. Exactly four
+non-creation Effect edges remain:
+
+```text
+QUARANTINED -> PENDING_COMMIT
+QUARANTINED -> ROLLED_BACK
+QUARANTINED -> COMPENSATING
+QUARANTINED -> COMPENSATED
+```
+
 The likely bounded implementation sequence is first the normal remediation
 family (`COMMITTED -> ROLLED_BACK`, `COMMITTED -> COMPENSATING`, and
 `COMPENSATING -> COMPENSATED`), then the quarantine remediation and re-entry
