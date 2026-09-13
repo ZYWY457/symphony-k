@@ -996,7 +996,8 @@ def transition_entity(
                 start_event.event_type is DomainEventType.EFFECT_COMPENSATION_STARTED
                 and start_event.entity_type is DomainEntityType.EFFECT
                 and start_event.entity_id == entity.effect_id
-                and start_event.entity_version.value < entity.version.value
+                and start_event.entity_version
+                == effect_guard.historical_compensation_start_version()
                 and start_event.actor.actor_type is ActorType.EFFECT_CONTROLLER
                 and start_event.correlation_id == request.correlation_id
                 and start_event.metadata.prior_state is EffectState.COMMITTED
@@ -1006,6 +1007,14 @@ def transition_entity(
             ):
                 raise InvariantViolation(
                     "Compensation start event does not bind quarantine plan lineage"
+                )
+            if request.target_state is EffectState.COMPENSATED and (
+                start_event.actor
+                != effect_guard.historical_compensation_authorization_recorder()
+            ):
+                raise InvariantViolation(
+                    "Historical remediation authorization is not recorded by the "
+                    "historical compensation-start controller"
                 )
             if request.target_state is EffectState.COMPENSATED and (
                 effect_guard.validated_completion_verifier().actor_id
@@ -1130,6 +1139,20 @@ def transition_entity(
             annotations = effect_guard.remediation_event_annotations()
     else:
         updated = _replace_entity_state(entity, request.target_state, next_version)
+    if (
+        isinstance(entity, Effect)
+        and entity.state is EffectState.QUARANTINED
+        and request.target_state
+        in {
+            EffectState.PENDING_COMMIT,
+            EffectState.ROLLED_BACK,
+            EffectState.COMPENSATING,
+            EffectState.COMPENSATED,
+        }
+    ):
+        effect_guard = context.effect_semantic_guard
+        assert effect_guard is not None
+        annotations |= effect_guard.quarantine_exit_event_annotations()
     event = DomainEvent(
         event_id=request.event_id,
         event_type=_EVENT_TYPE_BY_STATE[request.target_state],

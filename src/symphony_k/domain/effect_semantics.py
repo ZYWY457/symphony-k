@@ -1095,6 +1095,30 @@ class EffectSemanticGuard:
     ) -> None:
         """Bind every exit to its actual historical entry and an independent fact."""
         entry = context.observation_scope
+        compatible_reason_source = (
+            (
+                context.reason is EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE
+                and entry.source_state
+                in {
+                    EffectState.PLANNED,
+                    EffectState.SIMULATED,
+                    EffectState.PENDING_COMMIT,
+                }
+                and context.prior_observation_id is not None
+            )
+            or (
+                context.reason is EffectQuarantineReason.POST_COMMIT_PROBLEM
+                and entry.source_state is EffectState.COMMITTED
+                and context.original_commit_observation_id is not None
+            )
+            or (
+                context.reason
+                is EffectQuarantineReason.COMPENSATION_OR_REMEDIATION_UNCERTAINTY
+                and entry.source_state is EffectState.COMPENSATING
+                and context.original_commit_observation_id is not None
+                and context.compensation_plan_id is not None
+            )
+        )
         if not (
             effect.state is EffectState.QUARANTINED
             and entry.effect_id == effect.effect_id
@@ -1110,6 +1134,8 @@ class EffectSemanticGuard:
             and entry.observed_effect_version.next() == effect.version
             and entry.target_ref == effect.target_ref
             and entry.correlation_id == correlation_id
+            and context.recorded_by.actor_type is ActorType.EFFECT_CONTROLLER
+            and compatible_reason_source
             and reconciliation.effect_id == effect.effect_id
             and reconciliation.observed_effect_version == effect.version
             and reconciliation.quarantine_context_id == context.context_id
@@ -1295,7 +1321,7 @@ class EffectSemanticGuard:
             completion.original_commit_observation,
             correlation_id,
         )
-        self._validate_remediation_authorization(
+        self._validate_historical_compensation_authorization(
             effect, completion.authorization, expected_scope, controller
         )
         self._require_independent_remediation_verifier(
@@ -1305,6 +1331,57 @@ class EffectSemanticGuard:
             completion.authorization,
             completion.compensation_plan.planned_by,
         )
+
+    def _validate_historical_compensation_authorization(
+        self,
+        effect: Effect,
+        authorization: EffectRemediationAuthorizationSemantics,
+        expected_scope: EffectRemediationAuthorizationScope,
+        current_controller: ActorIdentity,
+    ) -> None:
+        """Validate S1 authorization without falsely rebinding it to completion."""
+        policy = authorization.policy_decision
+        historical_controller = policy.recorded_by
+        if not (
+            policy.status is EffectRemediationAuthorizationStatus.AUTHORIZED
+            and policy.scope == expected_scope
+            and policy.decided_by.actor_type is ActorType.POLICY_ENGINE
+            and historical_controller.actor_type is ActorType.EFFECT_CONTROLLER
+            and policy.decided_by.actor_id != historical_controller.actor_id
+            and policy.decided_by.actor_id != current_controller.actor_id
+            and not (
+                isinstance(effect.origin, PlannedEffectOrigin)
+                and policy.decided_by.actor_id == effect.origin.proposed_by.actor_id
+            )
+        ):
+            raise InvariantViolation(
+                "Historical remediation policy authorization is not exact"
+            )
+        human = authorization.human_authorization
+        if policy.human_authorization_required and human is None:
+            raise InvariantViolation(
+                "Required historical human remediation authorization is missing"
+            )
+        if human is None:
+            return
+        if not (
+            human.affirmative
+            and human.authorized_by.actor_type is ActorType.HUMAN_OPERATOR
+            and human.scope == expected_scope
+            and human.policy_ref == policy.policy_ref
+            and human.policy_decision_ref == policy.decision_ref
+            and human.recorded_by == historical_controller
+            and human.authorized_by.actor_id != historical_controller.actor_id
+            and human.authorized_by.actor_id != current_controller.actor_id
+            and human.authorized_by.actor_id != policy.decided_by.actor_id
+            and not (
+                isinstance(effect.origin, PlannedEffectOrigin)
+                and human.authorized_by.actor_id == effect.origin.proposed_by.actor_id
+            )
+        ):
+            raise InvariantViolation(
+                "Historical human remediation authorization is not exact"
+            )
 
     def _validate_simulation(
         self,
@@ -1799,6 +1876,30 @@ class EffectSemanticGuard:
             "Remediation annotations require rollback or compensation semantics"
         )
 
+    def quarantine_exit_event_annotations(self) -> frozenset[tuple[str, str]]:
+        """Return the narrow entry/reconciliation identities for every exit."""
+        semantics = self.semantic_input
+        if isinstance(semantics, EffectQuarantinePendingCommitSemantics):
+            context = semantics.quarantine_context
+            reconciliation = semantics.reconciliation
+        elif isinstance(semantics, EffectQuarantineRollbackSemantics):
+            context = semantics.quarantine_context
+            reconciliation = semantics.reconciliation
+        elif isinstance(semantics, EffectQuarantineCompensationStartSemantics):
+            context = semantics.quarantine_context
+            reconciliation = semantics.reconciliation
+        elif isinstance(semantics, EffectQuarantineCompensationCompletionSemantics):
+            context = semantics.quarantine_context
+            reconciliation = semantics.reconciliation
+        else:
+            return frozenset()
+        return frozenset(
+            {
+                ("quarantine_context_id", str(context.context_id.value)),
+                ("reconciliation_id", str(reconciliation.reconciliation_id.value)),
+            }
+        )
+
     def validated_completion_verifier(self) -> ActorIdentity:
         """Expose the already-validated completion verifier for lineage checks."""
         semantics = self.semantic_input
@@ -1819,6 +1920,33 @@ class EffectSemanticGuard:
             isinstance(semantics, EffectQuarantineCompensationStartSemantics)
             and semantics.mode is EffectQuarantineCompensationMode.RESUME_EXISTING_PLAN
         )
+
+    def historical_compensation_start_version(self) -> EntityVersion:
+        """Return the exact COMPENSATING snapshot recorded at quarantine entry."""
+        semantics = self.semantic_input
+        if isinstance(semantics, EffectQuarantineCompensationCompletionSemantics):
+            return (
+                semantics.quarantine_context.observation_scope.observed_effect_version
+            )
+        if (
+            isinstance(semantics, EffectQuarantineCompensationStartSemantics)
+            and semantics.mode is EffectQuarantineCompensationMode.RESUME_EXISTING_PLAN
+        ):
+            return (
+                semantics.quarantine_context.observation_scope.observed_effect_version
+            )
+        raise InvalidDomainValue(
+            "Historical compensation start version requires quarantine resume semantics"
+        )
+
+    def historical_compensation_authorization_recorder(self) -> ActorIdentity:
+        """Return the historical controller that recorded direct-completion S1 auth."""
+        semantics = self.semantic_input
+        if not isinstance(semantics, EffectQuarantineCompensationCompletionSemantics):
+            raise InvalidDomainValue(
+                "Historical compensation authorization requires direct completion"
+            )
+        return semantics.completion.authorization.policy_decision.recorded_by
 
     def _validate_observation_scope(
         self,
