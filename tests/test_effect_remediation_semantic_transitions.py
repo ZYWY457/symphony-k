@@ -40,6 +40,7 @@ from symphony_k.domain import (
     EffectRemediationAuthorizationStatus,
     EffectRemediationHumanAuthorization,
     EffectRemediationKind,
+    EffectRemediationPolicyRef,
     EffectRollbackRecord,
     EffectRollbackRecordId,
     EffectRollbackSemantics,
@@ -81,12 +82,15 @@ ORIGINAL_VERSION = EntityVersion(12)
 CORRELATION = CorrelationId(VALUE)
 ORIGINAL_CORRELATION = CorrelationId(OTHER)
 NOW = Timestamp(datetime(2026, 9, 13, tzinfo=UTC))
+DECIDED_AT = Timestamp(datetime(2026, 9, 12, 22, 0, tzinfo=UTC))
+RECORDED_AT = Timestamp(datetime(2026, 9, 12, 22, 1, tzinfo=UTC))
 ORIGINAL_OPERATION = EffectExternalOperationRef("original-operation")
 RESTORATION_OPERATION = EffectExternalOperationRef("restoration-operation")
 DEDUPLICATION = EffectDeduplicationRef("original-deduplication")
 ORIGINAL_OBSERVATION_ID = EffectObservationId(VALUE)
 PLAN_ID = EffectCompensationPlanId(VALUE)
 COMPENSATING_EFFECT_ID = EffectId(OTHER)
+REMEDIATION_POLICY = EffectRemediationPolicyRef("effect-remediation", "v7")
 
 
 def actor(actor_type: ActorType, value: UUID) -> ActorIdentity:
@@ -212,16 +216,23 @@ def authorization(
     human_required: bool = True,
     policy_actor: ActorIdentity | None = None,
     human_actor: ActorIdentity | None = None,
+    recorded_by: ActorIdentity | None = None,
+    policy_ref: EffectRemediationPolicyRef = REMEDIATION_POLICY,
     include_human: bool = True,
 ) -> EffectRemediationAuthorizationSemantics:
-    policy_ref = EffectRemediationAuthorizationRef("remediation-policy-authorization")
+    decision_ref = EffectRemediationAuthorizationRef("remediation-policy-authorization")
+    recorder = recorded_by or actor(ActorType.EFFECT_CONTROLLER, START_CONTROLLER)
     policy = EffectRemediationAuthorizationDecision(
-        policy_ref,
+        decision_ref,
         scope,
+        policy_ref,
         status,
-        policy_actor or actor(ActorType.POLICY_ENGINE, POLICY),
-        frozenset({EvidenceRef("policy authorization evidence")}),
         human_required,
+        frozenset({EvidenceRef("policy authorization evidence")}),
+        policy_actor or actor(ActorType.POLICY_ENGINE, POLICY),
+        recorder,
+        DECIDED_AT,
+        RECORDED_AT,
     )
     human = None
     if include_human:
@@ -229,9 +240,13 @@ def authorization(
             EffectRemediationAuthorizationRef("human-remediation-authorization"),
             scope,
             policy_ref,
+            decision_ref,
             True,
-            human_actor or actor(ActorType.HUMAN_OPERATOR, HUMAN),
             frozenset({EvidenceRef("explicit human authorization evidence")}),
+            human_actor or actor(ActorType.HUMAN_OPERATOR, HUMAN),
+            recorder,
+            DECIDED_AT,
+            RECORDED_AT,
         )
     return EffectRemediationAuthorizationSemantics(policy, human)
 
@@ -300,7 +315,11 @@ def completion_semantics(
         original_observation(current),
         plan,
         completion or completion_record(current, plan),
-        authorized or authorization(authorization_scope(committed, plan=plan)),
+        authorized
+        or authorization(
+            authorization_scope(committed, plan=plan),
+            recorded_by=actor(ActorType.EFFECT_CONTROLLER, COMPLETION_CONTROLLER),
+        ),
     )
 
 
@@ -377,6 +396,123 @@ class PassingGuard:
         transition_request: TransitionRequest[LifecycleState],
     ) -> None:
         assert entity.version == transition_request.expected_version
+
+
+def test_remediation_authorization_preserves_full_provenance() -> None:
+    current = effect(EffectState.COMMITTED)
+    records = authorization(authorization_scope(current))
+    policy = records.policy_decision
+    human = records.human_authorization
+    assert human is not None
+    assert {field.name for field in fields(policy)} == {
+        "decision_ref",
+        "scope",
+        "policy_ref",
+        "status",
+        "human_authorization_required",
+        "evidence_refs",
+        "decided_by",
+        "recorded_by",
+        "decided_at",
+        "recorded_at",
+    }
+    assert {field.name for field in fields(human)} == {
+        "authorization_ref",
+        "scope",
+        "policy_ref",
+        "policy_decision_ref",
+        "affirmative",
+        "evidence_refs",
+        "authorized_by",
+        "recorded_by",
+        "authorized_at",
+        "recorded_at",
+    }
+    assert policy.policy_ref == REMEDIATION_POLICY
+    assert human.policy_ref == policy.policy_ref
+    assert human.policy_decision_ref == policy.decision_ref
+    assert (
+        policy.recorded_by
+        == human.recorded_by
+        == actor(ActorType.EFFECT_CONTROLLER, START_CONTROLLER)
+    )
+    assert policy.decided_at == human.authorized_at == DECIDED_AT
+    assert policy.recorded_at == human.recorded_at == RECORDED_AT
+
+
+@pytest.mark.parametrize("field_name", ["policy_id", "policy_version"])
+def test_remediation_policy_requires_exact_identity_and_version(
+    field_name: str,
+) -> None:
+    with pytest.raises(InvalidDomainValue, match=field_name):
+        EffectRemediationPolicyRef(
+            **{
+                "policy_id": "effect-remediation",
+                "policy_version": "v7",
+                field_name: " \t",
+            }
+        )
+
+
+@pytest.mark.parametrize("record_kind", ["policy", "human"])
+def test_remediation_authorization_requires_controller_recording_principal(
+    record_kind: str,
+) -> None:
+    current = effect(EffectState.COMMITTED)
+    scope = authorization_scope(current)
+    records = authorization(scope)
+    foreign_recorder = actor(ActorType.EFFECT_CONTROLLER, COMPLETION_CONTROLLER)
+    if record_kind == "policy":
+        records = replace(
+            records,
+            policy_decision=replace(
+                records.policy_decision, recorded_by=foreign_recorder
+            ),
+        )
+    else:
+        assert records.human_authorization is not None
+        records = replace(
+            records,
+            human_authorization=replace(
+                records.human_authorization, recorded_by=foreign_recorder
+            ),
+        )
+    transition_request = request(current, EffectState.ROLLED_BACK)
+    with pytest.raises(InvariantViolation, match="authorization"):
+        transition_entity(
+            current,
+            transition_request,
+            context(
+                current,
+                transition_request,
+                rollback_semantics(current, authorized=records),
+            ),
+        )
+
+
+def test_human_remediation_authorization_rejects_policy_version_substitution() -> None:
+    current = effect(EffectState.COMMITTED)
+    scope = authorization_scope(current)
+    records = authorization(scope)
+    assert records.human_authorization is not None
+    substituted = replace(
+        records,
+        human_authorization=replace(
+            records.human_authorization,
+            policy_ref=EffectRemediationPolicyRef("effect-remediation", "v8"),
+        ),
+    )
+    transition_request = request(current, EffectState.ROLLED_BACK)
+    with pytest.raises(InvariantViolation, match="Human remediation authorization"):
+        transition_entity(
+            current,
+            transition_request,
+            context(
+                current,
+                transition_request,
+                rollback_semantics(current, authorized=substituted),
+            ),
+        )
 
 
 def transition_compensation_start() -> tuple[
@@ -526,6 +662,85 @@ def test_rollback_verifier_cannot_relabel_controller_principal() -> None:
 
 
 @pytest.mark.parametrize(
+    "remediation_path", ["rollback", "compensation-start", "compensation-completion"]
+)
+@pytest.mark.parametrize("authorizer_role", ["policy", "human"])
+def test_planned_effect_producer_cannot_relabel_as_remediation_authorizer(
+    remediation_path: str,
+    authorizer_role: str,
+) -> None:
+    semantics: (
+        EffectRollbackSemantics
+        | EffectCompensationStartSemantics
+        | EffectCompensationCompletionSemantics
+    )
+    relabeled_type = (
+        ActorType.POLICY_ENGINE
+        if authorizer_role == "policy"
+        else ActorType.HUMAN_OPERATOR
+    )
+    authorizer = actor(relabeled_type, PRODUCER)
+
+    if remediation_path == "rollback":
+        current = effect(EffectState.COMMITTED)
+        scope = authorization_scope(current)
+        authorized = authorization(
+            scope,
+            policy_actor=authorizer if authorizer_role == "policy" else None,
+            human_actor=authorizer if authorizer_role == "human" else None,
+        )
+        semantics = rollback_semantics(current, authorized=authorized)
+        transition_request = request(current, EffectState.ROLLED_BACK)
+        start_event = None
+    elif remediation_path == "compensation-start":
+        current = effect(EffectState.COMMITTED)
+        plan = compensation_plan(current)
+        scope = authorization_scope(current, plan=plan)
+        authorized = authorization(
+            scope,
+            policy_actor=authorizer if authorizer_role == "policy" else None,
+            human_actor=authorizer if authorizer_role == "human" else None,
+        )
+        semantics = start_semantics(current, plan=plan, authorized=authorized)
+        transition_request = request(current, EffectState.COMPENSATING)
+        start_event = None
+    else:
+        plan, current, start_event = transition_compensation_start()
+        committed = effect(EffectState.COMMITTED, plan.observed_effect_version)
+        scope = authorization_scope(committed, plan=plan)
+        authorized = authorization(
+            scope,
+            policy_actor=authorizer if authorizer_role == "policy" else None,
+            human_actor=authorizer if authorizer_role == "human" else None,
+            recorded_by=actor(ActorType.EFFECT_CONTROLLER, COMPLETION_CONTROLLER),
+        )
+        semantics = completion_semantics(current, plan, authorized=authorized)
+        transition_request = request(
+            current,
+            EffectState.COMPENSATED,
+            controller=COMPLETION_CONTROLLER,
+            event_id=OTHER,
+        )
+
+    expected_error = (
+        "policy authorization"
+        if authorizer_role == "policy"
+        else "Human remediation authorization"
+    )
+    with pytest.raises(InvariantViolation, match=expected_error):
+        transition_entity(
+            current,
+            transition_request,
+            context(
+                current,
+                transition_request,
+                semantics,
+                start_event=start_event,
+            ),
+        )
+
+
+@pytest.mark.parametrize(
     ("status", "human_required", "include_human"),
     [
         (EffectRemediationAuthorizationStatus.DENIED, True, True),
@@ -659,7 +874,10 @@ def test_compensation_completion_rejects_plan_or_start_substitution(
         selected_event = replace(start_event, event_id=EventId(OTHER))
     completion = completion_record(compensating, selected_plan)
     committed = effect(EffectState.COMMITTED, selected_plan.observed_effect_version)
-    authorized = authorization(authorization_scope(committed, plan=selected_plan))
+    authorized = authorization(
+        authorization_scope(committed, plan=selected_plan),
+        recorded_by=actor(ActorType.EFFECT_CONTROLLER, COMPLETION_CONTROLLER),
+    )
     semantics = completion_semantics(
         compensating,
         selected_plan,

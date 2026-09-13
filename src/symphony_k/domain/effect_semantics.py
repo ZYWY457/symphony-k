@@ -328,6 +328,18 @@ class EffectRemediationAuthorizationRef:
 
 
 @dataclass(frozen=True, slots=True)
+class EffectRemediationPolicyRef:
+    """Opaque identity/version of the exact remediation policy applied."""
+
+    policy_id: str
+    policy_version: str
+
+    def __post_init__(self) -> None:
+        _require_text(self.policy_id, "policy_id")
+        _require_text(self.policy_version, "policy_version")
+
+
+@dataclass(frozen=True, slots=True)
 class EffectRemediationAuthorizationScope:
     """Exact restoration operation or compensation plan authorized for one Effect."""
 
@@ -400,10 +412,14 @@ class EffectRemediationAuthorizationDecision:
 
     decision_ref: EffectRemediationAuthorizationRef
     scope: EffectRemediationAuthorizationScope
+    policy_ref: EffectRemediationPolicyRef
     status: EffectRemediationAuthorizationStatus
-    decided_by: ActorIdentity
-    evidence_refs: frozenset[EvidenceRef]
     human_authorization_required: bool
+    evidence_refs: frozenset[EvidenceRef]
+    decided_by: ActorIdentity
+    recorded_by: ActorIdentity
+    decided_at: Timestamp
+    recorded_at: Timestamp
 
     def __post_init__(self) -> None:
         if not isinstance(self.decision_ref, EffectRemediationAuthorizationRef):
@@ -414,15 +430,23 @@ class EffectRemediationAuthorizationDecision:
             raise InvalidDomainValue(
                 "scope must be an EffectRemediationAuthorizationScope"
             )
+        if not isinstance(self.policy_ref, EffectRemediationPolicyRef):
+            raise InvalidDomainValue("policy_ref must be an EffectRemediationPolicyRef")
         if not isinstance(self.status, EffectRemediationAuthorizationStatus):
             raise InvalidDomainValue(
                 "status must be an EffectRemediationAuthorizationStatus"
             )
-        if not isinstance(self.decided_by, ActorIdentity):
-            raise InvalidDomainValue("decided_by must be an ActorIdentity")
-        _require_evidence(self.evidence_refs)
         if not isinstance(self.human_authorization_required, bool):
             raise InvalidDomainValue("human_authorization_required must be a bool")
+        _require_evidence(self.evidence_refs)
+        if not isinstance(self.decided_by, ActorIdentity):
+            raise InvalidDomainValue("decided_by must be an ActorIdentity")
+        if not isinstance(self.recorded_by, ActorIdentity):
+            raise InvalidDomainValue("recorded_by must be an ActorIdentity")
+        if not isinstance(self.decided_at, Timestamp):
+            raise InvalidDomainValue("decided_at must be a Timestamp")
+        if not isinstance(self.recorded_at, Timestamp):
+            raise InvalidDomainValue("recorded_at must be a Timestamp")
 
 
 @dataclass(frozen=True, slots=True)
@@ -431,10 +455,14 @@ class EffectRemediationHumanAuthorization:
 
     authorization_ref: EffectRemediationAuthorizationRef
     scope: EffectRemediationAuthorizationScope
+    policy_ref: EffectRemediationPolicyRef
     policy_decision_ref: EffectRemediationAuthorizationRef
     affirmative: bool
-    authorized_by: ActorIdentity
     evidence_refs: frozenset[EvidenceRef]
+    authorized_by: ActorIdentity
+    recorded_by: ActorIdentity
+    authorized_at: Timestamp
+    recorded_at: Timestamp
 
     def __post_init__(self) -> None:
         if not isinstance(self.authorization_ref, EffectRemediationAuthorizationRef):
@@ -445,15 +473,23 @@ class EffectRemediationHumanAuthorization:
             raise InvalidDomainValue(
                 "scope must be an EffectRemediationAuthorizationScope"
             )
+        if not isinstance(self.policy_ref, EffectRemediationPolicyRef):
+            raise InvalidDomainValue("policy_ref must be an EffectRemediationPolicyRef")
         if not isinstance(self.policy_decision_ref, EffectRemediationAuthorizationRef):
             raise InvalidDomainValue(
                 "policy_decision_ref must be an EffectRemediationAuthorizationRef"
             )
         if not isinstance(self.affirmative, bool):
             raise InvalidDomainValue("affirmative must be a bool")
+        _require_evidence(self.evidence_refs)
         if not isinstance(self.authorized_by, ActorIdentity):
             raise InvalidDomainValue("authorized_by must be an ActorIdentity")
-        _require_evidence(self.evidence_refs)
+        if not isinstance(self.recorded_by, ActorIdentity):
+            raise InvalidDomainValue("recorded_by must be an ActorIdentity")
+        if not isinstance(self.authorized_at, Timestamp):
+            raise InvalidDomainValue("authorized_at must be a Timestamp")
+        if not isinstance(self.recorded_at, Timestamp):
+            raise InvalidDomainValue("recorded_at must be a Timestamp")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1060,6 +1096,7 @@ class EffectSemanticGuard:
 
     def _validate_remediation_authorization(
         self,
+        effect: Effect,
         authorization: EffectRemediationAuthorizationSemantics,
         expected_scope: EffectRemediationAuthorizationScope,
         controller: ActorIdentity,
@@ -1070,6 +1107,11 @@ class EffectSemanticGuard:
             and policy.decided_by.actor_type is ActorType.POLICY_ENGINE
             and policy.scope == expected_scope
             and policy.decided_by.actor_id != controller.actor_id
+            and policy.recorded_by.actor_id == controller.actor_id
+            and not (
+                isinstance(effect.origin, PlannedEffectOrigin)
+                and policy.decided_by.actor_id == effect.origin.proposed_by.actor_id
+            )
         ):
             raise InvariantViolation(
                 "Remediation policy authorization is not exact, authorized, and "
@@ -1086,9 +1128,15 @@ class EffectSemanticGuard:
             human.affirmative
             and human.authorized_by.actor_type is ActorType.HUMAN_OPERATOR
             and human.scope == expected_scope
+            and human.policy_ref == policy.policy_ref
             and human.policy_decision_ref == policy.decision_ref
             and human.authorized_by.actor_id != controller.actor_id
             and human.authorized_by.actor_id != policy.decided_by.actor_id
+            and human.recorded_by.actor_id == controller.actor_id
+            and not (
+                isinstance(effect.origin, PlannedEffectOrigin)
+                and human.authorized_by.actor_id == effect.origin.proposed_by.actor_id
+            )
         ):
             raise InvariantViolation(
                 "Human remediation authorization is not affirmative, exact, and "
@@ -1153,7 +1201,7 @@ class EffectSemanticGuard:
             restoration_operation_ref=rollback.restoration_operation_ref,
         )
         self._validate_remediation_authorization(
-            semantics.authorization, expected_scope, controller
+            effect, semantics.authorization, expected_scope, controller
         )
         self._require_independent_remediation_verifier(
             rollback.verified_by, effect, controller, semantics.authorization
@@ -1210,7 +1258,7 @@ class EffectSemanticGuard:
             effect, plan, semantics.original_commit_observation, correlation_id
         )
         self._validate_remediation_authorization(
-            semantics.authorization, expected_scope, controller
+            effect, semantics.authorization, expected_scope, controller
         )
         authorization_principals = {
             semantics.authorization.policy_decision.decided_by.actor_id,
@@ -1242,7 +1290,7 @@ class EffectSemanticGuard:
             effect, plan, semantics.original_commit_observation, correlation_id
         )
         self._validate_remediation_authorization(
-            semantics.authorization, expected_scope, controller
+            effect, semantics.authorization, expected_scope, controller
         )
         if not (
             can_complete_effect_compensation_plan(plan, completion)
