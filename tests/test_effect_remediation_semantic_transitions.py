@@ -1056,13 +1056,15 @@ def test_exactly_fifteen_effect_edges_reach_canonical_semantic_guard(
 
 
 @pytest.mark.parametrize(("source", "target"), DEFERRED_QUARANTINE_EDGES)
-def test_exactly_four_quarantine_remediation_edges_remain_deny_by_default(
+def test_quarantine_exit_edges_require_canonical_semantic_guards(
     source: EffectState, target: EffectState
 ) -> None:
     assert can_effect_transition(source, target)
     current = effect(source)
     transition_request = request(current, target)
-    with pytest.raises(InvariantViolation, match="denies this unimplemented edge"):
+    with pytest.raises(
+        InvariantViolation, match="Canonical Effect semantic guard is required"
+    ):
         transition_entity(
             current,
             transition_request,

@@ -701,7 +701,7 @@ def test_pre_commit_quarantine_rejects_confirmed_or_disproved_occurrence() -> No
             )
 
 
-def test_exact_fifteen_edges_are_canonical_and_four_remain_denied() -> None:
+def test_exact_nineteen_edges_are_canonical() -> None:
     canonical = {
         (EffectState.PLANNED, EffectState.SIMULATED),
         (EffectState.PLANNED, EffectState.PENDING_COMMIT),
@@ -726,17 +726,10 @@ def test_exact_fifteen_edges_are_canonical_and_four_remain_denied() -> None:
         if can_effect_transition(source, target)
     }
     assert len(structural) == 19
-    assert len(canonical) == 15
-    assert structural - canonical == {
+    canonical |= {
         (EffectState.QUARANTINED, EffectState.PENDING_COMMIT),
         (EffectState.QUARANTINED, EffectState.ROLLED_BACK),
         (EffectState.QUARANTINED, EffectState.COMPENSATING),
         (EffectState.QUARANTINED, EffectState.COMPENSATED),
     }
-    for source, target in structural - canonical:
-        current = effect(source)
-        transition_request = request(current, target)
-        with pytest.raises(InvariantViolation, match="denies this unimplemented edge"):
-            transition_entity(
-                current, transition_request, context(current, transition_request, None)
-            )
+    assert canonical == structural

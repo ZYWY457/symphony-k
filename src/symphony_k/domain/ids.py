@@ -148,6 +148,11 @@ class EffectQuarantineContextId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class EffectReconciliationRecordId(_UuidId):
+    """Identity of one immutable quarantine-reconciliation conclusion."""
+
+
+@dataclass(frozen=True, slots=True)
 class EffectRollbackRecordId(_UuidId):
     """Identity of one immutable supporting Effect rollback record."""
 

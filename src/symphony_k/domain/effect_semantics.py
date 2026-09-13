@@ -61,6 +61,7 @@ from .ids import (
     EffectIncidentRecordId,
     EffectObservationId,
     EffectQuarantineContextId,
+    EffectReconciliationRecordId,
     EffectRemediationReadinessId,
     EffectSimulationBypassDecisionId,
     EffectSimulationRecordId,
@@ -786,6 +787,100 @@ class EffectCompensationCompletionSemantics:
             )
 
 
+class EffectReconciliationConclusion(Enum):
+    """Evidence-backed reconciliation conclusions; lifecycle state is not a fact."""
+
+    NO_IN_FLIGHT_OR_DUPLICATE = "NO_IN_FLIGHT_OR_DUPLICATE"
+    REMEDIAL_UNCERTAINTY_RECONCILED = "REMEDIAL_UNCERTAINTY_RECONCILED"
+
+
+@dataclass(frozen=True, slots=True)
+class EffectReconciliationRecord:
+    """Immutable conclusion exact-bound to a historical quarantine entry."""
+
+    reconciliation_id: EffectReconciliationRecordId
+    effect_id: EffectId
+    observed_effect_version: EntityVersion
+    quarantine_context_id: EffectQuarantineContextId
+    conclusion: EffectReconciliationConclusion
+    conclusion_summary: str
+    evidence_refs: frozenset[EvidenceRef]
+    reconciled_by: ActorIdentity
+    recorded_by: ActorIdentity
+    reconciled_at: Timestamp
+    recorded_at: Timestamp
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reconciliation_id, EffectReconciliationRecordId):
+            raise InvalidDomainValue(
+                "reconciliation_id must be an EffectReconciliationRecordId"
+            )
+        if not isinstance(self.effect_id, EffectId):
+            raise InvalidDomainValue("effect_id must be an EffectId")
+        if not isinstance(self.observed_effect_version, EntityVersion):
+            raise InvalidDomainValue("observed_effect_version must be an EntityVersion")
+        if not isinstance(self.quarantine_context_id, EffectQuarantineContextId):
+            raise InvalidDomainValue(
+                "quarantine_context_id must be an EffectQuarantineContextId"
+            )
+        if not isinstance(self.conclusion, EffectReconciliationConclusion):
+            raise InvalidDomainValue(
+                "conclusion must be an EffectReconciliationConclusion"
+            )
+        _require_text(self.conclusion_summary, "conclusion_summary")
+        _require_evidence(self.evidence_refs)
+        if not isinstance(self.reconciled_by, ActorIdentity) or not isinstance(
+            self.recorded_by, ActorIdentity
+        ):
+            raise InvalidDomainValue(
+                "reconciled_by and recorded_by must be ActorIdentity"
+            )
+        if not isinstance(self.reconciled_at, Timestamp) or not isinstance(
+            self.recorded_at, Timestamp
+        ):
+            raise InvalidDomainValue("reconciled_at and recorded_at must be Timestamp")
+        if not isinstance(self.correlation_id, CorrelationId):
+            raise InvalidDomainValue("correlation_id must be a CorrelationId")
+
+
+@dataclass(frozen=True, slots=True)
+class EffectQuarantinePendingCommitSemantics:
+    quarantine_context: EffectQuarantineContext
+    disproved_observation: EffectObservationRecord
+    reconciliation: EffectReconciliationRecord
+    pending_commit: EffectPendingCommitSemantics
+
+
+@dataclass(frozen=True, slots=True)
+class EffectQuarantineRollbackSemantics:
+    quarantine_context: EffectQuarantineContext
+    reconciliation: EffectReconciliationRecord
+    rollback: EffectRollbackSemantics
+
+
+class EffectQuarantineCompensationMode(Enum):
+    """A new compensation path is distinct from a safe plan resume."""
+
+    NEW_PLAN = "NEW_PLAN"
+    RESUME_EXISTING_PLAN = "RESUME_EXISTING_PLAN"
+
+
+@dataclass(frozen=True, slots=True)
+class EffectQuarantineCompensationStartSemantics:
+    quarantine_context: EffectQuarantineContext
+    reconciliation: EffectReconciliationRecord
+    mode: EffectQuarantineCompensationMode
+    compensation: EffectCompensationStartSemantics
+
+
+@dataclass(frozen=True, slots=True)
+class EffectQuarantineCompensationCompletionSemantics:
+    quarantine_context: EffectQuarantineContext
+    reconciliation: EffectReconciliationRecord
+    completion: EffectCompensationCompletionSemantics
+
+
 type EffectSemanticInput = (
     EffectSimulationSemantics
     | EffectPendingCommitSemantics
@@ -794,6 +889,10 @@ type EffectSemanticInput = (
     | EffectRollbackSemantics
     | EffectCompensationStartSemantics
     | EffectCompensationCompletionSemantics
+    | EffectQuarantinePendingCommitSemantics
+    | EffectQuarantineRollbackSemantics
+    | EffectQuarantineCompensationStartSemantics
+    | EffectQuarantineCompensationCompletionSemantics
 )
 
 
@@ -843,6 +942,22 @@ _INPUT_TYPE_BY_EDGE: Final[
             EffectState.COMPENSATING,
             EffectState.COMPENSATED,
         ): EffectCompensationCompletionSemantics,
+        (
+            EffectState.QUARANTINED,
+            EffectState.PENDING_COMMIT,
+        ): EffectQuarantinePendingCommitSemantics,
+        (
+            EffectState.QUARANTINED,
+            EffectState.ROLLED_BACK,
+        ): EffectQuarantineRollbackSemantics,
+        (
+            EffectState.QUARANTINED,
+            EffectState.COMPENSATING,
+        ): EffectQuarantineCompensationStartSemantics,
+        (
+            EffectState.QUARANTINED,
+            EffectState.COMPENSATED,
+        ): EffectQuarantineCompensationCompletionSemantics,
     }
 )
 
@@ -949,7 +1064,208 @@ class EffectSemanticGuard:
         if isinstance(self.semantic_input, EffectCompensationCompletionSemantics):
             self._validate_compensation_completion(effect, controller, correlation_id)
             return
+        if isinstance(self.semantic_input, EffectQuarantinePendingCommitSemantics):
+            self._validate_quarantine_pending_commit(effect, controller, correlation_id)
+            return
+        if isinstance(self.semantic_input, EffectQuarantineRollbackSemantics):
+            self._validate_quarantine_rollback(effect, controller, correlation_id)
+            return
+        if isinstance(self.semantic_input, EffectQuarantineCompensationStartSemantics):
+            self._validate_quarantine_compensation_start(
+                effect, controller, correlation_id
+            )
+            return
+        if isinstance(
+            self.semantic_input, EffectQuarantineCompensationCompletionSemantics
+        ):
+            self._validate_quarantine_compensation_completion(
+                effect, controller, correlation_id
+            )
+            return
         self._validate_quarantine(effect, controller, correlation_id)
+
+    def _validate_quarantine_exit(
+        self,
+        effect: Effect,
+        context: EffectQuarantineContext,
+        reconciliation: EffectReconciliationRecord,
+        controller: ActorIdentity,
+        correlation_id: CorrelationId,
+    ) -> None:
+        """Bind every exit to its actual historical entry and an independent fact."""
+        entry = context.observation_scope
+        if not (
+            effect.state is EffectState.QUARANTINED
+            and entry.effect_id == effect.effect_id
+            and entry.target_state is EffectState.QUARANTINED
+            and entry.source_state is not EffectState.QUARANTINED
+            and entry.observed_effect_version.value < effect.version.value
+            and entry.target_ref == effect.target_ref
+            and entry.correlation_id == correlation_id
+            and reconciliation.effect_id == effect.effect_id
+            and reconciliation.observed_effect_version == effect.version
+            and reconciliation.quarantine_context_id == context.context_id
+            and reconciliation.correlation_id == correlation_id
+            and reconciliation.recorded_by.actor_id == controller.actor_id
+            and reconciliation.reconciled_by.actor_type is ActorType.EVALUATOR
+            and reconciliation.reconciled_by.actor_id != controller.actor_id
+        ):
+            raise InvariantViolation(
+                "Quarantine exit must bind its entry and independent reconciliation"
+            )
+
+    def _validate_quarantine_pending_commit(
+        self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectQuarantinePendingCommitSemantics)
+        self._validate_quarantine_exit(
+            effect,
+            semantics.quarantine_context,
+            semantics.reconciliation,
+            controller,
+            correlation_id,
+        )
+        if isinstance(effect.origin, ObservedEffectOrigin):
+            raise InvariantViolation(
+                "Observed origin cannot re-enter execution intent through quarantine"
+            )
+        if not (
+            semantics.quarantine_context.reason
+            is EffectQuarantineReason.UNKNOWN_OR_SUSPECTED_OCCURRENCE
+            and semantics.reconciliation.conclusion
+            is EffectReconciliationConclusion.NO_IN_FLIGHT_OR_DUPLICATE
+            and semantics.disproved_observation.occurrence_status
+            is EffectOccurrenceStatus.DISPROVED
+            and semantics.disproved_observation.occurrence_at is None
+            and self._is_compatible_historical_observation(
+                effect,
+                semantics.quarantine_context.observation_scope,
+                semantics.disproved_observation,
+            )
+        ):
+            raise InvariantViolation(
+                "PENDING_COMMIT re-entry needs disproved and deduplication evidence"
+            )
+        self._validate_pending_commit(
+            effect, controller, correlation_id, semantics.pending_commit
+        )
+
+    def _validate_quarantine_rollback(
+        self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectQuarantineRollbackSemantics)
+        self._validate_quarantine_exit(
+            effect,
+            semantics.quarantine_context,
+            semantics.reconciliation,
+            controller,
+            correlation_id,
+        )
+        if (
+            semantics.reconciliation.conclusion
+            is not EffectReconciliationConclusion.REMEDIAL_UNCERTAINTY_RECONCILED
+            or semantics.quarantine_context.original_commit_observation_id
+            != semantics.rollback.original_commit_observation.observation_id
+        ):
+            raise InvariantViolation(
+                "Rollback exit requires reconciled remedial uncertainty"
+            )
+        self._validate_rollback(effect, controller, correlation_id, semantics.rollback)
+
+    def _validate_quarantine_compensation_start(
+        self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectQuarantineCompensationStartSemantics)
+        self._validate_quarantine_exit(
+            effect,
+            semantics.quarantine_context,
+            semantics.reconciliation,
+            controller,
+            correlation_id,
+        )
+        if (
+            semantics.reconciliation.conclusion
+            is not EffectReconciliationConclusion.REMEDIAL_UNCERTAINTY_RECONCILED
+        ):
+            raise InvariantViolation(
+                "Compensation exit requires reconciled remedial uncertainty"
+            )
+        entry = semantics.quarantine_context.observation_scope
+        plan = semantics.compensation.compensation_plan
+        if semantics.mode is EffectQuarantineCompensationMode.NEW_PLAN:
+            if (
+                entry.source_state is not EffectState.COMMITTED
+                or semantics.quarantine_context.original_commit_observation_id
+                != semantics.compensation.original_commit_observation.observation_id
+            ):
+                raise InvariantViolation(
+                    "New compensation requires a post-commit quarantine entry"
+                )
+            self._validate_compensation_start(
+                effect, controller, correlation_id, semantics.compensation
+            )
+            return
+        if not (
+            entry.source_state is EffectState.COMPENSATING
+            and semantics.quarantine_context.compensation_plan_id == plan.plan_id
+            and plan.observed_effect_version.next() == entry.observed_effect_version
+            and semantics.quarantine_context.original_commit_observation_id
+            == semantics.compensation.original_commit_observation.observation_id
+        ):
+            raise InvariantViolation(
+                "Compensation resume must preserve its prior plan and start lineage"
+            )
+
+    def _validate_quarantine_compensation_completion(
+        self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
+    ) -> None:
+        semantics = self.semantic_input
+        assert isinstance(semantics, EffectQuarantineCompensationCompletionSemantics)
+        self._validate_quarantine_exit(
+            effect,
+            semantics.quarantine_context,
+            semantics.reconciliation,
+            controller,
+            correlation_id,
+        )
+        entry = semantics.quarantine_context.observation_scope
+        completion = semantics.completion
+        if not (
+            semantics.reconciliation.conclusion
+            is EffectReconciliationConclusion.REMEDIAL_UNCERTAINTY_RECONCILED
+            and entry.source_state is EffectState.COMPENSATING
+            and semantics.quarantine_context.compensation_plan_id
+            == completion.compensation_plan.plan_id
+            and completion.compensation_plan.observed_effect_version.next()
+            == entry.observed_effect_version
+            and can_complete_effect_compensation_plan(
+                completion.compensation_plan, completion.completion_record
+            )
+            and completion.completion_record.observed_effect_version == effect.version
+            and completion.completion_record.recorded_by.actor_id == controller.actor_id
+        ):
+            raise InvariantViolation(
+                "Direct completion requires a real prior compensation-start chain"
+            )
+        expected_scope = self._validate_compensation_plan(
+            effect,
+            completion.compensation_plan,
+            completion.original_commit_observation,
+            correlation_id,
+        )
+        self._validate_remediation_authorization(
+            effect, completion.authorization, expected_scope, controller
+        )
+        self._require_independent_remediation_verifier(
+            completion.completion_record.verified_by,
+            effect,
+            controller,
+            completion.authorization,
+            completion.compensation_plan.planned_by,
+        )
 
     def _validate_simulation(
         self,
@@ -972,9 +1288,13 @@ class EffectSemanticGuard:
             )
 
     def _validate_pending_commit(
-        self, effect: Effect, controller: ActorIdentity, correlation_id: CorrelationId
+        self,
+        effect: Effect,
+        controller: ActorIdentity,
+        correlation_id: CorrelationId,
+        supplied_semantics: EffectPendingCommitSemantics | None = None,
     ) -> None:
-        semantics = self.semantic_input
+        semantics = supplied_semantics or self.semantic_input
         assert isinstance(semantics, EffectPendingCommitSemantics)
         if not _scope_matches_effect(semantics.operation_scope, effect, correlation_id):
             raise InvariantViolation(
@@ -1175,8 +1495,9 @@ class EffectSemanticGuard:
         effect: Effect,
         controller: ActorIdentity,
         correlation_id: CorrelationId,
+        supplied_semantics: EffectRollbackSemantics | None = None,
     ) -> None:
-        semantics = self.semantic_input
+        semantics = supplied_semantics or self.semantic_input
         assert isinstance(semantics, EffectRollbackSemantics)
         rollback = semantics.rollback_record
         if not (
@@ -1243,8 +1564,9 @@ class EffectSemanticGuard:
         effect: Effect,
         controller: ActorIdentity,
         correlation_id: CorrelationId,
+        supplied_semantics: EffectCompensationStartSemantics | None = None,
     ) -> None:
-        semantics = self.semantic_input
+        semantics = supplied_semantics or self.semantic_input
         assert isinstance(semantics, EffectCompensationStartSemantics)
         plan = semantics.compensation_plan
         if not (
@@ -1332,6 +1654,12 @@ class EffectSemanticGuard:
         elif isinstance(semantics, EffectCompensationCompletionSemantics):
             plan = semantics.compensation_plan
             authorization = semantics.authorization
+        elif isinstance(semantics, EffectQuarantineCompensationStartSemantics):
+            plan = semantics.compensation.compensation_plan
+            authorization = semantics.compensation.authorization
+        elif isinstance(semantics, EffectQuarantineCompensationCompletionSemantics):
+            plan = semantics.completion.compensation_plan
+            authorization = semantics.completion.authorization
         else:
             raise InvalidDomainValue(
                 "Compensation start annotations require compensation semantics"
@@ -1360,20 +1688,27 @@ class EffectSemanticGuard:
     ) -> frozenset[tuple[str, str]]:
         """Return narrow remediation provenance for the lifecycle event."""
         semantics = self.semantic_input
-        if isinstance(semantics, EffectRollbackSemantics):
+        if isinstance(
+            semantics, (EffectRollbackSemantics, EffectQuarantineRollbackSemantics)
+        ):
+            rollback = (
+                semantics
+                if isinstance(semantics, EffectRollbackSemantics)
+                else semantics.rollback
+            )
             return frozenset(
                 {
                     (
                         "rollback_record_id",
-                        str(semantics.rollback_record.rollback_record_id.value),
+                        str(rollback.rollback_record.rollback_record_id.value),
                     ),
                     (
                         "original_commit_observation_id",
-                        str(semantics.original_commit_observation.observation_id.value),
+                        str(rollback.original_commit_observation.observation_id.value),
                     ),
                     (
                         "remediation_authorization_ref",
-                        semantics.authorization.policy_decision.decision_ref.value,
+                        rollback.authorization.policy_decision.decision_ref.value,
                     ),
                 }
             )
@@ -1382,14 +1717,31 @@ class EffectSemanticGuard:
                 "Compensation event annotations require start event identity"
             )
         annotations = self.compensation_start_annotations(compensation_start_event_id)
-        if isinstance(semantics, EffectCompensationStartSemantics):
+        if isinstance(
+            semantics,
+            (
+                EffectCompensationStartSemantics,
+                EffectQuarantineCompensationStartSemantics,
+            ),
+        ):
             return annotations
-        if isinstance(semantics, EffectCompensationCompletionSemantics):
+        if isinstance(
+            semantics,
+            (
+                EffectCompensationCompletionSemantics,
+                EffectQuarantineCompensationCompletionSemantics,
+            ),
+        ):
+            completion = (
+                semantics.completion_record
+                if isinstance(semantics, EffectCompensationCompletionSemantics)
+                else semantics.completion.completion_record
+            )
             return annotations | frozenset(
                 {
                     (
                         "compensation_completion_id",
-                        str(semantics.completion_record.completion_id.value),
+                        str(completion.completion_id.value),
                     )
                 }
             )
@@ -1400,11 +1752,23 @@ class EffectSemanticGuard:
     def validated_completion_verifier(self) -> ActorIdentity:
         """Expose the already-validated completion verifier for lineage checks."""
         semantics = self.semantic_input
-        if not isinstance(semantics, EffectCompensationCompletionSemantics):
-            raise InvalidDomainValue(
-                "Completion verifier requires compensation-completion semantics"
-            )
-        return semantics.completion_record.verified_by
+        if isinstance(semantics, EffectCompensationCompletionSemantics):
+            return semantics.completion_record.verified_by
+        if isinstance(semantics, EffectQuarantineCompensationCompletionSemantics):
+            return semantics.completion.completion_record.verified_by
+        raise InvalidDomainValue(
+            "Completion verifier requires compensation-completion semantics"
+        )
+
+    def requires_prior_compensation_start_event(self) -> bool:
+        """Whether this quarantine transition resumes, rather than starts, a plan."""
+        semantics = self.semantic_input
+        return isinstance(
+            semantics, EffectQuarantineCompensationCompletionSemantics
+        ) or (
+            isinstance(semantics, EffectQuarantineCompensationStartSemantics)
+            and semantics.mode is EffectQuarantineCompensationMode.RESUME_EXISTING_PLAN
+        )
 
     def _validate_observation_scope(
         self,

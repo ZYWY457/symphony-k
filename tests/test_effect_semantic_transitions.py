@@ -363,7 +363,7 @@ def test_simulation_requires_provenance_and_separate_preparer() -> None:
         )
 
 
-def test_pending_commit_requires_guard_and_four_effect_edges_remain_denied() -> None:
+def test_pending_commit_requires_guard_and_all_effect_edges_require_guards() -> None:
     current = effect()
     direct = request(current, EffectState.PENDING_COMMIT)
     with pytest.raises(InvariantViolation, match="semantic guard is required"):
@@ -400,12 +400,15 @@ def test_pending_commit_requires_guard_and_four_effect_edges_remain_denied() -> 
         )
         == 19
     )
-    assert len(canonical_edges) == 15
-    assert len(remaining) == 4
+    canonical_edges |= remaining
+    assert len(canonical_edges) == 19
+    assert not remaining - canonical_edges
     for source, target in remaining:
         snapshot = effect(source)
         unimplemented = request(snapshot, target)
-        with pytest.raises(InvariantViolation, match="denies this unimplemented edge"):
+        with pytest.raises(
+            InvariantViolation, match="Canonical Effect semantic guard is required"
+        ):
             transition_entity(
                 snapshot,
                 unimplemented,
