@@ -178,6 +178,16 @@ class CausationId(_UuidId):
 
 
 @dataclass(frozen=True, slots=True)
+class CreationAuthorityDecisionId(_UuidId):
+    """Identity of one immutable creation-authority decision."""
+
+
+@dataclass(frozen=True, slots=True)
+class IdentifierAvailabilityId(_UuidId):
+    """Identity of one immutable pre-M8 identifier-availability observation."""
+
+
+@dataclass(frozen=True, slots=True)
 class ActorId(_UuidId):
     """Identity of a principal, independent of its operating category."""
 

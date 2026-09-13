@@ -1,0 +1,1002 @@
+"""Fail-closed shared protocol for authoritative lifecycle creation.
+
+M7D1 defines creation request, authority, availability, and result records. It
+does not provide entity-specific creation semantics, so ``create_entity``
+intentionally returns no authoritative entity until M7D2--M7D5 install those
+canonical validators. This module has no repository, transaction, executor, or
+call to the transition engine's existing-snapshot operation.
+"""
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Final, Protocol, overload, runtime_checkable
+
+from .actors import ActorIdentity, ActorType
+from .candidate_refs import ArtifactRef, EvidenceRef
+from .completion import CompletionPolicyRef
+from .effect import (
+    Effect,
+    EffectPayloadRef,
+    EffectState,
+    EffectTargetRef,
+    ObservedEffectOrigin,
+    PlannedEffectOrigin,
+)
+from .errors import InvalidDomainValue, InvariantViolation, UnauthorizedTransition
+from .evaluation import Evaluation, EvaluationState
+from .evaluation_result import EvaluationMethodRef
+from .evaluation_target import EvaluationTargetRef
+from .execution_profile import ExecutionProfileRef
+from .ids import (
+    CausationId,
+    CorrelationId,
+    CreationAuthorityDecisionId,
+    EffectId,
+    EvaluationId,
+    EventId,
+    IdentifierAvailabilityId,
+    ObjectiveId,
+    OutcomeId,
+    RunId,
+    TaskId,
+)
+from .objective import Objective, ObjectiveState
+from .outcome import Outcome, OutcomeState
+from .run import Run, RunState
+from .task import Task, TaskState
+from .time import Timestamp
+from .transition_engine import (
+    DomainEntityType,
+    DomainEvent,
+    LifecycleEntity,
+    LifecycleEntityId,
+    LifecycleState,
+    is_actor_eligible_for_transition_authority,
+)
+from .transitions import TransitionReason
+from .version import EntityVersion
+
+INITIAL_CREATION_VERSION: Final[EntityVersion] = EntityVersion(1)
+
+type CreationEntitySpec = (
+    ObjectiveCreationSpec
+    | TaskCreationSpec
+    | RunCreationSpec
+    | OutcomeCreationSpec
+    | EvaluationCreationSpec
+    | PlannedEffectCreationSpec
+    | ObservedEffectCreationSpec
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveCreationSpec:
+    """Snapshot fields for an Objective creation request, excluding state/version."""
+
+    goal: str
+    acceptance_criteria: tuple[str, ...]
+    acceptance_authority: ActorIdentity
+    completion_policy_ref: CompletionPolicyRef
+    valid_until: Timestamp | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.goal, str) or not self.goal.strip():
+            raise InvalidDomainValue("goal must contain non-whitespace text")
+        if (
+            not isinstance(self.acceptance_criteria, tuple)
+            or not self.acceptance_criteria
+        ):
+            raise InvalidDomainValue("acceptance_criteria must be a nonempty tuple")
+        if any(
+            not isinstance(value, str) or not value.strip()
+            for value in self.acceptance_criteria
+        ):
+            raise InvalidDomainValue(
+                "Every acceptance criterion must be non-whitespace text"
+            )
+        if not isinstance(self.acceptance_authority, ActorIdentity):
+            raise InvalidDomainValue("acceptance_authority must be an ActorIdentity")
+        if not isinstance(self.completion_policy_ref, CompletionPolicyRef):
+            raise InvalidDomainValue(
+                "completion_policy_ref must be a CompletionPolicyRef"
+            )
+        if self.valid_until is not None and not isinstance(self.valid_until, Timestamp):
+            raise InvalidDomainValue("valid_until must be a Timestamp or None")
+
+
+@dataclass(frozen=True, slots=True)
+class TaskCreationSpec:
+    """Snapshot fields for a Task creation request, excluding state/version."""
+
+    definition: str
+    primary_objective_id: ObjectiveId
+    completion_policy_ref: CompletionPolicyRef
+    contributes_to: frozenset[ObjectiveId] = frozenset()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.definition, str) or not self.definition.strip():
+            raise InvalidDomainValue("definition must contain non-whitespace text")
+        if not isinstance(self.primary_objective_id, ObjectiveId):
+            raise InvalidDomainValue("primary_objective_id must be an ObjectiveId")
+        if not isinstance(self.completion_policy_ref, CompletionPolicyRef):
+            raise InvalidDomainValue(
+                "completion_policy_ref must be a CompletionPolicyRef"
+            )
+        if not isinstance(self.contributes_to, frozenset) or any(
+            not isinstance(value, ObjectiveId) for value in self.contributes_to
+        ):
+            raise InvalidDomainValue(
+                "contributes_to must be a frozenset of ObjectiveId"
+            )
+        if self.primary_objective_id in self.contributes_to:
+            raise InvalidDomainValue("Primary Objective cannot also be a contribution")
+
+
+@dataclass(frozen=True, slots=True)
+class RunCreationSpec:
+    """Snapshot fields for a Run creation request, excluding state/version."""
+
+    task_id: TaskId
+    execution_profile_ref: ExecutionProfileRef
+    predecessor_run_id: RunId | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.task_id, TaskId):
+            raise InvalidDomainValue("task_id must be a TaskId")
+        if not isinstance(self.execution_profile_ref, ExecutionProfileRef):
+            raise InvalidDomainValue(
+                "execution_profile_ref must be an ExecutionProfileRef"
+            )
+        if self.predecessor_run_id is not None and not isinstance(
+            self.predecessor_run_id, RunId
+        ):
+            raise InvalidDomainValue("predecessor_run_id must be a RunId or None")
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeCreationSpec:
+    """Snapshot fields for an Outcome creation request, excluding state/version."""
+
+    run_id: RunId
+    producer: ActorIdentity
+    artifact_refs: frozenset[ArtifactRef]
+    evidence_refs: frozenset[EvidenceRef] = frozenset()
+    valid_until: Timestamp | None = None
+    prior_outcome_id: OutcomeId | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.run_id, RunId):
+            raise InvalidDomainValue("run_id must be a RunId")
+        if not isinstance(self.producer, ActorIdentity):
+            raise InvalidDomainValue("producer must be an ActorIdentity")
+        if not isinstance(self.artifact_refs, frozenset) or not self.artifact_refs:
+            raise InvalidDomainValue("artifact_refs must be a nonempty frozenset")
+        if any(not isinstance(value, ArtifactRef) for value in self.artifact_refs):
+            raise InvalidDomainValue("Every artifact reference must be an ArtifactRef")
+        if not isinstance(self.evidence_refs, frozenset) or any(
+            not isinstance(value, EvidenceRef) for value in self.evidence_refs
+        ):
+            raise InvalidDomainValue("evidence_refs must be a frozenset of EvidenceRef")
+        if self.valid_until is not None and not isinstance(self.valid_until, Timestamp):
+            raise InvalidDomainValue("valid_until must be a Timestamp or None")
+        if self.prior_outcome_id is not None and not isinstance(
+            self.prior_outcome_id, OutcomeId
+        ):
+            raise InvalidDomainValue("prior_outcome_id must be an OutcomeId or None")
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationCreationSpec:
+    """Snapshot fields for an Evaluation creation request, excluding state/version."""
+
+    target: EvaluationTargetRef
+    method: EvaluationMethodRef
+    verifier: ActorIdentity | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.target, EvaluationTargetRef):
+            raise InvalidDomainValue("target must be an EvaluationTargetRef")
+        if not isinstance(self.method, EvaluationMethodRef):
+            raise InvalidDomainValue("method must be an EvaluationMethodRef")
+        if self.verifier is not None and not isinstance(self.verifier, ActorIdentity):
+            raise InvalidDomainValue("verifier must be an ActorIdentity or None")
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedEffectCreationSpec:
+    """Snapshot fields for planned Effect creation, excluding state/version."""
+
+    origin: PlannedEffectOrigin
+    target_ref: EffectTargetRef
+    payload_ref: EffectPayloadRef
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.origin, PlannedEffectOrigin):
+            raise InvalidDomainValue("origin must be a PlannedEffectOrigin")
+        if not isinstance(self.target_ref, EffectTargetRef):
+            raise InvalidDomainValue("target_ref must be an EffectTargetRef")
+        if not isinstance(self.payload_ref, EffectPayloadRef):
+            raise InvalidDomainValue("payload_ref must be an EffectPayloadRef")
+
+
+@dataclass(frozen=True, slots=True)
+class ObservedEffectCreationSpec:
+    """Snapshot fields for observed Effect creation, excluding state/version."""
+
+    origin: ObservedEffectOrigin
+    target_ref: EffectTargetRef
+    payload_ref: EffectPayloadRef | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.origin, ObservedEffectOrigin):
+            raise InvalidDomainValue("origin must be an ObservedEffectOrigin")
+        if not isinstance(self.target_ref, EffectTargetRef):
+            raise InvalidDomainValue("target_ref must be an EffectTargetRef")
+        if self.payload_ref is not None and not isinstance(
+            self.payload_ref, EffectPayloadRef
+        ):
+            raise InvalidDomainValue("payload_ref must be an EffectPayloadRef or None")
+
+
+@dataclass(frozen=True, slots=True)
+class _CreationSemanticInput:
+    """Typed semantic/provenance handle; M7D2--M7D5 add executable semantics."""
+
+    provenance_ref: CausationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.provenance_ref, CausationId):
+            raise InvalidDomainValue("provenance_ref must be a CausationId")
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveCreationSemanticInput(_CreationSemanticInput):
+    """Reserved typed input for M7D2 Objective creation semantics."""
+
+
+@dataclass(frozen=True, slots=True)
+class TaskCreationSemanticInput(_CreationSemanticInput):
+    """Reserved typed input for M7D2 Task creation semantics."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunCreationSemanticInput(_CreationSemanticInput):
+    """Reserved typed input for M7D3 Run creation semantics."""
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeCreationSemanticInput(_CreationSemanticInput):
+    """Reserved typed input for M7D3 Outcome creation semantics."""
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationCreationSemanticInput(_CreationSemanticInput):
+    """Reserved typed input for M7D3 Evaluation creation semantics."""
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedEffectCreationSemanticInput(_CreationSemanticInput):
+    """Reserved typed input for M7D4 planned Effect creation semantics."""
+
+
+@dataclass(frozen=True, slots=True)
+class ObservedEffectCreationSemanticInput(_CreationSemanticInput):
+    """Reserved typed input for M7D5 observed Effect creation semantics."""
+
+
+type CreationSemanticInput = (
+    ObjectiveCreationSemanticInput
+    | TaskCreationSemanticInput
+    | RunCreationSemanticInput
+    | OutcomeCreationSemanticInput
+    | EvaluationCreationSemanticInput
+    | PlannedEffectCreationSemanticInput
+    | ObservedEffectCreationSemanticInput
+)
+
+
+class CreationRequestVariant(Enum):
+    """Exactly the eight accepted absent-to-state creation request variants."""
+
+    OBJECTIVE_DRAFT = "OBJECTIVE_DRAFT"
+    TASK_DRAFT = "TASK_DRAFT"
+    RUN_PENDING = "RUN_PENDING"
+    OUTCOME_PROPOSED = "OUTCOME_PROPOSED"
+    EVALUATION_PENDING = "EVALUATION_PENDING"
+    EFFECT_PLANNED = "EFFECT_PLANNED"
+    EFFECT_COMMITTED = "EFFECT_COMMITTED"
+    EFFECT_QUARANTINED = "EFFECT_QUARANTINED"
+
+
+@dataclass(frozen=True, slots=True)
+class CreationRequestScope:
+    """Immutable full-value authority/freshness scope, never a source snapshot."""
+
+    variant: CreationRequestVariant
+    entity_type: DomainEntityType
+    entity_id: LifecycleEntityId
+    target_state: LifecycleState
+    requested_by: ActorIdentity
+    causation_id: CausationId
+    correlation_id: CorrelationId
+    entity_spec: CreationEntitySpec
+    semantic_input: CreationSemanticInput
+
+    def __post_init__(self) -> None:
+        _validate_scope_components(
+            self.variant,
+            self.entity_type,
+            self.entity_id,
+            self.target_state,
+            self.requested_by,
+            self.causation_id,
+            self.correlation_id,
+            self.entity_spec,
+            self.semantic_input,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class _CreationRequest:
+    """Common immutable fields shared by the closed public request variants."""
+
+    event_id: EventId
+    entity_id: LifecycleEntityId
+    requested_by: ActorIdentity
+    reason: TransitionReason
+    timestamp: Timestamp
+    correlation_id: CorrelationId
+    causation_id: CausationId
+    entity_spec: CreationEntitySpec
+    semantic_input: CreationSemanticInput
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.event_id, EventId):
+            raise InvalidDomainValue("event_id must be an EventId")
+        _validate_scope_components(
+            self.variant,
+            self.entity_type,
+            self.entity_id,
+            self.target_state,
+            self.requested_by,
+            self.causation_id,
+            self.correlation_id,
+            self.entity_spec,
+            self.semantic_input,
+        )
+        if not isinstance(self.reason, TransitionReason):
+            raise InvalidDomainValue("reason must be a TransitionReason")
+        if not isinstance(self.timestamp, Timestamp):
+            raise InvalidDomainValue("timestamp must be a Timestamp")
+
+    @property
+    def variant(self) -> "CreationRequestVariant":
+        raise NotImplementedError("Creation requests must use a closed variant")
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        raise NotImplementedError("Creation requests must use a closed variant")
+
+    @property
+    def target_state(self) -> LifecycleState:
+        raise NotImplementedError("Creation requests must use a closed variant")
+
+    @property
+    def scope(self) -> CreationRequestScope:
+        return CreationRequestScope(
+            self.variant,
+            self.entity_type,
+            self.entity_id,
+            self.target_state,
+            self.requested_by,
+            self.causation_id,
+            self.correlation_id,
+            self.entity_spec,
+            self.semantic_input,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveDraftCreationRequest(_CreationRequest):
+    entity_id: ObjectiveId
+    entity_spec: ObjectiveCreationSpec
+    semantic_input: ObjectiveCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.OBJECTIVE_DRAFT
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.OBJECTIVE
+
+    @property
+    def target_state(self) -> ObjectiveState:
+        return ObjectiveState.DRAFT
+
+
+@dataclass(frozen=True, slots=True)
+class TaskDraftCreationRequest(_CreationRequest):
+    entity_id: TaskId
+    entity_spec: TaskCreationSpec
+    semantic_input: TaskCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.TASK_DRAFT
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.TASK
+
+    @property
+    def target_state(self) -> TaskState:
+        return TaskState.DRAFT
+
+
+@dataclass(frozen=True, slots=True)
+class RunPendingCreationRequest(_CreationRequest):
+    entity_id: RunId
+    entity_spec: RunCreationSpec
+    semantic_input: RunCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.RUN_PENDING
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.RUN
+
+    @property
+    def target_state(self) -> RunState:
+        return RunState.PENDING
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeProposedCreationRequest(_CreationRequest):
+    entity_id: OutcomeId
+    entity_spec: OutcomeCreationSpec
+    semantic_input: OutcomeCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.OUTCOME_PROPOSED
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.OUTCOME
+
+    @property
+    def target_state(self) -> OutcomeState:
+        return OutcomeState.PROPOSED
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationPendingCreationRequest(_CreationRequest):
+    entity_id: EvaluationId
+    entity_spec: EvaluationCreationSpec
+    semantic_input: EvaluationCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.EVALUATION_PENDING
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.EVALUATION
+
+    @property
+    def target_state(self) -> EvaluationState:
+        return EvaluationState.PENDING
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedEffectCreationRequest(_CreationRequest):
+    entity_id: EffectId
+    entity_spec: PlannedEffectCreationSpec
+    semantic_input: PlannedEffectCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.EFFECT_PLANNED
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.EFFECT
+
+    @property
+    def target_state(self) -> EffectState:
+        return EffectState.PLANNED
+
+
+@dataclass(frozen=True, slots=True)
+class CommittedEffectObservationCreationRequest(_CreationRequest):
+    entity_id: EffectId
+    entity_spec: ObservedEffectCreationSpec
+    semantic_input: ObservedEffectCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.EFFECT_COMMITTED
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.EFFECT
+
+    @property
+    def target_state(self) -> EffectState:
+        return EffectState.COMMITTED
+
+
+@dataclass(frozen=True, slots=True)
+class QuarantinedEffectObservationCreationRequest(_CreationRequest):
+    entity_id: EffectId
+    entity_spec: ObservedEffectCreationSpec
+    semantic_input: ObservedEffectCreationSemanticInput
+
+    @property
+    def variant(self) -> CreationRequestVariant:
+        return CreationRequestVariant.EFFECT_QUARANTINED
+
+    @property
+    def entity_type(self) -> DomainEntityType:
+        return DomainEntityType.EFFECT
+
+    @property
+    def target_state(self) -> EffectState:
+        return EffectState.QUARANTINED
+
+
+type CreationRequest = (
+    ObjectiveDraftCreationRequest
+    | TaskDraftCreationRequest
+    | RunPendingCreationRequest
+    | OutcomeProposedCreationRequest
+    | EvaluationPendingCreationRequest
+    | PlannedEffectCreationRequest
+    | CommittedEffectObservationCreationRequest
+    | QuarantinedEffectObservationCreationRequest
+)
+
+_CREATION_REQUEST_TYPES = (
+    ObjectiveDraftCreationRequest,
+    TaskDraftCreationRequest,
+    RunPendingCreationRequest,
+    OutcomeProposedCreationRequest,
+    EvaluationPendingCreationRequest,
+    PlannedEffectCreationRequest,
+    CommittedEffectObservationCreationRequest,
+    QuarantinedEffectObservationCreationRequest,
+)
+
+
+def _validate_scope_components(
+    variant: CreationRequestVariant,
+    entity_type: DomainEntityType,
+    entity_id: LifecycleEntityId,
+    target_state: LifecycleState,
+    requested_by: ActorIdentity,
+    causation_id: CausationId,
+    correlation_id: CorrelationId,
+    entity_spec: CreationEntitySpec,
+    semantic_input: CreationSemanticInput,
+) -> None:
+    """Validate the closed variant-to-family/spec/input mapping."""
+    expected = {
+        CreationRequestVariant.OBJECTIVE_DRAFT: (
+            DomainEntityType.OBJECTIVE,
+            ObjectiveId,
+            ObjectiveState.DRAFT,
+            ObjectiveCreationSpec,
+            ObjectiveCreationSemanticInput,
+        ),
+        CreationRequestVariant.TASK_DRAFT: (
+            DomainEntityType.TASK,
+            TaskId,
+            TaskState.DRAFT,
+            TaskCreationSpec,
+            TaskCreationSemanticInput,
+        ),
+        CreationRequestVariant.RUN_PENDING: (
+            DomainEntityType.RUN,
+            RunId,
+            RunState.PENDING,
+            RunCreationSpec,
+            RunCreationSemanticInput,
+        ),
+        CreationRequestVariant.OUTCOME_PROPOSED: (
+            DomainEntityType.OUTCOME,
+            OutcomeId,
+            OutcomeState.PROPOSED,
+            OutcomeCreationSpec,
+            OutcomeCreationSemanticInput,
+        ),
+        CreationRequestVariant.EVALUATION_PENDING: (
+            DomainEntityType.EVALUATION,
+            EvaluationId,
+            EvaluationState.PENDING,
+            EvaluationCreationSpec,
+            EvaluationCreationSemanticInput,
+        ),
+        CreationRequestVariant.EFFECT_PLANNED: (
+            DomainEntityType.EFFECT,
+            EffectId,
+            EffectState.PLANNED,
+            PlannedEffectCreationSpec,
+            PlannedEffectCreationSemanticInput,
+        ),
+        CreationRequestVariant.EFFECT_COMMITTED: (
+            DomainEntityType.EFFECT,
+            EffectId,
+            EffectState.COMMITTED,
+            ObservedEffectCreationSpec,
+            ObservedEffectCreationSemanticInput,
+        ),
+        CreationRequestVariant.EFFECT_QUARANTINED: (
+            DomainEntityType.EFFECT,
+            EffectId,
+            EffectState.QUARANTINED,
+            ObservedEffectCreationSpec,
+            ObservedEffectCreationSemanticInput,
+        ),
+    }.get(variant)
+    if expected is None:
+        raise InvalidDomainValue("variant must be a CreationRequestVariant")
+    expected_entity_type, id_type, expected_target, spec_type, input_type = expected
+    if entity_type is not expected_entity_type:
+        raise InvalidDomainValue("entity_type must match the creation request variant")
+    if not isinstance(entity_id, id_type):
+        raise InvalidDomainValue("entity_id must match the creation request variant")
+    if target_state is not expected_target:
+        raise InvalidDomainValue("target_state must match the creation request variant")
+    if not isinstance(requested_by, ActorIdentity):
+        raise InvalidDomainValue("requested_by must be an ActorIdentity")
+    if not isinstance(causation_id, CausationId):
+        raise InvalidDomainValue("causation_id must be a CausationId")
+    if not isinstance(correlation_id, CorrelationId):
+        raise InvalidDomainValue("correlation_id must be a CorrelationId")
+    if not isinstance(entity_spec, spec_type):
+        raise InvalidDomainValue("entity_spec must match the creation request variant")
+    if not isinstance(semantic_input, input_type):
+        raise InvalidDomainValue(
+            "semantic_input must match the creation request variant"
+        )
+
+
+class CreationAuthorityStatus(Enum):
+    """Closed trusted authority outcome for an exact creation request scope."""
+
+    AUTHORIZED = "AUTHORIZED"
+    DENIED = "DENIED"
+    UNRESOLVED = "UNRESOLVED"
+
+
+@dataclass(frozen=True, slots=True)
+class CreationAuthorityDecision:
+    """Independent authority decision; it has no source state or version."""
+
+    decision_ref: CreationAuthorityDecisionId
+    request_scope: CreationRequestScope
+    decided_by: ActorIdentity
+    decision_status: CreationAuthorityStatus
+    policy_or_grant_refs: tuple[CausationId, ...]
+    decided_at: Timestamp
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.decision_ref, CreationAuthorityDecisionId):
+            raise InvalidDomainValue(
+                "decision_ref must be a CreationAuthorityDecisionId"
+            )
+        if not isinstance(self.request_scope, CreationRequestScope):
+            raise InvalidDomainValue("request_scope must be a CreationRequestScope")
+        if not isinstance(self.decided_by, ActorIdentity):
+            raise InvalidDomainValue("decided_by must be an ActorIdentity")
+        if not isinstance(self.decision_status, CreationAuthorityStatus):
+            raise InvalidDomainValue(
+                "decision_status must be a CreationAuthorityStatus"
+            )
+        if not isinstance(self.policy_or_grant_refs, tuple) or any(
+            not isinstance(value, CausationId) for value in self.policy_or_grant_refs
+        ):
+            raise InvalidDomainValue(
+                "policy_or_grant_refs must be a tuple of CausationId"
+            )
+        if len(set(self.policy_or_grant_refs)) != len(self.policy_or_grant_refs):
+            raise InvalidDomainValue("policy_or_grant_refs must not contain duplicates")
+        if not isinstance(self.decided_at, Timestamp):
+            raise InvalidDomainValue("decided_at must be a Timestamp")
+
+
+class IdentifierAvailabilityStatus(Enum):
+    """Pre-M8 trusted availability observation, never a uniqueness guarantee."""
+
+    AVAILABLE = "AVAILABLE"
+    DUPLICATE = "DUPLICATE"
+    UNRESOLVED = "UNRESOLVED"
+
+
+@dataclass(frozen=True, slots=True)
+class IdentifierAvailability:
+    """Exact-scope identifier observation supplied by an orchestration boundary."""
+
+    observation_ref: IdentifierAvailabilityId
+    request_scope: CreationRequestScope
+    entity_type: DomainEntityType
+    entity_id: LifecycleEntityId
+    status: IdentifierAvailabilityStatus
+    observed_by: ActorIdentity
+    observed_at: Timestamp
+    correlation_id: CorrelationId
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.observation_ref, IdentifierAvailabilityId):
+            raise InvalidDomainValue(
+                "observation_ref must be an IdentifierAvailabilityId"
+            )
+        if not isinstance(self.request_scope, CreationRequestScope):
+            raise InvalidDomainValue("request_scope must be a CreationRequestScope")
+        if self.entity_type is not self.request_scope.entity_type:
+            raise InvalidDomainValue("entity_type must match request_scope")
+        if self.entity_id != self.request_scope.entity_id:
+            raise InvalidDomainValue("entity_id must match request_scope")
+        if not isinstance(self.status, IdentifierAvailabilityStatus):
+            raise InvalidDomainValue("status must be an IdentifierAvailabilityStatus")
+        if not isinstance(self.observed_by, ActorIdentity):
+            raise InvalidDomainValue("observed_by must be an ActorIdentity")
+        if self.observed_by.actor_type in {ActorType.REQUESTER, ActorType.WORKER}:
+            raise InvalidDomainValue(
+                "identifier availability must be observed by an orchestration boundary"
+            )
+        if self.observed_by.actor_id == self.request_scope.requested_by.actor_id:
+            raise InvalidDomainValue(
+                "identifier availability observer must differ from the requester"
+            )
+        if not isinstance(self.observed_at, Timestamp):
+            raise InvalidDomainValue("observed_at must be a Timestamp")
+        if self.correlation_id != self.request_scope.correlation_id:
+            raise InvalidDomainValue("correlation_id must match request_scope")
+
+
+@runtime_checkable
+class CreationGuard(Protocol):
+    """Pure additional guard boundary; it never supplies entity semantics."""
+
+    def validate(self, request: CreationRequest) -> None:
+        """Return normally or raise a typed domain rejection."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class CreationContext:
+    """Trusted creation inputs; missing entity semantic validation is denial."""
+
+    authority_decision: CreationAuthorityDecision | None
+    identifier_availability: IdentifierAvailability | None
+    applying_service: ActorIdentity
+    guards: tuple[CreationGuard, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.authority_decision is not None and not isinstance(
+            self.authority_decision, CreationAuthorityDecision
+        ):
+            raise InvalidDomainValue(
+                "authority_decision must be a CreationAuthorityDecision or None"
+            )
+        if self.identifier_availability is not None and not isinstance(
+            self.identifier_availability, IdentifierAvailability
+        ):
+            raise InvalidDomainValue(
+                "identifier_availability must be an IdentifierAvailability or None"
+            )
+        if not isinstance(self.applying_service, ActorIdentity):
+            raise InvalidDomainValue("applying_service must be an ActorIdentity")
+        if not isinstance(self.guards, tuple) or any(
+            not isinstance(value, CreationGuard) for value in self.guards
+        ):
+            raise InvalidDomainValue("guards must be a tuple of CreationGuard")
+
+
+@dataclass(frozen=True, slots=True)
+class CreationResult[EntityT_co: LifecycleEntity]:
+    """One version-1 snapshot and one matching event, if semantics authorize it."""
+
+    entity: EntityT_co
+    event: DomainEvent
+    request: CreationRequest
+    authority_decision: CreationAuthorityDecision
+    identifier_availability: IdentifierAvailability
+
+    def __post_init__(self) -> None:
+        if not isinstance(
+            self.entity, (Objective, Task, Run, Outcome, Evaluation, Effect)
+        ):
+            raise InvalidDomainValue("entity must be a lifecycle entity snapshot")
+        if not isinstance(self.event, DomainEvent):
+            raise InvalidDomainValue("event must be a DomainEvent")
+        if type(self.request) not in _CREATION_REQUEST_TYPES:
+            raise InvalidDomainValue(
+                "request must be one of the eight creation request variants"
+            )
+        if not isinstance(self.authority_decision, CreationAuthorityDecision):
+            raise InvalidDomainValue(
+                "authority_decision must be a CreationAuthorityDecision"
+            )
+        if not isinstance(self.identifier_availability, IdentifierAvailability):
+            raise InvalidDomainValue(
+                "identifier_availability must be an IdentifierAvailability"
+            )
+        _require_exact_authority(self.request, self.authority_decision)
+        _require_exact_availability(self.request, self.identifier_availability)
+        entity_type, entity_id, state, version = _entity_details(self.entity)
+        if (
+            entity_type is not self.request.entity_type
+            or entity_id != self.request.entity_id
+            or state is not self.request.target_state
+            or version != INITIAL_CREATION_VERSION
+        ):
+            raise InvalidDomainValue(
+                "entity must be the request's canonical version-1 snapshot"
+            )
+        if not (
+            self.event.event_id == self.request.event_id
+            and self.event.entity_type is entity_type
+            and self.event.entity_id == entity_id
+            and self.event.entity_version == INITIAL_CREATION_VERSION
+            and self.event.actor == self.authority_decision.decided_by
+            and self.event.timestamp == self.request.timestamp
+            and self.event.correlation_id == self.request.correlation_id
+            and self.event.causation_id == self.request.causation_id
+            and self.event.reason == self.request.reason
+            and self.event.metadata.prior_state is None
+            and self.event.metadata.new_state is state
+        ):
+            raise InvalidDomainValue("event must exactly describe the creation result")
+
+
+def _entity_details(
+    entity: LifecycleEntity,
+) -> tuple[DomainEntityType, LifecycleEntityId, LifecycleState, EntityVersion]:
+    if isinstance(entity, Objective):
+        return (
+            DomainEntityType.OBJECTIVE,
+            entity.objective_id,
+            entity.state,
+            entity.version,
+        )
+    if isinstance(entity, Task):
+        return DomainEntityType.TASK, entity.task_id, entity.state, entity.version
+    if isinstance(entity, Run):
+        return DomainEntityType.RUN, entity.run_id, entity.state, entity.version
+    if isinstance(entity, Outcome):
+        return DomainEntityType.OUTCOME, entity.outcome_id, entity.state, entity.version
+    if isinstance(entity, Evaluation):
+        return (
+            DomainEntityType.EVALUATION,
+            entity.evaluation_id,
+            entity.state,
+            entity.version,
+        )
+    return DomainEntityType.EFFECT, entity.effect_id, entity.state, entity.version
+
+
+def _require_exact_authority(
+    request: CreationRequest, decision: CreationAuthorityDecision | None
+) -> None:
+    if decision is None:
+        raise UnauthorizedTransition("Creation authority decision is required")
+    if decision.decision_status is not CreationAuthorityStatus.AUTHORIZED:
+        raise UnauthorizedTransition(
+            f"Creation authority decision is {decision.decision_status.value}"
+        )
+    if decision.request_scope != request.scope:
+        raise UnauthorizedTransition(
+            "Creation authority decision must exact-bind request scope"
+        )
+    if (
+        request.requested_by.actor_type is ActorType.WORKER
+        and decision.decided_by.actor_id == request.requested_by.actor_id
+    ):
+        raise UnauthorizedTransition(
+            "Worker requester cannot relabel itself as authority"
+        )
+    if not is_actor_eligible_for_transition_authority(
+        request.entity_type,
+        None,
+        request.target_state,
+        decision.decided_by.actor_type,
+    ):
+        raise UnauthorizedTransition(
+            f"{decision.decided_by.actor_type.value} is not eligible for direct "
+            f"{request.entity_type.value} creation authority"
+        )
+
+
+def _require_exact_availability(
+    request: CreationRequest, availability: IdentifierAvailability | None
+) -> None:
+    if availability is None:
+        raise InvariantViolation("Identifier availability observation is required")
+    if availability.request_scope != request.scope:
+        raise InvariantViolation(
+            "Identifier availability must exact-bind request scope"
+        )
+    if availability.status is not IdentifierAvailabilityStatus.AVAILABLE:
+        raise InvariantViolation(
+            f"Identifier availability is {availability.status.value}, not AVAILABLE"
+        )
+
+
+def _require_context(request: CreationRequest, context: CreationContext) -> None:
+    _require_exact_authority(request, context.authority_decision)
+    _require_exact_availability(request, context.identifier_availability)
+    for guard in context.guards:
+        guard.validate(request)
+
+
+@overload
+def create_entity(
+    request: ObjectiveDraftCreationRequest, context: CreationContext
+) -> CreationResult[Objective]: ...
+
+
+@overload
+def create_entity(
+    request: TaskDraftCreationRequest, context: CreationContext
+) -> CreationResult[Task]: ...
+
+
+@overload
+def create_entity(
+    request: RunPendingCreationRequest, context: CreationContext
+) -> CreationResult[Run]: ...
+
+
+@overload
+def create_entity(
+    request: OutcomeProposedCreationRequest, context: CreationContext
+) -> CreationResult[Outcome]: ...
+
+
+@overload
+def create_entity(
+    request: EvaluationPendingCreationRequest, context: CreationContext
+) -> CreationResult[Evaluation]: ...
+
+
+@overload
+def create_entity(
+    request: PlannedEffectCreationRequest, context: CreationContext
+) -> CreationResult[Effect]: ...
+
+
+@overload
+def create_entity(
+    request: CommittedEffectObservationCreationRequest, context: CreationContext
+) -> CreationResult[Effect]: ...
+
+
+@overload
+def create_entity(
+    request: QuarantinedEffectObservationCreationRequest, context: CreationContext
+) -> CreationResult[Effect]: ...
+
+
+def create_entity(
+    request: CreationRequest, context: CreationContext
+) -> CreationResult[LifecycleEntity]:
+    """Validate shared inputs then deny until an entity-specific validator exists.
+
+    This dedicated boundary intentionally accepts neither a source snapshot nor an
+    expected version, and never delegates to ``transition_entity``.
+    """
+    if type(request) not in _CREATION_REQUEST_TYPES:
+        raise InvalidDomainValue(
+            "request must be one of the eight creation request variants"
+        )
+    if not isinstance(context, CreationContext):
+        raise InvalidDomainValue("context must be a CreationContext")
+    _require_context(request, context)
+    raise InvariantViolation(
+        "Canonical entity-specific creation semantics are not implemented"
+    )
