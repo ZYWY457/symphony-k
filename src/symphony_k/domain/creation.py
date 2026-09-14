@@ -799,7 +799,12 @@ class CreationContext:
 
 @dataclass(frozen=True, slots=True)
 class CreationResult[EntityT_co: LifecycleEntity]:
-    """One version-1 snapshot and one matching event, if semantics authorize it."""
+    """One version-1 snapshot and one matching event, if semantics authorize it.
+
+    M7D1 relies on ``DomainEventMetadata`` for immutable annotation structure.
+    M7D2--M7D5 own the exact annotation vocabulary and semantic values for each
+    successful creation edge.
+    """
 
     entity: EntityT_co
     event: DomainEvent
@@ -851,7 +856,6 @@ class CreationResult[EntityT_co: LifecycleEntity]:
             and self.event.reason == self.request.reason
             and self.event.metadata.prior_state is None
             and self.event.metadata.new_state is state
-            and self.event.metadata.annotations == frozenset()
         ):
             raise InvalidDomainValue("event must exactly describe the creation result")
 

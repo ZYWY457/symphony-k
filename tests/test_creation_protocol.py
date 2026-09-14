@@ -22,6 +22,7 @@ from symphony_k.domain import (
     CreationRequest,
     CreationRequestVariant,
     CreationResult,
+    DomainEntityType,
     DomainEvent,
     DomainEventMetadata,
     DomainEventType,
@@ -33,13 +34,16 @@ from symphony_k.domain import (
     EffectTargetRef,
     EntityVersion,
     Evaluation,
+    EvaluationConfidence,
     EvaluationCreationSemanticInput,
     EvaluationCreationSpec,
     EvaluationId,
     EvaluationMethodRef,
     EvaluationPendingCreationRequest,
+    EvaluationResult,
     EvaluationState,
     EvaluationTargetRef,
+    EvaluationVerdict,
     EventId,
     EvidenceRef,
     ExecutionProfileRef,
@@ -518,12 +522,20 @@ def test_exactly_eight_closed_creation_request_variants() -> None:
     assert len(creation_cases()) == 8
 
 
-def test_normalized_scope_is_immutable_and_has_no_source_state_or_version() -> None:
-    scope = _objective_case().creation_request.scope
-    assert scope.target_state is ObjectiveState.DRAFT
-    assert not hasattr(scope, "prior_state")
-    assert not hasattr(scope, "version")
-    assert not hasattr(scope, "expected_version")
+@pytest.mark.parametrize("case", creation_cases(), ids=case_ids())
+def test_requests_and_normalized_scopes_have_no_source_or_version_inputs(
+    case: CreationCase,
+) -> None:
+    request = case.creation_request
+    scope = request.scope
+    for field_name in (
+        "source_state",
+        "prior_state",
+        "expected_version",
+        "initial_version",
+    ):
+        assert not hasattr(request, field_name)
+        assert not hasattr(scope, field_name)
     with pytest.raises(FrozenInstanceError):
         scope.entity_id = ObjectiveId(VALUE)  # type: ignore[misc]
 
@@ -534,6 +546,37 @@ def test_all_request_variants_bind_family_id_target_spec_and_input(
 ) -> None:
     request = case.creation_request
     scope = request.scope
+    expected_family_and_target = {
+        ObjectiveDraftCreationRequest: (
+            DomainEntityType.OBJECTIVE,
+            ObjectiveState.DRAFT,
+        ),
+        TaskDraftCreationRequest: (DomainEntityType.TASK, TaskState.DRAFT),
+        RunPendingCreationRequest: (DomainEntityType.RUN, RunState.PENDING),
+        OutcomeProposedCreationRequest: (
+            DomainEntityType.OUTCOME,
+            OutcomeState.PROPOSED,
+        ),
+        EvaluationPendingCreationRequest: (
+            DomainEntityType.EVALUATION,
+            EvaluationState.PENDING,
+        ),
+        PlannedEffectCreationRequest: (
+            DomainEntityType.EFFECT,
+            EffectState.PLANNED,
+        ),
+        CommittedEffectObservationCreationRequest: (
+            DomainEntityType.EFFECT,
+            EffectState.COMMITTED,
+        ),
+        QuarantinedEffectObservationCreationRequest: (
+            DomainEntityType.EFFECT,
+            EffectState.QUARANTINED,
+        ),
+    }
+    assert (request.entity_type, request.target_state) == expected_family_and_target[
+        type(request)
+    ]
     assert scope.variant is request.variant
     assert scope.entity_type is request.entity_type
     assert scope.entity_id == request.entity_id
@@ -641,6 +684,47 @@ def test_identifier_observation_rejects_correlation_substitution() -> None:
         replace(availability(case), correlation_id=CorrelationId(uid(9992)))
 
 
+def test_identifier_availability_is_required() -> None:
+    case = _objective_case()
+    with pytest.raises(InvariantViolation, match="observation is required"):
+        create_entity(
+            case.creation_request,
+            CreationContext(
+                authority(case),
+                None,
+                actor(THIRD, ActorType.SYSTEM),
+            ),
+        )
+
+
+def test_identifier_observation_rejects_entity_type_substitution() -> None:
+    case = _objective_case()
+    with pytest.raises(InvalidDomainValue, match="entity_type must match"):
+        replace(
+            availability(case),
+            entity_type=_task_case().creation_request.entity_type,
+        )
+
+
+def test_identifier_observation_rejects_entity_id_substitution() -> None:
+    case = _objective_case()
+    with pytest.raises(InvalidDomainValue, match="entity_id must match"):
+        replace(availability(case), entity_id=ObjectiveId(uid(9990)))
+
+
+def test_raw_boolean_is_not_identifier_availability_evidence() -> None:
+    case = _objective_case()
+    with pytest.raises(
+        InvalidDomainValue,
+        match="identifier_availability must be an IdentifierAvailability",
+    ):
+        CreationContext(
+            authority(case),
+            True,  # type: ignore[arg-type]
+            actor(THIRD, ActorType.SYSTEM),
+        )
+
+
 def test_system_has_no_implicit_superuser_creation_authority() -> None:
     case = _objective_case()
     with pytest.raises(UnauthorizedTransition, match="not eligible"):
@@ -648,6 +732,32 @@ def test_system_has_no_implicit_superuser_creation_authority() -> None:
             case.creation_request,
             CreationContext(
                 authority(case, decided_by=actor(uid(9002), ActorType.SYSTEM)),
+                availability(case),
+                actor(THIRD, ActorType.SYSTEM),
+            ),
+        )
+
+
+def test_ineligible_actor_cannot_supply_creation_authority() -> None:
+    case = _objective_case()
+    with pytest.raises(UnauthorizedTransition, match="not eligible"):
+        create_entity(
+            case.creation_request,
+            CreationContext(
+                authority(case, decided_by=actor(uid(9010), ActorType.WORKER)),
+                availability(case),
+                actor(THIRD, ActorType.SYSTEM),
+            ),
+        )
+
+
+def test_exact_same_eligible_principal_is_not_rejected_as_relabelled() -> None:
+    case = _objective_case()
+    with pytest.raises(InvariantViolation, match="not implemented"):
+        create_entity(
+            case.creation_request,
+            CreationContext(
+                authority(case, decided_by=case.creation_request.requested_by),
                 availability(case),
                 actor(THIRD, ActorType.SYSTEM),
             ),
@@ -806,8 +916,39 @@ def test_result_rejects_fabricated_outcome_supersession_lineage() -> None:
 
 
 @pytest.mark.parametrize("case", creation_cases(), ids=case_ids())
-def test_result_rejects_event_invariant_substitutions(case: CreationCase) -> None:
-    creation_result = result(case)
+def test_result_accepts_structurally_valid_nonempty_annotation(
+    case: CreationCase,
+) -> None:
+    decision = authority(case)
+    # Illustrative structure only; later entity slices own canonical keys/values.
+    annotations = frozenset(
+        {
+            (
+                "stable_ref",
+                f"fixture:{decision.decision_ref.value}",
+            )
+        }
+    )
+    creation_result = CreationResult(
+        case.entity,
+        creation_event(
+            case,
+            decision,
+            metadata=DomainEventMetadata(
+                None,
+                case.creation_request.target_state,
+                annotations,
+            ),
+        ),
+        case.creation_request,
+        decision,
+        availability(case),
+    )
+    assert creation_result.event.metadata.annotations == annotations
+
+
+def test_result_rejects_event_id_substitution() -> None:
+    creation_result = result(_objective_case())
     with pytest.raises(
         InvalidDomainValue, match="exactly describe the creation result"
     ):
@@ -815,6 +956,10 @@ def test_result_rejects_event_invariant_substitutions(case: CreationCase) -> Non
             creation_result,
             event=replace(creation_result.event, event_id=EventId(uid(9994))),
         )
+
+
+def test_result_rejects_event_entity_id_substitution() -> None:
+    creation_result = result(_objective_case())
     with pytest.raises(
         InvalidDomainValue, match="exactly describe the creation result"
     ):
@@ -822,9 +967,13 @@ def test_result_rejects_event_invariant_substitutions(case: CreationCase) -> Non
             creation_result,
             event=replace(
                 creation_result.event,
-                actor=actor(uid(9995), case.authority_actor_type),
+                entity_id=ObjectiveId(uid(9995)),
             ),
         )
+
+
+def test_result_rejects_event_authority_actor_substitution() -> None:
+    creation_result = result(_objective_case())
     with pytest.raises(
         InvalidDomainValue, match="exactly describe the creation result"
     ):
@@ -832,43 +981,135 @@ def test_result_rejects_event_invariant_substitutions(case: CreationCase) -> Non
             creation_result,
             event=replace(
                 creation_result.event,
-                metadata=DomainEventMetadata(
-                    None,
-                    case.creation_request.target_state,
-                    frozenset({("unsupported", "annotation")}),
-                ),
+                actor=actor(uid(9996), ActorType.SCHEDULER),
             ),
+        )
+
+
+def test_result_rejects_event_correlation_substitution() -> None:
+    creation_result = result(_objective_case())
+    with pytest.raises(
+        InvalidDomainValue, match="exactly describe the creation result"
+    ):
+        replace(
+            creation_result,
+            event=replace(
+                creation_result.event,
+                correlation_id=CorrelationId(uid(9997)),
+            ),
+        )
+
+
+def test_result_rejects_event_causation_substitution() -> None:
+    creation_result = result(_objective_case())
+    with pytest.raises(
+        InvalidDomainValue, match="exactly describe the creation result"
+    ):
+        replace(
+            creation_result,
+            event=replace(
+                creation_result.event,
+                causation_id=CausationId(uid(9998)),
+            ),
+        )
+
+
+def test_result_rejects_event_reason_substitution() -> None:
+    creation_result = result(_objective_case())
+    with pytest.raises(
+        InvalidDomainValue, match="exactly describe the creation result"
+    ):
+        replace(
+            creation_result,
+            event=replace(
+                creation_result.event,
+                reason=TransitionReason("Substituted reason"),
+            ),
+        )
+
+
+def test_domain_event_rejects_wrong_creation_event_type() -> None:
+    with pytest.raises(InvalidDomainValue, match="event_type must match"):
+        replace(
+            creation_event(_objective_case()),
+            event_type=DomainEventType.OBJECTIVE_ACTIVATED,
         )
 
 
 def test_result_rejects_non_none_prior_state() -> None:
     case = _objective_case()
-    request = case.creation_request
-    decision = authority(case)
-    with pytest.raises(
-        InvalidDomainValue, match="exactly describe the creation result"
-    ):
-        CreationResult(
-            case.entity,
-            DomainEvent(
-                request.event_id,
-                DomainEventType.OBJECTIVE_ACTIVATED,
-                request.entity_type,
-                request.entity_id,
-                EntityVersion(1),
-                decision.decided_by,
-                request.timestamp,
-                request.correlation_id,
-                request.causation_id,
-                request.reason,
-                DomainEventMetadata(
-                    ObjectiveState.DRAFT,
-                    ObjectiveState.ACTIVE,
-                ),
+    with pytest.raises(InvalidDomainValue, match="canonical lifecycle edge"):
+        replace(
+            creation_event(case),
+            metadata=DomainEventMetadata(
+                ObjectiveState.ACTIVE,
+                ObjectiveState.DRAFT,
             ),
-            request,
-            decision,
-            availability(case),
+        )
+
+
+def test_domain_event_rejects_wrong_creation_new_state_when_prior_is_absent() -> None:
+    with pytest.raises(InvalidDomainValue, match="canonical creation target"):
+        replace(
+            creation_event(_objective_case()),
+            event_type=DomainEventType.OBJECTIVE_ACTIVATED,
+            metadata=DomainEventMetadata(None, ObjectiveState.ACTIVE),
+        )
+
+
+def test_evaluation_pending_snapshot_rejects_result_injection() -> None:
+    case = _evaluation_case()
+    assert isinstance(case.entity, Evaluation)
+    injected_result = EvaluationResult(
+        EvaluationVerdict("PASS"),
+        EvaluationConfidence("HIGH"),
+        "Injected before verification",
+    )
+    with pytest.raises(InvalidDomainValue, match="cannot have a result"):
+        replace(case.entity, result=injected_result)
+
+
+def test_domain_event_metadata_rejects_malformed_annotation() -> None:
+    with pytest.raises(InvalidDomainValue, match="two non-whitespace strings"):
+        DomainEventMetadata(
+            None,
+            ObjectiveState.DRAFT,
+            frozenset({("only-a-key",)}),  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize(
+    "annotation",
+    [
+        ("", "stable:value"),
+        ("   ", "stable:value"),
+        ("stable_key", ""),
+        ("stable_key", "   "),
+    ],
+    ids=["empty-key", "blank-key", "empty-value", "blank-value"],
+)
+def test_domain_event_metadata_rejects_blank_annotation_key_or_value(
+    annotation: tuple[str, str],
+) -> None:
+    with pytest.raises(InvalidDomainValue, match="two non-whitespace strings"):
+        DomainEventMetadata(
+            None,
+            ObjectiveState.DRAFT,
+            frozenset({annotation}),
+        )
+
+
+def test_domain_event_metadata_rejects_duplicate_annotation_keys() -> None:
+    with pytest.raises(InvalidDomainValue, match="keys must be unique"):
+        DomainEventMetadata(
+            None,
+            ObjectiveState.DRAFT,
+            frozenset(
+                {
+                    ("stable_key", "stable:value-1"),
+                    ("stable_key", "stable:value-2"),
+                }
+            ),
         )
 
 
