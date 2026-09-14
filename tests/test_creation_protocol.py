@@ -972,6 +972,29 @@ def test_result_rejects_event_entity_id_substitution() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "event_version",
+    [EntityVersion(0), EntityVersion(2)],
+    ids=["zero", "two"],
+)
+def test_result_rejects_event_entity_version_substitution(
+    event_version: EntityVersion,
+) -> None:
+    creation_result = result(_objective_case())
+    assert creation_result.entity.version == EntityVersion(1)
+    assert creation_result.event.entity_version == EntityVersion(1)
+    with pytest.raises(
+        InvalidDomainValue, match="exactly describe the creation result"
+    ):
+        replace(
+            creation_result,
+            event=replace(
+                creation_result.event,
+                entity_version=event_version,
+            ),
+        )
+
+
 def test_result_rejects_event_authority_actor_substitution() -> None:
     creation_result = result(_objective_case())
     with pytest.raises(
@@ -982,6 +1005,21 @@ def test_result_rejects_event_authority_actor_substitution() -> None:
             event=replace(
                 creation_result.event,
                 actor=actor(uid(9996), ActorType.SCHEDULER),
+            ),
+        )
+
+
+def test_result_rejects_event_timestamp_substitution() -> None:
+    creation_result = result(_objective_case())
+    substituted_timestamp = Timestamp(datetime(2026, 9, 14, tzinfo=UTC))
+    with pytest.raises(
+        InvalidDomainValue, match="exactly describe the creation result"
+    ):
+        replace(
+            creation_result,
+            event=replace(
+                creation_result.event,
+                timestamp=substituted_timestamp,
             ),
         )
 
