@@ -838,6 +838,7 @@ class CreationResult[EntityT_co: LifecycleEntity]:
             raise InvalidDomainValue(
                 "entity must be the request's canonical version-1 snapshot"
             )
+        _require_entity_matches_request_spec(self.request, self.entity)
         if not (
             self.event.event_id == self.request.event_id
             and self.event.entity_type is entity_type
@@ -850,6 +851,7 @@ class CreationResult[EntityT_co: LifecycleEntity]:
             and self.event.reason == self.request.reason
             and self.event.metadata.prior_state is None
             and self.event.metadata.new_state is state
+            and self.event.metadata.annotations == frozenset()
         ):
             raise InvalidDomainValue("event must exactly describe the creation result")
 
@@ -880,6 +882,95 @@ def _entity_details(
     return DomainEntityType.EFFECT, entity.effect_id, entity.state, entity.version
 
 
+def _require_entity_matches_request_spec(
+    request: CreationRequest, entity: LifecycleEntity
+) -> None:
+    """Bind successful immutable content to the authorized request spec."""
+    spec = request.entity_spec
+    exact_match = False
+    if isinstance(entity, Objective) and isinstance(spec, ObjectiveCreationSpec):
+        exact_match = (
+            entity.goal == spec.goal
+            and entity.acceptance_criteria == spec.acceptance_criteria
+            and entity.acceptance_authority == spec.acceptance_authority
+            and entity.completion_policy_ref == spec.completion_policy_ref
+            and entity.valid_until == spec.valid_until
+        )
+    elif isinstance(entity, Task) and isinstance(spec, TaskCreationSpec):
+        exact_match = (
+            entity.definition == spec.definition
+            and entity.primary_objective_id == spec.primary_objective_id
+            and entity.completion_policy_ref == spec.completion_policy_ref
+            and entity.contributes_to == spec.contributes_to
+        )
+    elif isinstance(entity, Run) and isinstance(spec, RunCreationSpec):
+        exact_match = (
+            entity.task_id == spec.task_id
+            and entity.execution_profile_ref == spec.execution_profile_ref
+            and entity.predecessor_run_id == spec.predecessor_run_id
+        )
+    elif isinstance(entity, Outcome) and isinstance(spec, OutcomeCreationSpec):
+        exact_match = (
+            entity.run_id == spec.run_id
+            and entity.producer == spec.producer
+            and entity.artifact_refs == spec.artifact_refs
+            and entity.evidence_refs == spec.evidence_refs
+            and entity.valid_until == spec.valid_until
+            and entity.prior_outcome_id == spec.prior_outcome_id
+            and entity.superseded_by_outcome_id is None
+        )
+    elif isinstance(entity, Evaluation) and isinstance(spec, EvaluationCreationSpec):
+        exact_match = (
+            entity.target == spec.target
+            and entity.method == spec.method
+            and entity.verifier == spec.verifier
+            and entity.result is None
+        )
+    elif isinstance(entity, Effect) and isinstance(spec, PlannedEffectCreationSpec):
+        exact_match = (
+            entity.origin == spec.origin
+            and entity.target_ref == spec.target_ref
+            and entity.payload_ref == spec.payload_ref
+        )
+    elif isinstance(entity, Effect) and isinstance(spec, ObservedEffectCreationSpec):
+        exact_match = (
+            entity.origin == spec.origin
+            and entity.target_ref == spec.target_ref
+            and entity.payload_ref == spec.payload_ref
+        )
+    if not exact_match:
+        raise InvalidDomainValue(
+            "entity immutable content must exact-bind request.entity_spec"
+        )
+
+
+def _creation_principals_requiring_no_relabel(
+    request: CreationRequest,
+) -> tuple[ActorIdentity, ...]:
+    spec = request.entity_spec
+    principals = (request.requested_by,)
+    if isinstance(spec, OutcomeCreationSpec):
+        return principals + (spec.producer,)
+    if isinstance(spec, PlannedEffectCreationSpec):
+        return principals + (spec.origin.proposed_by,)
+    if isinstance(spec, ObservedEffectCreationSpec):
+        return principals + (spec.origin.observed_by,)
+    return principals
+
+
+def _require_no_creation_authority_relabel(
+    request: CreationRequest, authority_actor: ActorIdentity
+) -> None:
+    for principal in _creation_principals_requiring_no_relabel(request):
+        if (
+            authority_actor.actor_id == principal.actor_id
+            and authority_actor.actor_type is not principal.actor_type
+        ):
+            raise UnauthorizedTransition(
+                "Creation authority cannot be acquired by relabelling a principal"
+            )
+
+
 def _require_exact_authority(
     request: CreationRequest, decision: CreationAuthorityDecision | None
 ) -> None:
@@ -893,13 +984,7 @@ def _require_exact_authority(
         raise UnauthorizedTransition(
             "Creation authority decision must exact-bind request scope"
         )
-    if (
-        request.requested_by.actor_type is ActorType.WORKER
-        and decision.decided_by.actor_id == request.requested_by.actor_id
-    ):
-        raise UnauthorizedTransition(
-            "Worker requester cannot relabel itself as authority"
-        )
+    _require_no_creation_authority_relabel(request, decision.decided_by)
     if not is_actor_eligible_for_transition_authority(
         request.entity_type,
         None,
