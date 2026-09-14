@@ -1,9 +1,8 @@
-"""Fail-closed shared protocol for authoritative lifecycle creation.
+"""Authoritative lifecycle creation protocol.
 
-M7D1 defines creation request, authority, availability, and result records. It
-does not provide entity-specific creation semantics, so ``create_entity``
-intentionally returns no authoritative entity until M7D2--M7D5 install those
-canonical validators. This module has no repository, transaction, executor, or
+M7D1 defines the shared request, authority, availability, and result records.
+M7D2 adds only Objective and Task creation semantics.  The other six variants
+remain fail closed.  This module has no repository, transaction, executor, or
 call to the transition engine's existing-snapshot operation.
 """
 
@@ -14,6 +13,17 @@ from typing import Final, Protocol, overload, runtime_checkable
 from .actors import ActorIdentity, ActorType
 from .candidate_refs import ArtifactRef, EvidenceRef
 from .completion import CompletionPolicyRef
+from .creation_semantics import (
+    CreationSemanticDecisionStatus,
+    ObjectiveAcceptanceBindingDecision,
+    ObjectiveBoundedGoalDecision,
+    ObjectiveCreationCompletionPolicyDecision,
+    TaskBoundedDefinitionDecision,
+    TaskCreationCompletionPolicyDecision,
+    TaskObjectiveObservation,
+    TaskObjectiveObservationStatus,
+    TaskObjectiveRelationship,
+)
 from .effect import (
     Effect,
     EffectPayloadRef,
@@ -22,7 +32,13 @@ from .effect import (
     ObservedEffectOrigin,
     PlannedEffectOrigin,
 )
-from .errors import InvalidDomainValue, InvariantViolation, UnauthorizedTransition
+from .errors import (
+    EntityNotFound,
+    InvalidDomainValue,
+    InvalidRelationship,
+    InvariantViolation,
+    UnauthorizedTransition,
+)
 from .evaluation import Evaluation, EvaluationState
 from .evaluation_result import EvaluationMethodRef
 from .evaluation_target import EvaluationTargetRef
@@ -48,6 +64,8 @@ from .time import Timestamp
 from .transition_engine import (
     DomainEntityType,
     DomainEvent,
+    DomainEventMetadata,
+    DomainEventType,
     LifecycleEntity,
     LifecycleEntityId,
     LifecycleState,
@@ -251,12 +269,59 @@ class _CreationSemanticInput:
 
 @dataclass(frozen=True, slots=True)
 class ObjectiveCreationSemanticInput(_CreationSemanticInput):
-    """Reserved typed input for M7D2 Objective creation semantics."""
+    """Exact semantic decisions required for Objective creation."""
+
+    bounded_goal: ObjectiveBoundedGoalDecision | None = None
+    acceptance_binding: ObjectiveAcceptanceBindingDecision | None = None
+    completion_policy: ObjectiveCreationCompletionPolicyDecision | None = None
+
+    def __post_init__(self) -> None:
+        _CreationSemanticInput.__post_init__(self)
+        for value, expected, name in (
+            (self.bounded_goal, ObjectiveBoundedGoalDecision, "bounded_goal"),
+            (
+                self.acceptance_binding,
+                ObjectiveAcceptanceBindingDecision,
+                "acceptance_binding",
+            ),
+            (
+                self.completion_policy,
+                ObjectiveCreationCompletionPolicyDecision,
+                "completion_policy",
+            ),
+        ):
+            if value is not None and not isinstance(value, expected):
+                raise InvalidDomainValue(f"{name} has the wrong decision type")
 
 
 @dataclass(frozen=True, slots=True)
 class TaskCreationSemanticInput(_CreationSemanticInput):
-    """Reserved typed input for M7D2 Task creation semantics."""
+    """Exact decisions and Objective observations required for Task creation."""
+
+    bounded_definition: TaskBoundedDefinitionDecision | None = None
+    completion_policy: TaskCreationCompletionPolicyDecision | None = None
+    objective_observations: tuple[TaskObjectiveObservation, ...] | None = None
+
+    def __post_init__(self) -> None:
+        _CreationSemanticInput.__post_init__(self)
+        if self.bounded_definition is not None and not isinstance(
+            self.bounded_definition, TaskBoundedDefinitionDecision
+        ):
+            raise InvalidDomainValue("bounded_definition has the wrong decision type")
+        if self.completion_policy is not None and not isinstance(
+            self.completion_policy, TaskCreationCompletionPolicyDecision
+        ):
+            raise InvalidDomainValue("completion_policy has the wrong decision type")
+        if self.objective_observations is not None and (
+            not isinstance(self.objective_observations, tuple)
+            or any(
+                not isinstance(value, TaskObjectiveObservation)
+                for value in self.objective_observations
+            )
+        ):
+            raise InvalidDomainValue(
+                "objective_observations must be a tuple of TaskObjectiveObservation"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1016,11 +1081,354 @@ def _require_exact_availability(
         )
 
 
-def _require_context(request: CreationRequest, context: CreationContext) -> None:
+def _require_shared_context(request: CreationRequest, context: CreationContext) -> None:
     _require_exact_authority(request, context.authority_decision)
     _require_exact_availability(request, context.identifier_availability)
+
+
+def _require_additional_guards(
+    request: CreationRequest, context: CreationContext
+) -> None:
     for guard in context.guards:
         guard.validate(request)
+
+
+def _require_passed(status: CreationSemanticDecisionStatus, condition: str) -> None:
+    if status is not CreationSemanticDecisionStatus.PASSED:
+        raise InvariantViolation(
+            "Creation semantic condition is not satisfied: "
+            f"{condition} ({status.value})"
+        )
+
+
+def _require_independent_semantic_actor(
+    request: CreationRequest, actor: ActorIdentity
+) -> None:
+    if actor.actor_id == request.requested_by.actor_id:
+        raise InvariantViolation(
+            "Creation semantic evidence must not relabel the requester principal"
+        )
+
+
+def _validate_objective_creation_semantics(
+    request: ObjectiveDraftCreationRequest,
+) -> tuple[
+    ObjectiveBoundedGoalDecision,
+    ObjectiveAcceptanceBindingDecision,
+    ObjectiveCreationCompletionPolicyDecision,
+]:
+    semantics = request.semantic_input
+    bounded = semantics.bounded_goal
+    acceptance = semantics.acceptance_binding
+    completion = semantics.completion_policy
+    if bounded is None or acceptance is None or completion is None:
+        raise InvariantViolation(
+            "Canonical entity-specific creation semantics are not implemented"
+        )
+    spec = request.entity_spec
+    if not (
+        bounded.objective_id == request.entity_id
+        and bounded.goal == spec.goal
+        and bounded.request_causation_id == request.causation_id
+        and bounded.correlation_id == request.correlation_id
+    ):
+        raise InvariantViolation(
+            "Bounded-goal decision must exact-bind the Objective request"
+        )
+    if not (
+        acceptance.objective_id == request.entity_id
+        and acceptance.acceptance_criteria == spec.acceptance_criteria
+        and acceptance.acceptance_authority == spec.acceptance_authority
+        and acceptance.request_causation_id == request.causation_id
+        and acceptance.correlation_id == request.correlation_id
+    ):
+        raise InvariantViolation(
+            "Acceptance-binding decision must exact-bind the Objective request"
+        )
+    if not (
+        completion.objective_id == request.entity_id
+        and completion.completion_policy_ref == spec.completion_policy_ref
+        and completion.request_causation_id == request.causation_id
+        and completion.correlation_id == request.correlation_id
+    ):
+        raise InvariantViolation(
+            "Completion-policy decision must exact-bind the Objective request"
+        )
+    for decision in (bounded, acceptance, completion):
+        _require_independent_semantic_actor(request, decision.decided_by)
+    _require_passed(bounded.status, "bounded Objective goal")
+    _require_passed(
+        acceptance.status,
+        "acceptance criteria and designated authority binding",
+    )
+    _require_passed(completion.status, "Objective completion-policy applicability")
+    return bounded, acceptance, completion
+
+
+def _validate_task_creation_semantics(
+    request: TaskDraftCreationRequest,
+) -> tuple[
+    TaskBoundedDefinitionDecision,
+    TaskCreationCompletionPolicyDecision,
+    tuple[TaskObjectiveObservation, ...],
+]:
+    semantics = request.semantic_input
+    bounded = semantics.bounded_definition
+    completion = semantics.completion_policy
+    observations = semantics.objective_observations
+    if bounded is None or completion is None or observations is None:
+        raise InvariantViolation(
+            "Canonical entity-specific creation semantics are not implemented"
+        )
+    spec = request.entity_spec
+    if not (
+        bounded.task_id == request.entity_id
+        and bounded.definition == spec.definition
+        and bounded.request_causation_id == request.causation_id
+        and bounded.correlation_id == request.correlation_id
+    ):
+        raise InvariantViolation(
+            "Bounded-definition decision must exact-bind the Task request"
+        )
+    if not (
+        completion.task_id == request.entity_id
+        and completion.completion_policy_ref == spec.completion_policy_ref
+        and completion.request_causation_id == request.causation_id
+        and completion.correlation_id == request.correlation_id
+    ):
+        raise InvariantViolation(
+            "Completion-policy decision must exact-bind the Task request"
+        )
+    for decision in (bounded, completion):
+        _require_independent_semantic_actor(request, decision.decided_by)
+    _require_passed(bounded.status, "bounded Task definition")
+    _require_passed(completion.status, "Task completion-policy applicability")
+
+    expected = {
+        (TaskObjectiveRelationship.PRIMARY, spec.primary_objective_id),
+        *(
+            (TaskObjectiveRelationship.CONTRIBUTION, objective_id)
+            for objective_id in spec.contributes_to
+        ),
+    }
+    actual = {(value.relationship, value.objective_id) for value in observations}
+    if len(actual) != len(observations) or actual != expected:
+        raise InvalidRelationship(
+            "Task Objective observations must exactly equal request relationships"
+        )
+    for observation in observations:
+        if not (
+            observation.task_id == request.entity_id
+            and observation.request_causation_id == request.causation_id
+            and observation.correlation_id == request.correlation_id
+        ):
+            raise InvalidRelationship(
+                "Task Objective observation must exact-bind the Task request"
+            )
+        _require_independent_semantic_actor(request, observation.observed_by)
+        if observation.status is TaskObjectiveObservationStatus.MISSING:
+            raise EntityNotFound(
+                f"Related Objective {observation.objective_id} is missing"
+            )
+        if observation.status is not TaskObjectiveObservationStatus.CURRENT:
+            raise InvariantViolation(
+                f"Task Objective observation is not CURRENT: {observation.status.value}"
+            )
+    return bounded, completion, observations
+
+
+def _common_creation_annotations(
+    request: CreationRequest, context: CreationContext
+) -> list[tuple[str, str]]:
+    decision = context.authority_decision
+    availability = context.identifier_availability
+    assert decision is not None
+    assert availability is not None
+    annotations = [
+        ("requested_by.actor_id", str(request.requested_by.actor_id)),
+        ("requested_by.actor_type", request.requested_by.actor_type.value),
+        ("applying_service.actor_id", str(context.applying_service.actor_id)),
+        ("applying_service.actor_type", context.applying_service.actor_type.value),
+        ("creation_authority_decision_ref", str(decision.decision_ref)),
+        ("identifier_availability_ref", str(availability.observation_ref)),
+        ("semantic_provenance_ref", str(request.semantic_input.provenance_ref)),
+    ]
+    annotations.extend(
+        (f"authority_policy_or_grant_ref.{index:04d}", str(reference))
+        for index, reference in enumerate(decision.policy_or_grant_refs)
+    )
+    return annotations
+
+
+def _semantic_evidence_annotations(
+    evidence_refs: frozenset[EvidenceRef],
+) -> list[tuple[str, str]]:
+    return [
+        (f"semantic_evidence_ref.{index:04d}", reference.value)
+        for index, reference in enumerate(
+            sorted(evidence_refs, key=lambda item: item.value)
+        )
+    ]
+
+
+def _objective_creation_annotations(
+    request: ObjectiveDraftCreationRequest,
+    context: CreationContext,
+    bounded: ObjectiveBoundedGoalDecision,
+    acceptance: ObjectiveAcceptanceBindingDecision,
+    completion: ObjectiveCreationCompletionPolicyDecision,
+) -> frozenset[tuple[str, str]]:
+    annotations = _common_creation_annotations(request, context)
+    annotations.extend(
+        (
+            ("bounded_goal_decision_ref", bounded.decision_ref.value),
+            ("acceptance_binding_decision_ref", acceptance.decision_ref.value),
+            ("completion_policy_decision_ref", completion.decision_ref.value),
+        )
+    )
+    evidence = (
+        bounded.evidence_refs | acceptance.evidence_refs | completion.evidence_refs
+    )
+    annotations.extend(_semantic_evidence_annotations(evidence))
+    return frozenset(annotations)
+
+
+def _task_creation_annotations(
+    request: TaskDraftCreationRequest,
+    context: CreationContext,
+    bounded: TaskBoundedDefinitionDecision,
+    completion: TaskCreationCompletionPolicyDecision,
+    observations: tuple[TaskObjectiveObservation, ...],
+) -> frozenset[tuple[str, str]]:
+    annotations = _common_creation_annotations(request, context)
+    annotations.extend(
+        (
+            ("definition_decision_ref", bounded.decision_ref.value),
+            ("completion_policy_decision_ref", completion.decision_ref.value),
+        )
+    )
+    primary = next(
+        value
+        for value in observations
+        if value.relationship is TaskObjectiveRelationship.PRIMARY
+    )
+    assert primary.observed_entity_version is not None
+    annotations.extend(
+        (
+            ("primary_objective_observation_ref", primary.observation_ref.value),
+            (
+                "primary_objective_observed_version",
+                str(primary.observed_entity_version.value),
+            ),
+        )
+    )
+    contributions = sorted(
+        (
+            value
+            for value in observations
+            if value.relationship is TaskObjectiveRelationship.CONTRIBUTION
+        ),
+        key=lambda value: str(value.objective_id),
+    )
+    for index, observation in enumerate(contributions):
+        assert observation.observed_entity_version is not None
+        prefix = f"contribution_objective.{index:04d}"
+        annotations.extend(
+            (
+                (f"{prefix}.id", str(observation.objective_id)),
+                (f"{prefix}.observation_ref", observation.observation_ref.value),
+                (
+                    f"{prefix}.observed_version",
+                    str(observation.observed_entity_version.value),
+                ),
+            )
+        )
+    evidence = bounded.evidence_refs | completion.evidence_refs
+    for observation in observations:
+        evidence |= observation.evidence_refs
+    annotations.extend(_semantic_evidence_annotations(evidence))
+    return frozenset(annotations)
+
+
+def _creation_event(
+    request: CreationRequest,
+    decision: CreationAuthorityDecision,
+    annotations: frozenset[tuple[str, str]],
+) -> DomainEvent:
+    event_type = {
+        CreationRequestVariant.OBJECTIVE_DRAFT: DomainEventType.OBJECTIVE_CREATED,
+        CreationRequestVariant.TASK_DRAFT: DomainEventType.TASK_CREATED,
+    }[request.variant]
+    return DomainEvent(
+        request.event_id,
+        event_type,
+        request.entity_type,
+        request.entity_id,
+        INITIAL_CREATION_VERSION,
+        decision.decided_by,
+        request.timestamp,
+        request.correlation_id,
+        request.causation_id,
+        request.reason,
+        DomainEventMetadata(None, request.target_state, annotations),
+    )
+
+
+def _create_objective(
+    request: ObjectiveDraftCreationRequest, context: CreationContext
+) -> CreationResult[Objective]:
+    bounded, acceptance, completion = _validate_objective_creation_semantics(request)
+    _require_additional_guards(request, context)
+    spec = request.entity_spec
+    entity = Objective(
+        request.entity_id,
+        ObjectiveState.DRAFT,
+        INITIAL_CREATION_VERSION,
+        spec.goal,
+        spec.acceptance_criteria,
+        spec.acceptance_authority,
+        spec.completion_policy_ref,
+        spec.valid_until,
+    )
+    decision = context.authority_decision
+    availability = context.identifier_availability
+    assert decision is not None
+    assert availability is not None
+    event = _creation_event(
+        request,
+        decision,
+        _objective_creation_annotations(
+            request, context, bounded, acceptance, completion
+        ),
+    )
+    return CreationResult(entity, event, request, decision, availability)
+
+
+def _create_task(
+    request: TaskDraftCreationRequest, context: CreationContext
+) -> CreationResult[Task]:
+    bounded, completion, observations = _validate_task_creation_semantics(request)
+    _require_additional_guards(request, context)
+    spec = request.entity_spec
+    entity = Task(
+        request.entity_id,
+        TaskState.DRAFT,
+        INITIAL_CREATION_VERSION,
+        spec.definition,
+        spec.primary_objective_id,
+        spec.completion_policy_ref,
+        spec.contributes_to,
+    )
+    decision = context.authority_decision
+    availability = context.identifier_availability
+    assert decision is not None
+    assert availability is not None
+    event = _creation_event(
+        request,
+        decision,
+        _task_creation_annotations(request, context, bounded, completion, observations),
+    )
+    return CreationResult(entity, event, request, decision, availability)
 
 
 @overload
@@ -1074,7 +1482,7 @@ def create_entity(
 def create_entity(
     request: CreationRequest, context: CreationContext
 ) -> CreationResult[LifecycleEntity]:
-    """Validate shared inputs then deny until an entity-specific validator exists.
+    """Create only the M7D2 Objective/Task variants; deny all other variants.
 
     This dedicated boundary intentionally accepts neither a source snapshot nor an
     expected version, and never delegates to ``transition_entity``.
@@ -1085,7 +1493,12 @@ def create_entity(
         )
     if not isinstance(context, CreationContext):
         raise InvalidDomainValue("context must be a CreationContext")
-    _require_context(request, context)
+    _require_shared_context(request, context)
+    if isinstance(request, ObjectiveDraftCreationRequest):
+        return _create_objective(request, context)
+    if isinstance(request, TaskDraftCreationRequest):
+        return _create_task(request, context)
+    _require_additional_guards(request, context)
     raise InvariantViolation(
         "Canonical entity-specific creation semantics are not implemented"
     )
