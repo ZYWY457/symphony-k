@@ -1,7 +1,7 @@
 # Stage 1 Correction M7D1C — Creation Event Version Regression
 
 **Version:** 1
-**Status:** Implemented candidate; independent Human Review pending
+**Status:** Completed; cumulative corrected M7D1 protocol HUMAN ACCEPTED
 **TaskSpec:** [GitHub Issue #66](https://github.com/ZYWY457/symphony-k/issues/66)
 **TaskSpec access mode:** `materialized-handoff`
 **Starting baseline:** `a491a9622260acbc1da28df33576923e578c4860`
@@ -78,9 +78,15 @@ creation accepted     = 0 / 8
 integrated accepted   = 91 / 99
 ```
 
-M7D1 remains pending independent Human Review. No creation edge is accepted by
-this correction. M7 and Stage 1 remain incomplete. The completion map and prior
-M7D1 plans remain unchanged and active.
+Independent Human Review accepted the cumulative M7D1 shared authoritative
+creation protocol, including this final regression proof, at commit
+`e18b22aa26514b08b6faa0ea7ab251d356b7d48f`.
+
+The acceptance applies to the cumulative Issue #63 through Issue #66 correction
+chain; it does not imply that an earlier candidate was independently sufficient.
+No creation edge is accepted. The lifecycle counts above remain unchanged. M7
+and Stage 1 remain incomplete, and M7D2 Objective + Task is the next
+implementation slice.
 
 ## Validation and Commit Boundary
 

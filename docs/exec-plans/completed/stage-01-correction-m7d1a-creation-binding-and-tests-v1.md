@@ -1,7 +1,7 @@
 # Stage 1 Correction M7D1A — Creation Binding and Regression Matrix
 
 **Version:** 1
-**Status:** Implemented candidate; independent acceptance pending
+**Status:** Completed; cumulative corrected M7D1 protocol HUMAN ACCEPTED
 **TaskSpec:** [GitHub Issue #64](https://github.com/ZYWY457/symphony-k/issues/64)
 **TaskSpec access mode:** `materialized-handoff`
 **Starting baseline:** `5cd51f7d2e028eb9bd12172f4d3daaa0d47d3846`
@@ -81,5 +81,19 @@ Accepted lifecycle coverage remains:
 91 / 99
 ```
 
-This correction is not evidence that M7D1, any creation edge, M7, the integrated
-99-edge lifecycle matrix or Stage 1 has been independently accepted or completed.
+This correction was not independently sufficient evidence for M7D1 acceptance.
+After the additional forward corrections in Issues #65 and #66, independent
+Human Review accepted the cumulative M7D1 shared authoritative creation protocol
+at commit `e18b22aa26514b08b6faa0ea7ab251d356b7d48f`.
+
+That cumulative acceptance accepts no creation edge. The lifecycle boundary
+remains:
+
+```text
+non-creation accepted = 91 / 91
+creation accepted     = 0 / 8
+integrated accepted   = 91 / 99
+```
+
+M7 and Stage 1 remain incomplete. M7D2 Objective + Task is the next
+implementation slice.

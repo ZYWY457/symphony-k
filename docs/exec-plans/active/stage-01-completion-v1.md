@@ -2,7 +2,7 @@
 
 **Version:** 1
 **Status:** Active
-**Scope:** GitHub Issues #53 and #61 — planning and governance reconciliation only
+**Scope:** GitHub Issues #53, #61, and #67 — planning and governance reconciliation only
 
 ## Purpose and baseline
 
@@ -102,9 +102,33 @@ All non-creation lifecycle semantics are now complete and accepted. The four
 quarantine edges listed above remain only as history of the earlier 87 / 91
 boundary; they are not current unresolved work.
 
-## Unresolved authoritative creation work
+## Accepted M7D1 shared creation protocol
 
-The eight accepted creation edges remain unresolved M7 work:
+At commit `e18b22aa26514b08b6faa0ea7ab251d356b7d48f`
+(`test(domain): prove creation event version exact binding`), independent Human
+Review accepted the cumulative M7D1 shared authoritative creation protocol
+produced by Issues #63, #64, #65, and #66.
+
+This acceptance applies to the corrected cumulative result. It does not imply
+that the original Issue #63 candidate was independently sufficient before the
+Issue #64 creation binding corrections, the Issue #65 event-annotation
+correction and closure audit, and the Issue #66 event-version regression proof.
+
+The accepted lifecycle boundary is unchanged:
+
+```text
+non-creation accepted = 91 / 91
+creation accepted     = 0 / 8
+integrated accepted   = 91 / 99
+```
+
+M7D1 accepts only the shared protocol and its fail-closed boundary. It accepts
+no authoritative creation edge. The entity-specific semantics required to
+open any creation edge remain future work.
+
+## Unresolved authoritative creation edges
+
+All eight creation edges remain unresolved M7 work:
 
 ```text
 Objective:  NONE -> DRAFT
@@ -117,12 +141,13 @@ Effect:     NONE -> PLANNED
             NONE -> QUARANTINED
 ```
 
-Creation structural declarations and event/metadata groundwork exist, but
-authoritative creation execution does not. Its future M7 boundary must enforce
-the canonical creation target, authority, entity-specific semantic invariants,
-relationships and provenance, immutable initial snapshot, initial-version
-semantics, and exactly one creation DomainEvent. It must never fabricate a
-`NONE` enum state.
+Creation structural declarations, event/metadata groundwork, and the M7D1
+shared protocol exist and are Human Accepted. Authoritative creation execution
+remains fail-closed because entity-specific semantics do not yet exist. The
+remaining M7 boundary must enforce the canonical creation target,
+entity-specific semantic invariants, relationships and provenance before
+returning an immutable version-1 snapshot and exactly one creation DomainEvent.
+It must never fabricate a `NONE` enum state.
 
 Effect `NONE -> COMMITTED` and `NONE -> QUARANTINED` retain their
 observation-only semantics. They must record independently anchored reality
@@ -133,7 +158,18 @@ without fabricating planning, authorization, or dispatch history.
 ```text
 91/91 non-creation semantics accepted
     ->
-M7 authoritative creation architecture/implementation
+M7D1 shared creation protocol Human Accepted at
+e18b22aa26514b08b6faa0ea7ab251d356b7d48f
+    ->
+M7D2 Objective + Task creation semantics (next implementation slice)
+    ->
+M7D3 Run + Outcome + Evaluation creation semantics
+    ->
+M7D4 Planned Effect creation semantics
+    ->
+M7D5 Observed Effect creation semantics
+    ->
+M7D6 integrated eight-edge acceptance candidate
     ->
 M7 integrated 99-edge acceptance
     ->
@@ -163,13 +199,15 @@ the constitutional restrictions alongside the completed lifecycle work.
 
 ```text
 M7 non-creation semantics = complete and accepted
+M7D1 shared creation protocol = HUMAN ACCEPTED
 M7 authoritative creation = incomplete
 M7 integrated 99-edge acceptance = incomplete
 Stage 1 = incomplete
 ```
 
-M7 remains incomplete because the eight authoritative creation edges listed
-above remain unresolved. M8 and M9 are not complete.
+M7 remains incomplete because all eight authoritative creation edges listed
+above remain unresolved. M7D2 Objective + Task is the next implementation
+slice. M8 and M9 are not complete.
 The required human Stage 1 Exit Review remains the final acceptance boundary;
 Stage 2 is entirely out of scope until that review accepts Stage 1.
 
