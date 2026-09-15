@@ -2,7 +2,8 @@
 
 M7D1 defines the shared request, authority, availability, and result records.
 M7D2 and M7D3 add Objective, Task, Run, Outcome and Evaluation creation.
-The three Effect variants remain fail closed. There is no repository,
+Planned Effect creation records intent; observed Effect variants remain closed.
+There is no repository,
 transaction, executor, or
 call to the transition engine's existing-snapshot operation.
 """
@@ -14,6 +15,12 @@ from typing import Final, Protocol, overload, runtime_checkable
 from .actors import ActorIdentity, ActorType
 from .candidate_refs import ArtifactRef, EvidenceRef
 from .completion import CompletionPolicyRef
+from .creation_effect_semantics import (
+    PlannedEffectIntentDecision,
+    PlannedEffectIntentScope,
+    planned_effect_annotations,
+    validate_planned_effect_creation,
+)
 from .creation_run_outcome_evaluation import (
     EvaluationRequestDecision,
     EvaluationRequestScope,
@@ -396,7 +403,21 @@ class EvaluationCreationSemanticInput(_CreationSemanticInput):
 
 @dataclass(frozen=True, slots=True)
 class PlannedEffectCreationSemanticInput(_CreationSemanticInput):
-    """Reserved typed input for M7D4 planned Effect creation semantics."""
+    """Exact governed intent evidence, never execution authorization."""
+
+    intent: PlannedEffectIntentScope | None = None
+    decision: PlannedEffectIntentDecision | None = None
+
+    def __post_init__(self) -> None:
+        _CreationSemanticInput.__post_init__(self)
+        if self.intent is not None and not isinstance(
+            self.intent, PlannedEffectIntentScope
+        ):
+            raise InvalidDomainValue("Invalid planned Effect intent")
+        if self.decision is not None and not isinstance(
+            self.decision, PlannedEffectIntentDecision
+        ):
+            raise InvalidDomainValue("Invalid planned Effect intent decision")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1417,6 +1438,7 @@ def _creation_event(
         CreationRequestVariant.RUN_PENDING: DomainEventType.RUN_CREATED,
         CreationRequestVariant.OUTCOME_PROPOSED: DomainEventType.OUTCOME_PROPOSED,
         CreationRequestVariant.EVALUATION_PENDING: DomainEventType.EVALUATION_REQUESTED,
+        CreationRequestVariant.EFFECT_PLANNED: DomainEventType.EFFECT_PLANNED,
     }[request.variant]
     return DomainEvent(
         request.event_id,
@@ -1541,7 +1563,7 @@ def create_entity(
 def create_entity(
     request: CreationRequest, context: CreationContext
 ) -> CreationResult[LifecycleEntity]:
-    """Create the five M7D2/M7D3 entity variants; deny Effect creation.
+    """Create M7D2/M7D3 entities and planned Effects; deny observed Effects.
 
     This dedicated boundary intentionally accepts neither a source snapshot nor an
     expected version, and never delegates to ``transition_entity``.
@@ -1557,6 +1579,35 @@ def create_entity(
         return _create_objective(request, context)
     if isinstance(request, TaskDraftCreationRequest):
         return _create_task(request, context)
+    if isinstance(request, PlannedEffectCreationRequest):
+        scope = validate_planned_effect_creation(request)
+        _require_additional_guards(request, context)
+        entity = Effect(
+            request.entity_id,
+            EffectState.PLANNED,
+            INITIAL_CREATION_VERSION,
+            request.entity_spec.origin,
+            request.entity_spec.target_ref,
+            request.entity_spec.payload_ref,
+        )
+        decision = context.authority_decision
+        availability = context.identifier_availability
+        semantic_decision = request.semantic_input.decision
+        assert (
+            decision is not None
+            and availability is not None
+            and semantic_decision is not None
+        )
+        annotations = frozenset(
+            _common_creation_annotations(request, context)
+        ) | planned_effect_annotations(scope, semantic_decision)
+        return CreationResult(
+            entity,
+            _creation_event(request, decision, annotations),
+            request,
+            decision,
+            availability,
+        )
     if isinstance(
         request,
         (
