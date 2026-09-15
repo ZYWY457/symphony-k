@@ -1137,6 +1137,7 @@ def _validate_objective_creation_semantics(
         )
     if not (
         acceptance.objective_id == request.entity_id
+        and acceptance.goal == spec.goal
         and acceptance.acceptance_criteria == spec.acceptance_criteria
         and acceptance.acceptance_authority == spec.acceptance_authority
         and acceptance.request_causation_id == request.causation_id

@@ -14,6 +14,7 @@ from .completion import CompletionPolicyRef
 from .errors import InvalidDomainValue
 from .ids import CausationId, CorrelationId, ObjectiveId, TaskId
 from .objective import ObjectiveState
+from .time import Timestamp
 from .version import EntityVersion
 
 
@@ -125,6 +126,7 @@ class ObjectiveAcceptanceBindingDecision:
     decided_by: ActorIdentity
     evidence_refs: frozenset[EvidenceRef]
     objective_id: ObjectiveId
+    goal: str
     acceptance_criteria: tuple[str, ...]
     acceptance_authority: ActorIdentity
     request_causation_id: CausationId
@@ -142,6 +144,7 @@ class ObjectiveAcceptanceBindingDecision:
         )
         if not isinstance(self.objective_id, ObjectiveId):
             raise InvalidDomainValue("objective_id must be an ObjectiveId")
+        _require_text(self.goal, "goal")
         if (
             not isinstance(self.acceptance_criteria, tuple)
             or not self.acceptance_criteria
@@ -246,6 +249,7 @@ class TaskObjectiveObservation:
     observation_ref: TaskObjectiveObservationRef
     status: TaskObjectiveObservationStatus
     observed_by: ActorIdentity
+    observed_at: Timestamp
     evidence_refs: frozenset[EvidenceRef]
     task_id: TaskId
     objective_id: ObjectiveId
@@ -264,6 +268,8 @@ class TaskObjectiveObservation:
             raise InvalidDomainValue("observed_by must be an ActorIdentity")
         if self.observed_by.actor_type in {ActorType.REQUESTER, ActorType.WORKER}:
             raise InvalidDomainValue("relationship must be observed independently")
+        if not isinstance(self.observed_at, Timestamp):
+            raise InvalidDomainValue("observed_at must be a Timestamp")
         _require_evidence(self.evidence_refs)
         if not isinstance(self.task_id, TaskId):
             raise InvalidDomainValue("task_id must be a TaskId")
