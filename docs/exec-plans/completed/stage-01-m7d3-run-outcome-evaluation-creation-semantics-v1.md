@@ -1,7 +1,7 @@
 # Stage 1 M7D3 — Run, Outcome and Evaluation Creation
 
 **Version:** 1
-**Status:** Candidate; independent Human Review required
+**Status:** Completed; corrected cumulative M7 HUMAN ACCEPTED after Issue #71
 **TaskSpec:** https://github.com/ZYWY457/symphony-k/issues/70
 **TaskSpec access mode:** materialized-handoff
 **TaskSpec precondition:** PASS
@@ -49,3 +49,15 @@ Focused M7D3 suite: 75 passed. Full suite: 2867 passed. Ruff check, format
 check, mypy (`97` source files), and diff checks passed. The existing 196
 Objective/Task and shared-protocol tests also pass within the full suite.
 No accepted non-creation module changed. No external execution was introduced.
+
+## Subsequent cumulative Human acceptance - Issue #72
+
+Issue #70's accelerated stack received REQUEST CHANGES for the Evaluation
+producer-to-creation-authority relabel defect. Issue #71 corrected that blocker.
+Independent Human Review accepted the corrected cumulative result through
+`8f73da617ac686254ea30fc33a6d8f81bdb406cb`: non-creation 91 / 91,
+creation 8 / 8, integrated 99 / 99. M7 is HUMAN ACCEPTED.
+The original candidate counts and validation above are historical evidence,
+not the current acceptance boundary; Issue #70 alone was not accepted.
+Archived under Issue #72 without changing the implementation contract.
+M8 and M9 remain incomplete; Stage 1 is not complete.

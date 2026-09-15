@@ -1,7 +1,7 @@
 # Stage 1 M7D6 — Integrated Authoritative Creation Candidate
 
 **Version:** 1
-**Status:** Integrated candidate; independent Human Review required
+**Status:** Completed; corrected cumulative M7 HUMAN ACCEPTED after Issue #71
 **TaskSpec:** https://github.com/ZYWY457/symphony-k/issues/70
 **TaskSpec access mode:** materialized-handoff
 **TaskSpec precondition:** PASS
@@ -84,3 +84,15 @@ This last phase changes only this plan and the integrated test suite.
 Every completed parent commit had a clean worktree before the next phase.
 All staging used explicit paths and the staged diffs were inspected. No remote
 mutation, amend, squash or history rewrite was performed.
+
+## Subsequent cumulative Human acceptance - Issue #72
+
+Issue #70's accelerated stack received REQUEST CHANGES for the Evaluation
+producer-to-creation-authority relabel defect. Issue #71 corrected that blocker.
+Independent Human Review accepted the corrected cumulative result through
+`8f73da617ac686254ea30fc33a6d8f81bdb406cb`: non-creation 91 / 91,
+creation 8 / 8, integrated 99 / 99. M7 is HUMAN ACCEPTED.
+The original candidate counts and validation above are historical evidence,
+not the current acceptance boundary; Issue #70 alone was not accepted.
+Archived under Issue #72 without changing the implementation contract.
+M8 and M9 remain incomplete; Stage 1 is not complete.

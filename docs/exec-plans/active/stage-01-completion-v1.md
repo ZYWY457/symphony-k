@@ -2,7 +2,7 @@
 
 **Version:** 1
 **Status:** Active
-**Scope:** GitHub Issues #53, #61, and #67 — planning and governance reconciliation only
+**Scope:** GitHub Issues #53, #61, #67, #70, and #72 - governance reconciliation
 
 ## Purpose and baseline
 
@@ -147,9 +147,9 @@ The preceding M7D1 counts are historical. The two completed M7D2 plans are
 archived under `../completed/`. Issue #70 authorizes the bounded M7D3–M7D6
 candidate stack; implementation does not change these Human Accepted counts.
 
-## Unresolved authoritative creation edges
+## Historical unresolved creation boundary after M7D2
 
-Six creation edges remain unresolved M7 work:
+At that historical M7D2 boundary, six creation edges remained unresolved:
 
 ```text
 Run:        NONE -> PENDING
@@ -172,72 +172,58 @@ Effect `NONE -> COMMITTED` and `NONE -> QUARANTINED` retain their
 observation-only semantics. They must record independently anchored reality
 without fabricating planning, authorization, or dispatch history.
 
-## Remaining Stage 1 order
+## Accepted cumulative M7 lifecycle - Issue #72
+
+Issue #70 accelerated stack -> REQUEST CHANGES because of one Evaluation
+creation-authority relabel defect. Issue #71 corrected that blocker. Independent
+Human Review accepted the corrected cumulative result through
+`8f73da617ac686254ea30fc33a6d8f81bdb406cb`
+(`fix(domain): close evaluation creation authority relabel gap`).
+The original #70 stack was not accepted without #71. Earlier counts and
+unresolved-edge descriptions above preserve their historical boundaries.
 
 ```text
-91/91 non-creation semantics accepted
-    ->
-M7D1 shared creation protocol Human Accepted at
-e18b22aa26514b08b6faa0ea7ab251d356b7d48f
-    ->
-M7D2 Objective + Task creation semantics HUMAN ACCEPTED cumulatively after #69
-    ->
-M7D3 Run + Outcome + Evaluation creation semantics (NEXT)
-    ->
-M7D4 Planned Effect creation semantics
-    ->
-M7D5 Observed Effect creation semantics
-    ->
-M7D6 integrated eight-edge acceptance candidate
-    ->
-M7 integrated 99-edge acceptance
-    ->
-M8 Persistence and Atomicity
-    ->
-M9 Constitutional Test Suite
-    ->
-Stage 1 reconciliation
-    ->
-Human Stage 1 Exit Review
-    ->
-Stage 2 only after acceptance
+non-creation accepted = 91 / 91
+creation accepted     = 8 / 8
+integrated accepted   = 99 / 99
+M7 = HUMAN ACCEPTED
+M8 Persistence and Atomicity = NEXT
 ```
 
-M8 retains the accepted parent-plan ownership: repository interfaces, an
-initial persistence adapter, authoritative loading/currentness, optimistic
-concurrency, transaction semantics, atomic state and lifecycle-event
-persistence, structural persistence constraints, and required history and
-uniqueness guarantees. M8 is not satisfied by the current in-memory domain
-semantics.
+Completed M7D3/D4/D5/D6 and M7D6A plans are archived under `../completed/`.
+The M7 authoritative creation architecture remains active as the frozen
+contract; its current status is reconciled without changing its meaning.
 
-M9 remains the already-defined Constitutional Test Suite from the accepted
-parent plan. It is not a new milestone. Its executable invariants must confirm
-the constitutional restrictions alongside the completed lifecycle work.
+## Remaining Stage 1 order
+
+M8 Persistence and Atomicity -> M9 Constitutional Test Suite -> Stage 1
+reconciliation -> Human Stage 1 Exit Review -> Stage 2 only after acceptance.
+Issue #72 authorizes the ordered M8/M9 candidate stack. Implementation success
+is not Human acceptance.
+
+M8 owns repository interfaces, SQLite adapter, authoritative currentness,
+optimistic concurrency, atomic lifecycle/history/event persistence, structural
+constraints, uniqueness and replay. M9 proves the accepted constitutional
+invariants. Neither milestone is complete at this governance boundary.
 
 ## Exit boundary
 
 ```text
-M7 non-creation semantics = complete and accepted
-M7D1 shared creation protocol = HUMAN ACCEPTED
-M7 authoritative creation = incomplete
-M7 integrated 99-edge acceptance = incomplete
-Stage 1 = incomplete
+M7 Human Accepted = YES
+M8 Human Accepted = NO
+M9 Human Accepted = NO
+Stage 1 complete = NO
+Stage 2 authorized = NO
 ```
 
-M7 remains incomplete because the six authoritative creation edges listed
-above remain unresolved. M7D3 is the next implementation slice.
-M8 and M9 are not complete.
-The required human Stage 1 Exit Review remains the final acceptance boundary;
-Stage 2 is entirely out of scope until that review accepts Stage 1.
+## Issue #72 execution evidence
 
-No real Agent execution or real external Effect execution is introduced by this
-plan or by the remaining Stage 1 completion work.
+TaskSpec reference: https://github.com/ZYWY457/symphony-k/issues/72
+TaskSpec access mode: materialized-handoff
+TaskSpec precondition: PASS
 
-## Acceptance for this plan
-
-- The map remains consistent with the accepted Stage 1 architecture and parent
-  plan.
-- Future work uses separately materialized durable TaskSpecs and bounded
-  implementation plans.
-- Completion claims distinguish current structural declarations from
-  authoritative execution, and do not declare Stage 1, M7, M8, or M9 complete.
+Clean starting worktree and exact required HEAD verified. Git, Python 3.12.7 and
+uv 0.11.2 callable. Baseline full suite: 3145 passed. Locked dependency sync
+passed using repository-local ignored `.uv-cache` after default-cache access
+denial; dependency inputs unchanged. Issues #70 and #71 read directly using
+approved read-only GitHub access. This phase changes documentation only.

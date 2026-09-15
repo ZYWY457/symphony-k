@@ -1,7 +1,7 @@
 # Stage 1 M7 — Authoritative Creation Architecture
 
 **Version:** 1
-**Status:** Architecture contract; M7D1 and cumulative corrected M7D2 HUMAN ACCEPTED; M7 incomplete
+**Status:** Frozen architecture contract; corrected cumulative M7 HUMAN ACCEPTED after Issue #71
 **TaskSpec:** [GitHub Issue #62](https://github.com/ZYWY457/symphony-k/issues/62)
 **TaskSpec access mode:** `materialized-handoff`
 **Starting baseline:** `9f61877c74d79caff72efca908ab18219fd4996c`
@@ -705,7 +705,7 @@ atomicity evidence.
 - No Python, tests, completion map, persistence, TaskProposal, external Effect,
   M8, Stage 2, or remote state is changed by this task.
 
-## 17. Current completion boundary
+## 17. Historical completion boundary after M7D2
 
 ```text
 91/91 non-creation semantics = complete and accepted
@@ -722,3 +722,15 @@ Stage 1 = incomplete
 
 This document must not be cited as evidence that M7, 99/99 transitions, or
 Stage 1 has been accepted or completed.
+
+## Subsequent cumulative Human acceptance - Issue #72
+
+Issue #70's accelerated stack received REQUEST CHANGES for the Evaluation
+producer-to-creation-authority relabel defect. Issue #71 corrected that blocker.
+Independent Human Review accepted the corrected cumulative result through
+`8f73da617ac686254ea30fc33a6d8f81bdb406cb`: non-creation 91 / 91,
+creation 8 / 8, integrated 99 / 99. M7 is HUMAN ACCEPTED.
+The original candidate counts and validation above are historical evidence,
+not the current acceptance boundary; Issue #70 alone was not accepted.
+Status reconciled under Issue #72; the architecture contract remains active.
+M8 and M9 remain incomplete; Stage 1 is not complete.
