@@ -1,7 +1,7 @@
 # Stage 1 M7 — Authoritative Creation Architecture
 
 **Version:** 1
-**Status:** Architecture contract; implementation not started
+**Status:** Architecture contract; M7D1 and cumulative corrected M7D2 HUMAN ACCEPTED; M7 incomplete
 **TaskSpec:** [GitHub Issue #62](https://github.com/ZYWY457/symphony-k/issues/62)
 **TaskSpec access mode:** `materialized-handoff`
 **Starting baseline:** `9f61877c74d79caff72efca908ab18219fd4996c`
@@ -709,8 +709,12 @@ atomicity evidence.
 
 ```text
 91/91 non-creation semantics = complete and accepted
-authoritative creation architecture = defined by this candidate document
-authoritative creation implementation = not started
+authoritative creation architecture = defined by this architecture contract
+M7D1 shared creation protocol = HUMAN ACCEPTED
+M7D2 Objective/Task creation = HUMAN ACCEPTED cumulatively after Issue #69
+creation edges HUMAN ACCEPTED = 2 / 8
+integrated edges HUMAN ACCEPTED = 93 / 99
+remaining six creation edges = unresolved
 M7 integrated 99-edge acceptance = incomplete
 M8 persistence and atomicity = incomplete
 Stage 1 = incomplete

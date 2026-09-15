@@ -1,7 +1,7 @@
 # Stage 1 Correction M7D2A — Objective/Task Binding and Provenance
 
 **Version:** 1
-**Status:** Active correction candidate; independent Human Review required
+**Status:** Completed; corrected cumulative M7D2 HUMAN ACCEPTED
 **TaskSpec:** [GitHub Issue #69](https://github.com/ZYWY457/symphony-k/issues/69)
 **TaskSpec access mode:** `materialized-handoff`
 **Starting baseline:** `ff3a37e667fb54db1ed16ef065d5b4edde8eebbe`
@@ -67,13 +67,15 @@ git diff --check                                            PASS
 
 ## Acceptance boundary
 
-The production and test changes are an M7D2A candidate only. M7D1 and all 91
-accepted non-creation edges remain unchanged. Implementation and local
-validation do not constitute Human acceptance.
+Issue #70 records independent Human acceptance of the corrected cumulative
+result at `1b1f36d49e5f92678158c68965c4b35803f7544a`. Issue #68 at
+`ff3a37e667fb54db1ed16ef065d5b4edde8eebbe` received REQUEST CHANGES and
+was not accepted alone. M7D1 and all 91 accepted non-creation edges remain
+unchanged. Local validation itself does not constitute Human acceptance.
 
 ```text
-Human Accepted creation edges = 0 / 8
-Human Accepted integrated coverage = 91 / 99
+Human Accepted creation edges = 2 / 8
+Human Accepted integrated coverage = 93 / 99
 M7 complete = NO
 Stage 1 complete = NO
 ```

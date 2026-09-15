@@ -126,13 +126,32 @@ M7D1 accepts only the shared protocol and its fail-closed boundary. It accepts
 no authoritative creation edge. The entity-specific semantics required to
 open any creation edge remain future work.
 
-## Unresolved authoritative creation edges
+## Accepted cumulative M7D2 creation semantics
 
-All eight creation edges remain unresolved M7 work:
+Issue #70 records independent Human acceptance of the cumulative result:
+Issue #68 at `ff3a37e667fb54db1ed16ef065d5b4edde8eebbe` received
+**REQUEST CHANGES**; Issue #69 corrected it at
+`1b1f36d49e5f92678158c68965c4b35803f7544a`. Issue #68 alone was not accepted.
+The corrected cumulative M7D2 result is **HUMAN ACCEPTED**.
 
 ```text
-Objective:  NONE -> DRAFT
-Task:       NONE -> DRAFT
+non-creation accepted = 91 / 91
+creation accepted     = 2 / 8
+integrated accepted   = 93 / 99
+Objective NONE -> DRAFT = HUMAN ACCEPTED
+Task NONE -> DRAFT = HUMAN ACCEPTED
+M7D3 = NEXT
+```
+
+The preceding M7D1 counts are historical. The two completed M7D2 plans are
+archived under `../completed/`. Issue #70 authorizes the bounded M7D3–M7D6
+candidate stack; implementation does not change these Human Accepted counts.
+
+## Unresolved authoritative creation edges
+
+Six creation edges remain unresolved M7 work:
+
+```text
 Run:        NONE -> PENDING
 Outcome:    NONE -> PROPOSED
 Evaluation: NONE -> PENDING
@@ -143,7 +162,7 @@ Effect:     NONE -> PLANNED
 
 Creation structural declarations, event/metadata groundwork, and the M7D1
 shared protocol exist and are Human Accepted. Authoritative creation execution
-remains fail-closed because entity-specific semantics do not yet exist. The
+is accepted for Objective and Task; the other six variants remain fail closed. The
 remaining M7 boundary must enforce the canonical creation target,
 entity-specific semantic invariants, relationships and provenance before
 returning an immutable version-1 snapshot and exactly one creation DomainEvent.
@@ -161,9 +180,9 @@ without fabricating planning, authorization, or dispatch history.
 M7D1 shared creation protocol Human Accepted at
 e18b22aa26514b08b6faa0ea7ab251d356b7d48f
     ->
-M7D2 Objective + Task creation semantics (next implementation slice)
+M7D2 Objective + Task creation semantics HUMAN ACCEPTED cumulatively after #69
     ->
-M7D3 Run + Outcome + Evaluation creation semantics
+M7D3 Run + Outcome + Evaluation creation semantics (NEXT)
     ->
 M7D4 Planned Effect creation semantics
     ->
@@ -205,9 +224,9 @@ M7 integrated 99-edge acceptance = incomplete
 Stage 1 = incomplete
 ```
 
-M7 remains incomplete because all eight authoritative creation edges listed
-above remain unresolved. M7D2 Objective + Task is the next implementation
-slice. M8 and M9 are not complete.
+M7 remains incomplete because the six authoritative creation edges listed
+above remain unresolved. M7D3 is the next implementation slice.
+M8 and M9 are not complete.
 The required human Stage 1 Exit Review remains the final acceptance boundary;
 Stage 2 is entirely out of scope until that review accepts Stage 1.
 

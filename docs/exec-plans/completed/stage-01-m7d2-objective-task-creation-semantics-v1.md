@@ -1,7 +1,7 @@
 # Stage 1 M7D2 — Objective and Task Creation Semantics
 
 **Version:** 1
-**Status:** Active implementation candidate; independent Human Review required
+**Status:** Completed; corrected cumulative M7D2 HUMAN ACCEPTED after Issue #69
 **TaskSpec:** [GitHub Issue #68](https://github.com/ZYWY457/symphony-k/issues/68)
 **TaskSpec access mode:** `materialized-handoff`
 **Starting baseline:** `6eaf549792507e020a429d4abafd1750496de02a`
@@ -61,7 +61,8 @@ to accepted non-creation semantics or the Stage 1 completion map.
 
 ## Acceptance boundary
 
-This Run produces an M7D2 candidate for independent Human Review. Candidate
-implemented edges are Objective plus Task, while Human Accepted creation edges
-remain `0 / 8` and Human Accepted integrated coverage remains `91 / 99` until
-that review accepts the candidate. It does not complete M7 or Stage 1.
+Issue #68 at `ff3a37e667fb54db1ed16ef065d5b4edde8eebbe` received
+REQUEST CHANGES, not acceptance. Issue #69 corrected the result at
+`1b1f36d49e5f92678158c68965c4b35803f7544a`. Issue #70 records independent
+Human acceptance of that corrected cumulative M7D2 result. Creation accepted
+is `2 / 8`; integrated accepted is `93 / 99`. M7 and Stage 1 remain incomplete.
