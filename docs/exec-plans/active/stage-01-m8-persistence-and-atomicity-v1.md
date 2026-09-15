@@ -41,3 +41,17 @@ eight snapshots and eight creation events. Full suite: 3168 passed. Locked
 sync, Ruff, format (194 files), mypy (108 source files) and diff checks passed.
 Initial new-test collection and codec typing errors were corrected before these
 successful runs. No accepted domain source or dependency input changed.
+
+## M8B validation
+
+Focused SQLite suite: 12 passed; full suite: 3180 passed. Locked sync, Ruff,
+format (196 files), mypy (110 source files) and diff checks passed. Tests cover
+memory/file databases, reopening durable snapshots/events, three parent foreign
+keys, and direct UPDATE/DELETE attacks on history, events and operation receipts.
+The public repositories expose reads only. Adapter mutation helpers are internal;
+the authorized service is implemented in M8C.
+
+The first focused run completed its test bodies but pytest cleanup failed on the
+default temporary directory's `pytest-current` link. It was not counted as a
+passing run. Successful focused/full reruns used explicit disposable directories
+under ignored `.uv-cache/` via `--basetemp`, without weakening any tests.
