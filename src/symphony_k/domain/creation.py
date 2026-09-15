@@ -1,8 +1,9 @@
 """Authoritative lifecycle creation protocol.
 
 M7D1 defines the shared request, authority, availability, and result records.
-M7D2 adds only Objective and Task creation semantics.  The other six variants
-remain fail closed.  This module has no repository, transaction, executor, or
+M7D2 and M7D3 add Objective, Task, Run, Outcome and Evaluation creation.
+The three Effect variants remain fail closed. There is no repository,
+transaction, executor, or
 call to the transition engine's existing-snapshot operation.
 """
 
@@ -13,6 +14,18 @@ from typing import Final, Protocol, overload, runtime_checkable
 from .actors import ActorIdentity, ActorType
 from .candidate_refs import ArtifactRef, EvidenceRef
 from .completion import CompletionPolicyRef
+from .creation_run_outcome_evaluation import (
+    EvaluationRequestDecision,
+    EvaluationRequestScope,
+    OutcomeProposalDecision,
+    OutcomeProposalScope,
+    RunRegistrationDecision,
+    RunRegistrationScope,
+    creation_scope_annotations,
+    validate_evaluation_creation,
+    validate_outcome_creation,
+    validate_run_creation,
+)
 from .creation_semantics import (
     CreationSemanticDecisionStatus,
     ObjectiveAcceptanceBindingDecision,
@@ -326,17 +339,59 @@ class TaskCreationSemanticInput(_CreationSemanticInput):
 
 @dataclass(frozen=True, slots=True)
 class RunCreationSemanticInput(_CreationSemanticInput):
-    """Reserved typed input for M7D3 Run creation semantics."""
+    """Exact independently evidenced attempt registration."""
+
+    registration: RunRegistrationScope | None = None
+    decision: RunRegistrationDecision | None = None
+
+    def __post_init__(self) -> None:
+        _CreationSemanticInput.__post_init__(self)
+        if self.registration is not None and not isinstance(
+            self.registration, RunRegistrationScope
+        ):
+            raise InvalidDomainValue("Invalid Run registration scope")
+        if self.decision is not None and not isinstance(
+            self.decision, RunRegistrationDecision
+        ):
+            raise InvalidDomainValue("Invalid Run registration decision")
 
 
 @dataclass(frozen=True, slots=True)
 class OutcomeCreationSemanticInput(_CreationSemanticInput):
-    """Reserved typed input for M7D3 Outcome creation semantics."""
+    """Exact independently evidenced candidate proposal; never acceptance."""
+
+    proposal: OutcomeProposalScope | None = None
+    decision: OutcomeProposalDecision | None = None
+
+    def __post_init__(self) -> None:
+        _CreationSemanticInput.__post_init__(self)
+        if self.proposal is not None and not isinstance(
+            self.proposal, OutcomeProposalScope
+        ):
+            raise InvalidDomainValue("Invalid Outcome proposal scope")
+        if self.decision is not None and not isinstance(
+            self.decision, OutcomeProposalDecision
+        ):
+            raise InvalidDomainValue("Invalid Outcome proposal decision")
 
 
 @dataclass(frozen=True, slots=True)
 class EvaluationCreationSemanticInput(_CreationSemanticInput):
-    """Reserved typed input for M7D3 Evaluation creation semantics."""
+    """Exact independently evidenced validation request; never a verdict."""
+
+    validation: EvaluationRequestScope | None = None
+    decision: EvaluationRequestDecision | None = None
+
+    def __post_init__(self) -> None:
+        _CreationSemanticInput.__post_init__(self)
+        if self.validation is not None and not isinstance(
+            self.validation, EvaluationRequestScope
+        ):
+            raise InvalidDomainValue("Invalid Evaluation request scope")
+        if self.decision is not None and not isinstance(
+            self.decision, EvaluationRequestDecision
+        ):
+            raise InvalidDomainValue("Invalid Evaluation request decision")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1359,6 +1414,9 @@ def _creation_event(
     event_type = {
         CreationRequestVariant.OBJECTIVE_DRAFT: DomainEventType.OBJECTIVE_CREATED,
         CreationRequestVariant.TASK_DRAFT: DomainEventType.TASK_CREATED,
+        CreationRequestVariant.RUN_PENDING: DomainEventType.RUN_CREATED,
+        CreationRequestVariant.OUTCOME_PROPOSED: DomainEventType.OUTCOME_PROPOSED,
+        CreationRequestVariant.EVALUATION_PENDING: DomainEventType.EVALUATION_REQUESTED,
     }[request.variant]
     return DomainEvent(
         request.event_id,
@@ -1483,7 +1541,7 @@ def create_entity(
 def create_entity(
     request: CreationRequest, context: CreationContext
 ) -> CreationResult[LifecycleEntity]:
-    """Create only the M7D2 Objective/Task variants; deny all other variants.
+    """Create the five M7D2/M7D3 entity variants; deny Effect creation.
 
     This dedicated boundary intentionally accepts neither a source snapshot nor an
     expected version, and never delegates to ``transition_entity``.
@@ -1499,7 +1557,80 @@ def create_entity(
         return _create_objective(request, context)
     if isinstance(request, TaskDraftCreationRequest):
         return _create_task(request, context)
+    if isinstance(
+        request,
+        (
+            RunPendingCreationRequest,
+            OutcomeProposedCreationRequest,
+            EvaluationPendingCreationRequest,
+        ),
+    ):
+        return _create_run_outcome_evaluation(request, context)
     _require_additional_guards(request, context)
     raise InvariantViolation(
         "Canonical entity-specific creation semantics are not implemented"
+    )
+
+
+def _create_run_outcome_evaluation(
+    request: RunPendingCreationRequest
+    | OutcomeProposedCreationRequest
+    | EvaluationPendingCreationRequest,
+    context: CreationContext,
+) -> CreationResult[Run | Outcome | Evaluation]:
+    scope: RunRegistrationScope | OutcomeProposalScope | EvaluationRequestScope
+    entity: Run | Outcome | Evaluation
+    if isinstance(request, RunPendingCreationRequest):
+        scope = validate_run_creation(request)
+        _require_additional_guards(request, context)
+        entity = Run(
+            request.entity_id,
+            request.entity_spec.task_id,
+            RunState.PENDING,
+            INITIAL_CREATION_VERSION,
+            request.entity_spec.execution_profile_ref,
+            request.entity_spec.predecessor_run_id,
+        )
+    elif isinstance(request, OutcomeProposedCreationRequest):
+        scope = validate_outcome_creation(request)
+        _require_additional_guards(request, context)
+        entity = Outcome(
+            request.entity_id,
+            request.entity_spec.run_id,
+            OutcomeState.PROPOSED,
+            INITIAL_CREATION_VERSION,
+            request.entity_spec.producer,
+            request.entity_spec.artifact_refs,
+            request.entity_spec.evidence_refs,
+            request.entity_spec.valid_until,
+            request.entity_spec.prior_outcome_id,
+        )
+    else:
+        scope = validate_evaluation_creation(request)
+        _require_additional_guards(request, context)
+        entity = Evaluation(
+            request.entity_id,
+            EvaluationState.PENDING,
+            INITIAL_CREATION_VERSION,
+            request.entity_spec.target,
+            request.entity_spec.method,
+            request.entity_spec.verifier,
+        )
+    semantic_decision = request.semantic_input.decision
+    authority = context.authority_decision
+    availability = context.identifier_availability
+    assert (
+        semantic_decision is not None
+        and authority is not None
+        and availability is not None
+    )
+    annotations = frozenset(
+        _common_creation_annotations(request, context)
+    ) | creation_scope_annotations(scope, semantic_decision)
+    return CreationResult(
+        entity,
+        _creation_event(request, authority, annotations),
+        request,
+        authority,
+        availability,
     )
