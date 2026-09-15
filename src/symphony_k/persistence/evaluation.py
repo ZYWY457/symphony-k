@@ -7,13 +7,16 @@ from typing import TYPE_CHECKING
 from symphony_k.domain import ConcurrencyConflict, Evaluation, InvariantViolation
 from symphony_k.domain.evaluation_arbitration import EvaluationArbitrationRecord
 from symphony_k.domain.evaluation_conflict import EvaluationConflictSetRecord
+from symphony_k.domain.evaluation_effective_use import derive_evaluation_effective_use
 from symphony_k.domain.evaluation_invalidation import EvaluationInvalidationRecord
 from symphony_k.domain.evaluation_semantics import (
     EvaluationArbitrationSemantics,
     EvaluationConflictSemantics,
 )
+from symphony_k.domain.outcome_semantics import OutcomeEvaluationEffectiveUseObservation
 from symphony_k.domain.transition_engine import LifecycleEntity
 
+from ._records import walk
 from ._storage import Storage
 
 if TYPE_CHECKING:
@@ -47,6 +50,47 @@ def validate_evaluation_batch(
         if isinstance(item, EvaluationInvalidationRecord)
     )
     for source, (_, _, context) in zip(sources, operations, strict=True):
+        outcome_guard = context.outcome_semantic_guard
+        if outcome_guard is not None:
+            for observation in walk(outcome_guard.semantic_input):
+                if not isinstance(
+                    observation, OutcomeEvaluationEffectiveUseObservation
+                ):
+                    continue
+                current = storage.load(observation.evaluation_id)
+                if not isinstance(current, Evaluation) or (
+                    current.version != observation.observed_evaluation_version
+                    or current.state != observation.observed_state
+                    or current.target != observation.target
+                    or current.verifier != observation.verifier
+                    or current.evaluation_id in by_id
+                ):
+                    raise ConcurrencyConflict(
+                        "Outcome disposition requires an unchanged current Evaluation"
+                    )
+                applicable = frozenset(
+                    item
+                    for item in latest.values()
+                    if any(
+                        member.evaluation_id == current.evaluation_id
+                        for member in item.members
+                    )
+                )
+                invalidations = frozenset(
+                    item
+                    for item in invalidation_history
+                    if item.evaluation_id == current.evaluation_id
+                )
+                effective = derive_evaluation_effective_use(
+                    current,
+                    applicable_conflict_sets=applicable,
+                    arbitration_records=arbitration_history,
+                    invalidation_records=invalidations,
+                )
+                if effective != observation.effective_use:
+                    raise ConcurrencyConflict(
+                        "Outcome disposition differs from durable Evaluation judgement"
+                    )
         if not isinstance(source, Evaluation):
             continue
         guard = context.evaluation_semantic_guard

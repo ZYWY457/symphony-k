@@ -263,6 +263,10 @@ operation receipts together. Replays return the original historical result.
 Evaluation conflict/arbitration batches bind all affected member writes to one
 transaction. Supporting provenance records are retained separately from event
 reference annotations; normal repository APIs expose no state or history setter.
+Outcome disposition checks the durable Evaluation snapshot and re-derives its
+effective judgment from current conflict versions and retained arbitration and
+invalidation history inside the same transaction. A supplied stale observation
+or substituted judgment cannot authorize acceptance.
 This implementation does not dispatch external Effects or establish Stage 1 exit
 acceptance.
 
