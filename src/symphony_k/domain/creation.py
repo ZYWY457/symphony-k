@@ -2,10 +2,9 @@
 
 M7D1 defines the shared request, authority, availability, and result records.
 M7D2 and M7D3 add Objective, Task, Run, Outcome and Evaluation creation.
-Planned Effect creation records intent; observed Effect variants remain closed.
-There is no repository,
-transaction, executor, or
-call to the transition engine's existing-snapshot operation.
+Planned Effect creation records intent; observed Effect creation records reality.
+There is no repository, transaction, executor, or call to the transition engine's
+existing-snapshot operation.
 """
 
 from dataclasses import dataclass
@@ -15,6 +14,12 @@ from typing import Final, Protocol, overload, runtime_checkable
 from .actors import ActorIdentity, ActorType
 from .candidate_refs import ArtifactRef, EvidenceRef
 from .completion import CompletionPolicyRef
+from .creation_effect_observation import (
+    ObservedEffectRegistrationDecision,
+    ObservedEffectRegistrationScope,
+    observed_effect_annotations,
+    validate_observed_effect_creation,
+)
 from .creation_effect_semantics import (
     PlannedEffectIntentDecision,
     PlannedEffectIntentScope,
@@ -422,7 +427,21 @@ class PlannedEffectCreationSemanticInput(_CreationSemanticInput):
 
 @dataclass(frozen=True, slots=True)
 class ObservedEffectCreationSemanticInput(_CreationSemanticInput):
-    """Reserved typed input for M7D5 observed Effect creation semantics."""
+    """Exact independently anchored observation registration; no authorization."""
+
+    registration: ObservedEffectRegistrationScope | None = None
+    decision: ObservedEffectRegistrationDecision | None = None
+
+    def __post_init__(self) -> None:
+        _CreationSemanticInput.__post_init__(self)
+        if self.registration is not None and not isinstance(
+            self.registration, ObservedEffectRegistrationScope
+        ):
+            raise InvalidDomainValue("Invalid observed Effect registration")
+        if self.decision is not None and not isinstance(
+            self.decision, ObservedEffectRegistrationDecision
+        ):
+            raise InvalidDomainValue("Invalid observed Effect registration decision")
 
 
 type CreationSemanticInput = (
@@ -1439,6 +1458,8 @@ def _creation_event(
         CreationRequestVariant.OUTCOME_PROPOSED: DomainEventType.OUTCOME_PROPOSED,
         CreationRequestVariant.EVALUATION_PENDING: DomainEventType.EVALUATION_REQUESTED,
         CreationRequestVariant.EFFECT_PLANNED: DomainEventType.EFFECT_PLANNED,
+        CreationRequestVariant.EFFECT_COMMITTED: DomainEventType.EFFECT_COMMITTED,
+        CreationRequestVariant.EFFECT_QUARANTINED: DomainEventType.EFFECT_QUARANTINED,
     }[request.variant]
     return DomainEvent(
         request.event_id,
@@ -1563,7 +1584,7 @@ def create_entity(
 def create_entity(
     request: CreationRequest, context: CreationContext
 ) -> CreationResult[LifecycleEntity]:
-    """Create M7D2/M7D3 entities and planned Effects; deny observed Effects.
+    """Validate and create one of the eight canonical initial projections.
 
     This dedicated boundary intentionally accepts neither a source snapshot nor an
     expected version, and never delegates to ``transition_entity``.
@@ -1579,6 +1600,14 @@ def create_entity(
         return _create_objective(request, context)
     if isinstance(request, TaskDraftCreationRequest):
         return _create_task(request, context)
+    if isinstance(
+        request,
+        (
+            CommittedEffectObservationCreationRequest,
+            QuarantinedEffectObservationCreationRequest,
+        ),
+    ):
+        return _create_observed_effect(request, context)
     if isinstance(request, PlannedEffectCreationRequest):
         scope = validate_planned_effect_creation(request)
         _require_additional_guards(request, context)
@@ -1678,6 +1707,38 @@ def _create_run_outcome_evaluation(
     annotations = frozenset(
         _common_creation_annotations(request, context)
     ) | creation_scope_annotations(scope, semantic_decision)
+    return CreationResult(
+        entity,
+        _creation_event(request, authority, annotations),
+        request,
+        authority,
+        availability,
+    )
+
+
+def _create_observed_effect(
+    request: CommittedEffectObservationCreationRequest
+    | QuarantinedEffectObservationCreationRequest,
+    context: CreationContext,
+) -> CreationResult[Effect]:
+    authority = context.authority_decision
+    availability = context.identifier_availability
+    assert authority is not None and availability is not None
+    scope = validate_observed_effect_creation(request, authority.decided_by)
+    _require_additional_guards(request, context)
+    entity = Effect(
+        request.entity_id,
+        request.target_state,
+        INITIAL_CREATION_VERSION,
+        request.entity_spec.origin,
+        request.entity_spec.target_ref,
+        request.entity_spec.payload_ref,
+    )
+    semantic_decision = request.semantic_input.decision
+    assert semantic_decision is not None
+    annotations = frozenset(
+        _common_creation_annotations(request, context)
+    ) | observed_effect_annotations(scope, semantic_decision)
     return CreationResult(
         entity,
         _creation_event(request, authority, annotations),
