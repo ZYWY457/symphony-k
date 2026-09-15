@@ -253,6 +253,19 @@ Authoritative state includes:
 
 This state MUST persist independently of worker processes and sandbox lifetime.
 
+The Stage 1 persistence candidate uses database-neutral read repositories and an
+atomic lifecycle UnitOfWork port, with stdlib SQLite as its initial adapter
+([ADR-0007](docs/adr/0007-stage-1-sqlite-persistence-and-atomicity.md)). The domain
+package remains independent of storage. The service invokes the accepted domain
+creation/transition functions inside the adapter transaction, checks current
+versions and creation relationships, and commits immutable versions, events and
+operation receipts together. Replays return the original historical result.
+Evaluation conflict/arbitration batches bind all affected member writes to one
+transaction. Supporting provenance records are retained separately from event
+reference annotations; normal repository APIs expose no state or history setter.
+This implementation does not dispatch external Effects or establish Stage 1 exit
+acceptance.
+
 ## 8. Invariant Enforcement Layers
 
 Invariants are enforced at multiple layers.

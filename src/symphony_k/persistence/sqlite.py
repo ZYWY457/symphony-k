@@ -14,8 +14,10 @@ from symphony_k.domain import (
     Evaluation,
     EvaluationId,
     EventId,
+    ImmutableRecordViolation,
     InvalidDomainValue,
     InvalidRelationship,
+    InvariantViolation,
     Objective,
     ObjectiveId,
     Outcome,
@@ -32,6 +34,7 @@ from symphony_k.domain.transition_engine import (
     TransitionResult,
 )
 
+from ._records import record_key, walk
 from .codec import decode, encode
 from .ports import (
     EffectRepository,
@@ -120,6 +123,22 @@ CREATE TABLE IF NOT EXISTS operations (
     request TEXT NOT NULL,
     provenance TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS supporting_records (
+    record_type TEXT NOT NULL,
+    record_id TEXT NOT NULL,
+    version INTEGER NOT NULL CHECK(version >= 1),
+    record TEXT NOT NULL,
+    event_id TEXT NOT NULL REFERENCES events(event_id),
+    PRIMARY KEY(record_type,record_id,version)
+);
+CREATE TABLE IF NOT EXISTS observed_occurrences (
+    external_operation TEXT NOT NULL UNIQUE,
+    deduplication TEXT NOT NULL UNIQUE,
+    entity_id TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'EFFECT' CHECK(kind='EFFECT'),
+    FOREIGN KEY(kind,entity_id) REFERENCES heads(kind,entity_id)
+        DEFERRABLE INITIALLY DEFERRED
+);
 CREATE TRIGGER IF NOT EXISTS heads_identity BEFORE UPDATE ON heads
 WHEN NEW.kind != OLD.kind OR NEW.entity_id != OLD.entity_id
 BEGIN SELECT RAISE(ABORT, 'immutable identity'); END;
@@ -207,7 +226,13 @@ class SQLiteStore:
         self._connection = sqlite3.connect(database, isolation_level=None, timeout=5)
         self._connection.execute("PRAGMA foreign_keys = ON")
         self._connection.executescript(_SCHEMA)
-        for table in ("entity_versions", "events", "operations"):
+        for table in (
+            "entity_versions",
+            "events",
+            "operations",
+            "supporting_records",
+            "observed_occurrences",
+        ):
             for action in ("UPDATE", "DELETE"):
                 self._connection.execute(
                     f"CREATE TRIGGER IF NOT EXISTS {table}_no_{action.lower()} "
@@ -273,6 +298,17 @@ class SQLiteStore:
                 ):
                     raise ConcurrencyConflict(
                         "Durable identity already exists"
+                    ) from exc
+                if exc.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_TRIGGER:
+                    raise ImmutableRecordViolation(
+                        "Append-only record rejected mutation"
+                    ) from exc
+                if exc.sqlite_errorcode in (
+                    sqlite3.SQLITE_CONSTRAINT_CHECK,
+                    sqlite3.SQLITE_CONSTRAINT_NOTNULL,
+                ):
+                    raise InvariantViolation(
+                        "Persistence structure rejected the operation"
                     ) from exc
             if isinstance(exc, sqlite3.OperationalError) and exc.sqlite_errorcode in (
                 sqlite3.SQLITE_BUSY,
@@ -348,3 +384,52 @@ class SQLiteStore:
         return TransitionResult(
             self.load_version(event.entity_id, event.entity_version), event
         )
+
+    def _reserve_occurrence(
+        self, operation: str, deduplication: str, entity_id: str
+    ) -> None:
+        self._connection.execute(
+            "INSERT INTO observed_occurrences"
+            "(external_operation,deduplication,entity_id) VALUES (?,?,?)",
+            (operation, deduplication, entity_id),
+        )
+
+    def _records(self, record_type: type) -> tuple[object, ...]:
+        return tuple(
+            decode(row[0])
+            for row in self._connection.execute(
+                "SELECT record FROM supporting_records "
+                "WHERE record_type=? ORDER BY record_id,version",
+                (record_type.__name__,),
+            ).fetchall()
+        )
+
+    def supporting_records[RecordT](
+        self, record_type: type[RecordT]
+    ) -> tuple[RecordT, ...]:
+        values = self._records(record_type)
+        if any(type(value) is not record_type for value in values):
+            raise ValueError("Stored supporting record type mismatch")
+        return cast(tuple[RecordT, ...], values)
+
+    def _record_provenance(self, value: object, event_id: EventId) -> None:
+        for item in walk(value):
+            key = record_key(item)
+            if key is None:
+                continue
+            encoded = encode(item)
+            row = self._connection.execute(
+                "SELECT record FROM supporting_records "
+                "WHERE record_type=? AND record_id=? AND version=?",
+                key,
+            ).fetchone()
+            if row is not None:
+                if row[0] != encoded:
+                    raise ImmutableRecordViolation(
+                        "Supporting record identity cannot be rewritten"
+                    )
+                continue
+            self._connection.execute(
+                "INSERT INTO supporting_records VALUES (?,?,?,?,?)",
+                (*key, encoded, str(event_id)),
+            )

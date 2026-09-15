@@ -80,3 +80,13 @@ class UnitOfWork(Protocol):
         request: TransitionRequest[LifecycleState],
         context: TransitionContext,
     ) -> TransitionResult[LifecycleEntity]: ...
+
+    def transition_batch(
+        self,
+        operations: tuple[
+            tuple[
+                LifecycleEntityId, TransitionRequest[LifecycleState], TransitionContext
+            ],
+            ...,
+        ],
+    ) -> tuple[TransitionResult[LifecycleEntity], ...]: ...

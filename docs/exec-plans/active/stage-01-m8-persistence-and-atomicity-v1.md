@@ -55,3 +55,54 @@ The first focused run completed its test bodies but pytest cleanup failed on the
 default temporary directory's `pytest-current` link. It was not counted as a
 passing run. Successful focused/full reruns used explicit disposable directories
 under ignored `.uv-cache/` via `--basetemp`, without weakening any tests.
+
+## M8C implementation and evidence
+
+The service depends on an internal database-neutral Storage protocol and exposes
+create, transition and complete transition batches through the UnitOfWork port.
+SQLite uses BEGIN IMMEDIATE and expected-version conditional head updates;
+every exception rolls back the transaction. Creation invokes the existing M7
+engine, checks durable absence and every supplied CURRENT relationship, and
+inserts v1/history/event/receipt together. Domain rules were not moved into SQL.
+
+EventId receipts retain a SHA-256 fingerprint of canonical complete requests
+(transition receipts additionally bind the entity ID), request JSON and immutable
+semantic provenance. Replays reconstruct the original snapshot version and
+event even after head advancement; conflicting reuse is ConcurrencyConflict.
+Observed external-operation and deduplication identities have independent unique
+indexes. Supporting Evaluation/Effect history is indexed by existing typed record
+identity/version; repeated identical references are retained once and conflicting
+content raises ImmutableRecordViolation. UPDATE/DELETE triggers protect all
+append-only tables. Foreign-key failures become InvalidRelationship, stale/unique
+failures ConcurrencyConflict, structural checks InvariantViolation, and rejected
+history mutations ImmutableRecordViolation. Unexpected database errors propagate.
+
+Evaluation conflict and arbitration operations bind supplied member observations
+and histories to the durable view, require the affected member operations together,
+and persist supporting records and per-member events in one transaction. This
+implements ADR-0005 consistency using existing M7 guards, not new lifecycle rules.
+Incomplete batches are rejected without changing any member. The schema/port
+extensions in this phase complete the M8B adapter's internal write boundary.
+
+Focused suites: codec 23, SQLite 12, service 42, Evaluation 5, Effect 3
+(85 total). Full suite: 3230 passed. Locked sync, Ruff, format (204 files),
+mypy (118 source files) and diff checks passed. Tests use disposable ignored
+`.uv-cache/` basetemp directories following the earlier temporary-path denial.
+
+Direct evidence includes all six roots/eight creation variants in memory and
+file databases; v1 and N+1 persistence; reopen/replay; all supplied relationship
+families including predecessors and attributed observations; two independent
+file connections reading N before A wins and B receives ConcurrencyConflict;
+two simultaneous creation writers with exactly one winner; raw append-only/FK
+attacks; rollback after history, event or receipt failure; a probe observing head
+v2 before event failure and observing the new event before receipt failure;
+CAS zero-row rollback; and second-member Evaluation failure rolling back the
+first member and supporting history. Compensation retains original snapshots,
+commit events, occurrence evidence and residual-impact records.
+
+M8 implementation candidate = COMPLETE. M8 Human Accepted = NO.
+No accepted M7 source, state, edge or authority semantic changed.
+
+The final batch audit also rejects changing an already-CONFLICTED participant
+while adding new unresolved membership in the same batch. A direct regression
+proves the mixed operation rolls back without changing the observed participant.
