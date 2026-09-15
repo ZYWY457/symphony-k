@@ -1,4 +1,8 @@
-"""Integrated constitutional properties of all eight authoritative creation paths."""
+"""Integrated constitutional properties of all eight authoritative creation paths.
+
+No known requester, producer, proposer or observer may acquire creation authority
+merely by ActorType relabeling, including Evaluation target producing principals.
+"""
 
 from dataclasses import dataclass, fields, replace
 
@@ -49,6 +53,7 @@ from tests.test_creation_run_outcome_evaluation import (
     actor,
     context,
     evaluation_request,
+    independent_evaluation_request,
     outcome_request,
     run_request,
     uid,
@@ -144,8 +149,41 @@ def test_requester_relabel_cannot_acquire_creation_authority(
         else ActorType.SCHEDULER
     )
     relabelled = replace(request.requested_by, actor_type=role)
-    with pytest.raises(UnauthorizedTransition):
+    with pytest.raises(UnauthorizedTransition, match="relabelling a principal"):
         create_entity(request, context(request, relabelled))
+
+
+@pytest.mark.parametrize("kind", ["run", "outcome", "effect", "evidence"])
+def test_evaluation_target_producer_is_inside_creation_authority_boundary(
+    kind: str,
+) -> None:
+    request = independent_evaluation_request(kind)
+    scope = request.semantic_input.validation
+    assert scope is not None
+    producer = scope.producing_principals[0]
+    assert producer.actor_type is ActorType.WORKER
+    assert request.requested_by.actor_id != producer.actor_id
+    # Control: both eligible roles retain exact-scoped independent authority.
+    for role in (ActorType.EVALUATOR, ActorType.SCHEDULER):
+        independent = actor(701, role)
+        result = create_entity(request, context(request, independent))
+        assert result.event.actor == independent
+        assert result.entity.state is EvaluationState.PENDING
+        assert result.entity.version == result.event.entity_version == EntityVersion(1)
+        assert result.event.event_type is DomainEventType.EVALUATION_REQUESTED
+        assert result.event.metadata.prior_state is None
+        relabelled = replace(producer, actor_type=role)
+        with pytest.raises(UnauthorizedTransition, match="relabelling a principal"):
+            create_entity(request, context(request, relabelled))
+        # A caller cannot inject the same forged authority into a valid result.
+        forged = context(request, relabelled).authority_decision
+        assert forged is not None
+        with pytest.raises(UnauthorizedTransition, match="relabelling a principal"):
+            replace(
+                result,
+                authority_decision=forged,
+                event=replace(result.event, actor=relabelled),
+            )
 
 
 @pytest.mark.parametrize("index", range(8))

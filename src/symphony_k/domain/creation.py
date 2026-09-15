@@ -1119,6 +1119,12 @@ def _creation_principals_requiring_no_relabel(
         return principals + (spec.origin.proposed_by,)
     if isinstance(spec, ObservedEffectCreationSpec):
         return principals + (spec.origin.observed_by,)
+    if isinstance(request, EvaluationPendingCreationRequest):
+        validation = request.semantic_input.validation
+        # Enumerate known principals only; canonical semantic validation stays
+        # after authority and identifier availability checks.
+        if isinstance(validation, EvaluationRequestScope):
+            return principals + validation.producing_principals
     return principals
 
 

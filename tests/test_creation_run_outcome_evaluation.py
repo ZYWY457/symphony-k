@@ -33,6 +33,7 @@ from symphony_k.domain import (
     EvaluationId,
     EvaluationMethodRef,
     EvaluationPendingCreationRequest,
+    EvaluationState,
     EvaluationTargetRef,
     EventId,
     EvidenceRef,
@@ -362,6 +363,107 @@ def with_evaluation_scope(
             decision=replace(decision, scope=scope),
         ),
     )
+
+
+def independent_evaluation_request(
+    kind: str = "run",
+) -> EvaluationPendingCreationRequest:
+    """Keep the Worker producer distinct from all requesting/observing actors."""
+    request = evaluation_request(kind)
+    scope = request.semantic_input.validation
+    assert scope is not None
+    requester = actor(80, ActorType.SCHEDULER)
+    identity = replace(scope.request_identity, requested_by=requester)
+    target = scope.target_observation
+    scope = replace(
+        scope,
+        request_identity=identity,
+        target_observation=replace(target, request_identity=identity)
+        if target is not None
+        else None,
+    )
+    return with_evaluation_scope(replace(request, requested_by=requester), scope)
+
+
+@pytest.mark.parametrize("kind", ["run", "outcome", "effect", "evidence"])
+@pytest.mark.parametrize("role", [ActorType.EVALUATOR, ActorType.SCHEDULER])
+@pytest.mark.parametrize("producer_index", [0, 1])
+def test_evaluation_producer_cannot_relabel_as_creation_authority(
+    kind: str, role: ActorType, producer_index: int
+) -> None:
+    request = independent_evaluation_request(kind)
+    scope = request.semantic_input.validation
+    assert scope is not None
+    producers = (WORKER, actor(81, ActorType.WORKER))
+    request = with_evaluation_scope(
+        request, replace(scope, producing_principals=producers)
+    )
+    producer = producers[producer_index]
+    assert request.requested_by.actor_id != producer.actor_id
+    # The complete request succeeds with independent authority before the attack.
+    assert create_entity(request, context(request)).entity.target == scope.spec.target
+    authority = replace(producer, actor_type=role)
+    assert authority.actor_id == producer.actor_id
+    with pytest.raises(UnauthorizedTransition, match="relabelling a principal"):
+        create_entity(request, context(request, authority))
+
+
+@pytest.mark.parametrize("kind", ["run", "outcome", "effect", "evidence"])
+@pytest.mark.parametrize("role", [ActorType.EVALUATOR, ActorType.SCHEDULER])
+def test_evaluation_independent_creation_authorities_succeed(
+    kind: str, role: ActorType
+) -> None:
+    request = independent_evaluation_request(kind)
+    scope = request.semantic_input.validation
+    assert scope is not None
+    authority = actor(82, role)
+    assert authority.actor_id not in {
+        principal.actor_id
+        for principal in (request.requested_by,) + scope.producing_principals
+    }
+    result = create_entity(request, context(request, authority))
+    assert (
+        result.entity.state
+        is result.event.metadata.new_state
+        is EvaluationState.PENDING
+    )
+    assert result.entity.result is None
+    assert result.event.actor == authority
+    assert result.event.event_type is DomainEventType.EVALUATION_REQUESTED
+
+
+def test_evaluation_producer_relabel_precedes_availability_and_semantics() -> None:
+    request = independent_evaluation_request()
+    request = replace(
+        request, semantic_input=replace(request.semantic_input, decision=None)
+    )
+    authority = replace(WORKER, actor_type=ActorType.EVALUATOR)
+    ctx = replace(context(request, authority), identifier_availability=None)
+    with pytest.raises(UnauthorizedTransition, match="relabelling a principal"):
+        create_entity(request, ctx)
+    # Exact authority binding still precedes principal enumeration.
+    changed = replace(request, causation_id=CausationId(uid(83)))
+    with pytest.raises(UnauthorizedTransition, match="exact-bind request scope"):
+        create_entity(changed, ctx)
+
+
+@pytest.mark.parametrize("field", ["validation", "decision"])
+def test_evaluation_absent_semantics_preserves_canonical_rejection(field: str) -> None:
+    request = independent_evaluation_request()
+    semantics = (
+        replace(request.semantic_input, validation=None)
+        if field == "validation"
+        else replace(request.semantic_input, decision=None)
+    )
+    request = replace(request, semantic_input=semantics)
+    with pytest.raises(InvariantViolation, match="Canonical entity-specific"):
+        create_entity(request, context(request))
+
+
+def test_evaluation_malformed_scope_preserves_structural_rejection() -> None:
+    request = independent_evaluation_request()
+    with pytest.raises(InvalidDomainValue, match="Invalid Evaluation request scope"):
+        replace(request.semantic_input, validation="malformed")  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("predecessor", [False, True])
