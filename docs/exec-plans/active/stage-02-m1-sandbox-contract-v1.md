@@ -1,6 +1,6 @@
 # Stage 02 M1 — Sandbox Execution Contract Candidate
 
-**Status:** CANDIDATE PRODUCED - independent review / Human approval pending
+**Status:** CANDIDATE CORRECTED BY M1A - independent review / Human approval pending
 
 **TaskSpec:** GitHub Issue #77
 
@@ -196,3 +196,21 @@ S2-M4 adverse Docker + crash/reopen + operational evidence
 The design document lists proposed production/test paths, prerequisites, likely
 commit boundaries and completion evidence for M2-M4. Those are planning inputs,
 not executable Issues or implementation authority.
+
+## Independent review and M1A correction
+
+Independent review of the Issue #77 candidate requested three corrections:
+
+1. name an enforcement owner that survives caller/adapter loss and define
+   whole-sandbox termination and race evidence;
+2. define how a trusted collector actually reads the live bounded tmpfs and
+   order preservation before normal removal; and
+3. complete every public result/observation/store type and lifecycle rule used
+   by the M2 boundary.
+
+GitHub Issue #78, revision `r1 - stage-02-m1a-contract-closure`, authorizes the
+bounded forward correction recorded in
+`stage-02-correction-m1a-sandbox-contract-closure-v1.md`. The correction also
+adds the requested primary-source backend comparison. It does not change the
+Issue #77 TaskSpec or commits, accept ADR-0008/the design, authorize Issue #79,
+or alter the Docker-first decision. M1 acceptance remains pending.

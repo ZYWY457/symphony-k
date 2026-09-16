@@ -9,16 +9,17 @@
   recorded by GitHub Issue #75 and its ordered governance commit stack.
 - **Human Stage 1 Exit Review:** ACCEPTED
 - **Current stage:** Stage 2 — Sandbox Execution
-- **Stage 2 activity:** ACTIVE - M1 architecture/design
+- **Stage 2 activity:** ACTIVE - M1A correction candidate
 - **Current parent plan:**
   [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
-- **Current task:** GitHub Issue #77 / S2-M1 sandbox contract candidate
+- **Current task:** GitHub Issue #78 / S2-M1A sandbox contract correction
 - **Stage 2 code implementation:** NOT YET STARTED
-- **Stage 2 runtime implementation authorized by Issue #77:** NO
-- **Current blocking Human gate:** independent review and Human approval of
-  [proposed ADR-0008](docs/adr/0008-stage-2-sandbox-execution-boundary.md) and
-  [candidate sandbox design](docs/design-docs/sandbox-execution-v1.md) before
-  runtime implementation.
+- **Stage 2 runtime implementation authorized by Issues #77/#78:** NO
+- **Current blocking Human gate:** independent review and Human approval of the
+  Issue #78 corrected [proposed ADR-0008](docs/adr/0008-stage-2-sandbox-execution-boundary.md)
+  and [candidate sandbox design](docs/design-docs/sandbox-execution-v1.md)
+  before M2 runtime implementation. Issue #79 remains BLOCKED and has not been
+  executed.
 - **Stage 2 complete:** NO
 - **Stage 3:** PLANNED — not activated
 - **Current roadmap source:** [ROADMAP.md](ROADMAP.md) and

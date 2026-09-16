@@ -4,7 +4,8 @@
 
 Proposed.
 
-This is a Worker-produced candidate under GitHub Issue #77. It is not Human
+This is a Worker-produced candidate under GitHub Issue #77, corrected forward
+under Issue #78 after independent review requested changes. It is not Human
 Accepted and does not authorize runtime implementation.
 
 ## Date
@@ -71,6 +72,39 @@ process tree stopped. The provider must inspect and confirm termination or
 return an unknown state requiring fenced cleanup. Duplicate requests replay a
 recorded result only when identity and request digest match; a conflicting
 digest fails closed.
+
+The proposed initial enforcement topology uses a minimal trusted sandbox
+guardian co-located with the native Linux Docker Engine host. Before a Worker
+command can start, the guardian records and arms a monotonic deadline bound to
+the exact provider, Run, workspace lease, sandbox ID/generation, command ID and
+request digest. It runs outside the Worker container/cgroup under a dedicated
+host identity and service-manager supervision. Its authenticated local control
+socket and Docker management authority are unavailable inside the container;
+the adapter may start/cancel/observe the exact bound operation but may neither
+extend an armed deadline nor retarget it.
+
+The binding records the trusted host boot identity and monotonic arm/expiry
+values; wall-clock time is audit metadata only. Same-boot guardian restart uses
+the original expiry. A host reboot makes that monotonic value incomparable and
+requires immediate unknown-state reconciliation/whole-sandbox cleanup rather
+than a fabricated timeout observation.
+
+Caller, adapter or adapter-management-channel loss therefore does not disarm
+the deadline. At expiry the guardian requests TERM through the immutable image's
+non-root command supervisor, waits the recorded grace interval, then escalates
+to whole-container kill/removal if complete command-tree termination is not
+proved. Process-group signaling alone is insufficient because descendants may
+change session/group or daemonize. The sandbox is reusable only after terminal
+command/stream observations and an empty owned container cgroup are confirmed;
+otherwise it is `UNKNOWN`, blocks reuse and requires targeted destruction.
+
+The trusted host kernel, service manager and Docker daemon remain prerequisites,
+not observable guarantees during their own failure or compromise. Guardian
+failure is detected by service-manager/metadata reconciliation and causes an
+immediate whole-sandbox stop attempt plus `UNKNOWN`; runtime preflight rejects
+an environment that cannot keep the guardian separately scheduled, protect its
+channel/identity or enforce whole-container escalation. M3 validates the named
+mechanism rather than choosing its owner.
 
 ### Initial Linux-container profile
 
@@ -140,6 +174,26 @@ hardlinks, device/archive escapes, excessive size/count/depth and post-open
 identity changes are rejected. A digest proves byte identity, not correctness
 or acceptance; a manifest is not an Evaluation.
 
+For the initial supported native-Linux/local-daemon profile, that reader is a
+co-located trusted host collector, not Worker code and not an assumption that a
+remote Docker endpoint exposes host file descriptors. It uses the authenticated
+Engine management channel to resolve and freeze the exact owned container,
+verifies its immutable ID/labels, init PID, process start identity, mount
+namespace, workspace mount and generation, then pins and opens
+`/proc/<init-pid>/root/workspace` using Linux descriptor-relative/no-follow
+primitives. It rechecks identity, frozen state and mount identity before,
+during and after the bounded stream. The helper's narrow daemon/read/artifact-
+store authority lives only on the trusted host and is never mounted or passed
+to the Worker. Native Windows, Docker Desktop and remote-daemon deployments do
+not satisfy this collector contract merely by exposing a Docker API.
+
+Normal preservation order is: freeze/quiesce while tmpfs still exists, bounded
+validated export, durable manifest/snapshot commit, then sandbox removal. On
+emergency stop or unexpected whole-container loss before commit, safety cleanup
+wins: record artifact loss/unavailability, never report an empty success or
+regenerate bytes, and keep authoritative Stage 1 state distinct from lost
+candidate workspace bytes.
+
 ### Telemetry, failure and cleanup
 
 Bounded ordered observations bind provider, Task, Run, workspace, sandbox and
@@ -159,6 +213,17 @@ of owned leftovers after process restart. Destruction is not reported until
 absence is confirmed. Global prune, name-prefix-only deletion and removal of
 unowned resources are prohibited. This is resource cleanup, not Stage 5 Run
 recovery or exactly-once Effect execution.
+
+The provider-neutral contract includes closed immutable records for workspace,
+sandbox/command observations, cancellation, export, cleanup, owned-resource
+reopen and in-progress operations plus per-kind observation payloads. Unknown
+observation time is not process end time; unconfirmed termination has no
+`ended_at` or invented exit code. Timeout cause, process disposition, output
+truncation and cleanup disposition remain separate. Request IDs/idempotency
+keys are allocated and durably retained by the trusted caller before dispatch;
+resource IDs and observations are fenced by generation/lease and canonical
+request fingerprints. A deterministic Fake may simulate these contracts but
+cannot claim real enforcement capability.
 
 ## Consequences
 
@@ -224,6 +289,19 @@ must be explicitly selected as argv.
 Rejected. Neither proves the container process tree stopped. Unknown state
 requires inspection and fenced cleanup.
 
+### Let the adapter process own the only deadline timer
+
+Rejected. Adapter death would remove enforcement. The co-located guardian owns
+the timer outside the Worker/adapter lifetime and retains only deadline,
+signal/whole-container-stop, inspection and evidence-recording authority.
+
+### Use Docker archive/copy or a remote API as the trusted tmpfs reader
+
+Rejected for the initial contract. Those interfaces do not by themselves
+provide the required Linux descriptor-relative traversal, continuous identity
+fencing and same-byte hash/retention observation. A future collector mechanism
+may replace the co-located host helper only after equivalent adverse evidence.
+
 ### Automatically trust or reuse retained workspace state
 
 Rejected. Survival proves neither integrity nor recovery suitability. Stage 5
@@ -251,5 +329,7 @@ requires independent review of that traceability and explicit Human answers to:
 5. Is the proposed Linux Docker environment/support boundary honest and narrow
    enough for M3/M4 evidence?
 
-Until those questions are accepted durably, ADR-0008 remains Proposed and no
-runtime implementation is authorized by Issue #77.
+Issue #78 closes the requested candidate gaps but does not answer the approval
+questions on behalf of the Human reviewer. Until the corrected decision is
+accepted durably, ADR-0008 remains Proposed, M1 acceptance remains pending and
+blocked Issue #79/M2 is not authorized by this correction.

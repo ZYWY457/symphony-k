@@ -1,6 +1,6 @@
 # Stage 02 — Sandbox Execution
 
-**Status:** ACTIVE - M1 architecture/design
+**Status:** ACTIVE - M1 architecture/design; M1A correction candidate
 **Constitutional baseline:** `constitution-v0.1`
 
 **Runtime implementation:** NOT YET STARTED
@@ -86,8 +86,9 @@ an unavailable or non-enforcing sandbox fails closed before Worker execution.
 
 ## Milestones
 
-1. **S2-M1 current:** activation plus ADR/design candidate; independent review
-   and Human approval remain pending.
+1. **S2-M1 current:** activation plus ADR/design candidate, followed by the
+   bounded M1A correction under Issue #78; independent review and Human
+   approval remain pending.
 2. **S2-M2 proposed:** after approval and a new TaskSpec, implement typed
    contracts, workspace boundary and deterministic fake provider.
 3. **S2-M3 proposed:** implement Docker lifecycle, enforced constraints,
@@ -149,6 +150,14 @@ planned Stage 3-14 parent files, requirement/test traceability and protected
 paths. Official Docker documentation was consulted on 2026-09-16; no Docker
 runtime or proposed test matrix was executed.
 
-Next gate: independent review and explicit Human approval of ADR-0008 and the
-design. Until then, runtime implementation is not authorized and Stage 2 is not
-complete.
+Independent review requested changes to deadline ownership/termination,
+trusted live-workspace collection and public-contract completeness. Issue #78
+produced a forward M1A correction without rewriting Issue #77 history or
+starting M2. The correction also records a bounded primary-source comparison of
+Codex, OpenClaw and lower-footprint backend candidates without changing
+ADR-0002's Docker-first decision.
+
+Next gate: independent review and explicit Human approval of corrected
+ADR-0008 and the corrected design. Until then, M1 acceptance remains pending,
+Issue #79/M2 remains blocked, runtime implementation is not authorized and
+Stage 2 is not complete.
