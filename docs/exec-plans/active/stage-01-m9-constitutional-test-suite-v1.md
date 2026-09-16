@@ -192,3 +192,17 @@ Changed files:
 - `tests/constitutional/test_authority_and_separation.py`
 - `tests/constitutional/test_durable_history.py`
 - `tests/constitutional/test_architecture.py`
+
+## Issue #73 M8D constitutional correction evidence
+
+The constitutional suite now includes
+`test_later_effect_transition_cannot_backfill_fabricated_history`. It constructs
+the committed history through the real LifecycleService, attempts to introduce a
+new confirmed observation only during rollback, and proves typed rejection plus
+byte/logical row equality. Existing compensation/rollback history tests now also
+construct their critical Effect history through production create/transition
+paths rather than relying on a boundary-only Effect snapshot.
+
+The constitutional suite passed 32 tests and the complete suite passed 3269.
+Ruff, format, mypy and diff checks passed. M9 remains a candidate pending the
+next independent cumulative Human Review.

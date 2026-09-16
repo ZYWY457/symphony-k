@@ -39,4 +39,16 @@ class Storage(Protocol):
 
     def _records(self, record_type: type) -> tuple[object, ...]: ...
 
+    def _load_record(
+        self, record_type: type, record_id: object, version: int = 1
+    ) -> object: ...
+
+    def _require_existing_record(
+        self, value: object, event_id: EventId | None = None
+    ) -> EventId: ...
+
+    def _require_operation_provenance(
+        self, event_id: EventId, value: object
+    ) -> None: ...
+
     def _record_provenance(self, value: object, event_id: EventId) -> None: ...

@@ -106,3 +106,29 @@ No accepted M7 source, state, edge or authority semantic changed.
 The final batch audit also rejects changing an already-CONFLICTED participant
 while adding new unresolved membership in the same batch. A direct regression
 proves the mixed operation rolls back without changing the observed participant.
+
+## M8D historical Effect provenance correction
+
+Issue #73 closes the remaining Effect historical-backfill gap. The first Issue
+#73 execution stopped before mutation because its same-S1 simulation hypothesis
+contradicted accepted M7 version binding; Human Review corrected the TaskSpec and
+M7 remained unchanged. The corrected sequence persists distinct current-attempt
+S1(vN) and S2(vN+1) simulation records.
+
+An internal SQLite exact-record lookup now proves historical record identity,
+concrete type, version, canonical content and first-recording event. A bounded
+Effect persistence validator classifies each accepted semantic input by lifecycle
+role before the pure transition and before provenance insertion. It binds original
+commit observations, compensation plans, quarantine contexts, prior uncertain
+observations/incidents, start events and historical authorization provenance to
+durable history. Missing, substituted or content-divergent historical facts raise
+`ConcurrencyConflict` without writes; current-operation records remain atomically
+insertable and existing immutable-collision behavior remains intact.
+
+Pre-fix evidence reproduced a fabricated O2 rollback with `DID NOT RAISE`.
+Post-fix attacks cover rollback and compensation O2, completion P2, quarantine
+Q2/UNCERTAIN lineage, same-identity changed content and direct-completion start
+authorization substitution. Focused persistence suites passed 92 tests total
+(23 codec, 12 SQLite, 42 service, 5 Evaluation, 10 Effect); the full suite passed
+3269. Locked sync, Ruff, format (211 files), mypy (123 source files) and diff
+checks passed. M8 remains an implementation candidate pending Human Review.

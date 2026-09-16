@@ -404,6 +404,60 @@ class SQLiteStore:
             ).fetchall()
         )
 
+    def _load_record(
+        self, record_type: type, record_id: object, version: int = 1
+    ) -> object:
+        row = self._connection.execute(
+            "SELECT record FROM supporting_records "
+            "WHERE record_type=? AND record_id=? AND version=?",
+            (record_type.__name__, str(record_id), version),
+        ).fetchone()
+        if row is None:
+            raise ConcurrencyConflict("Required historical record is not durable")
+        value = decode(row[0])
+        if type(value) is not record_type or record_key(value) != (
+            record_type.__name__,
+            str(record_id),
+            version,
+        ):
+            raise ConcurrencyConflict("Historical record type or identity differs")
+        return value
+
+    def _require_existing_record(
+        self, value: object, event_id: EventId | None = None
+    ) -> EventId:
+        key = record_key(value)
+        if key is None:
+            raise InvariantViolation("Historical value is not a supporting record")
+        row = self._connection.execute(
+            "SELECT record,event_id FROM supporting_records "
+            "WHERE record_type=? AND record_id=? AND version=?",
+            key,
+        ).fetchone()
+        if row is None:
+            raise ConcurrencyConflict("Required historical record is not durable")
+        stored = decode(row[0])
+        if type(stored) is not type(value) or record_key(stored) != key:
+            raise ConcurrencyConflict("Historical record type or identity differs")
+        if row[0] != encode(value):
+            raise ConcurrencyConflict("Historical record content differs")
+        recorded_event_id = EventId.from_string(row[1])
+        if event_id is not None and recorded_event_id != event_id:
+            raise ConcurrencyConflict("Historical record lineage differs")
+        return recorded_event_id
+
+    def _require_operation_provenance(self, event_id: EventId, value: object) -> None:
+        row = self._connection.execute(
+            "SELECT provenance FROM operations WHERE event_id=?", (str(event_id),)
+        ).fetchone()
+        if row is None:
+            raise ConcurrencyConflict("Historical operation provenance is absent")
+        provenance = decode(row[0])
+        if not any(
+            type(item) is type(value) and item == value for item in walk(provenance)
+        ):
+            raise ConcurrencyConflict("Historical operation provenance differs")
+
     def supporting_records[RecordT](
         self, record_type: type[RecordT]
     ) -> tuple[RecordT, ...]:

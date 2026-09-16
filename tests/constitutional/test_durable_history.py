@@ -10,6 +10,7 @@ from symphony_k.domain import (
     ActorType,
     ConcurrencyConflict,
     Effect,
+    EffectObservationId,
     EffectState,
     EntityVersion,
     Evaluation,
@@ -36,6 +37,7 @@ from tests.persistence_fixtures import data_rows, seed_snapshot
 from tests.test_creation_integrated import creation_context
 from tests.test_creation_objective_task import objective_request
 from tests.test_creation_observed_effect import observed_request
+from tests.test_persistence_effect import committed_effect_history
 from tests.test_persistence_evaluation import conflict_batch
 from tests.test_persistence_service import objective_transition
 
@@ -78,24 +80,38 @@ def test_evaluation_conflict_history_is_not_rewritten() -> None:
 
 
 def compensate(store: SQLiteStore) -> tuple[Effect, Effect]:
-    committed = effect_fixtures.effect(EffectState.COMMITTED)
-    seed_snapshot(store, committed)
-    service = LifecycleService(store)
+    service, committed, original = committed_effect_history(store)
     start_request = effect_fixtures.request(committed, EffectState.COMPENSATING)
+    start_semantics = replace(
+        effect_fixtures.start_semantics(committed),
+        original_commit_observation=original,
+    )
     start = service.transition(
         committed.effect_id,
         start_request,
-        effect_fixtures.context(
-            committed, start_request, effect_fixtures.start_semantics(committed)
-        ),
+        effect_fixtures.context(committed, start_request, start_semantics),
     )
     assert isinstance(start.entity, Effect)
-    plan = effect_fixtures.compensation_plan(committed)
+    plan = start_semantics.compensation_plan
     request = effect_fixtures.request(
         start.entity,
         EffectState.COMPENSATED,
         controller=effect_fixtures.COMPLETION_CONTROLLER,
         event_id=effect_fixtures.OTHER,
+    )
+    completion = replace(
+        effect_fixtures.completion_semantics(
+            start.entity,
+            plan,
+            authorized=effect_fixtures.authorization(
+                effect_fixtures.authorization_scope(committed, plan=plan),
+                recorded_by=effect_fixtures.actor(
+                    ActorType.EFFECT_CONTROLLER,
+                    effect_fixtures.COMPLETION_CONTROLLER,
+                ),
+            ),
+        ),
+        original_commit_observation=original,
     )
     result = service.transition(
         committed.effect_id,
@@ -103,7 +119,7 @@ def compensate(store: SQLiteStore) -> tuple[Effect, Effect]:
         effect_fixtures.context(
             start.entity,
             request,
-            effect_fixtures.completion_semantics(start.entity, plan),
+            completion,
             start_event=start.event,
         ),
     )
@@ -119,21 +135,27 @@ def test_effect_compensation_preserves_commit_history() -> None:
     assert [
         event.metadata.new_state
         for event in store.events.for_entity(original.effect_id)
-    ] == [EffectState.COMMITTED, EffectState.COMPENSATING, EffectState.COMPENSATED]
+    ] == [
+        EffectState.PLANNED,
+        EffectState.COMMITTED,
+        EffectState.COMPENSATING,
+        EffectState.COMPENSATED,
+    ]
     store.close()
 
 
 def test_effect_rollback_is_distinct_from_compensation() -> None:
     rollback_store, compensation_store = SQLiteStore(), SQLiteStore()
-    committed = effect_fixtures.effect(EffectState.COMMITTED)
-    seed_snapshot(rollback_store, committed)
+    rollback_service, committed, original = committed_effect_history(rollback_store)
     request = effect_fixtures.request(committed, EffectState.ROLLED_BACK)
-    rolled_back = LifecycleService(rollback_store).transition(
+    semantics = replace(
+        effect_fixtures.rollback_semantics(committed),
+        original_commit_observation=original,
+    )
+    rolled_back = rollback_service.transition(
         committed.effect_id,
         request,
-        effect_fixtures.context(
-            committed, request, effect_fixtures.rollback_semantics(committed)
-        ),
+        effect_fixtures.context(committed, request, semantics),
     )
     _, compensated = compensate(compensation_store)
     assert rolled_back.entity.state is EffectState.ROLLED_BACK
@@ -141,6 +163,39 @@ def test_effect_rollback_is_distinct_from_compensation() -> None:
     for store in (rollback_store, compensation_store):
         assert store.load_version(committed.effect_id, committed.version) == committed
         store.close()
+
+
+def test_later_effect_transition_cannot_backfill_fabricated_history() -> None:
+    store = SQLiteStore()
+    service, committed, original = committed_effect_history(store)
+    fabricated = replace(original, observation_id=EffectObservationId.new())
+    rollback = effect_fixtures.rollback_record(
+        committed, original_id=fabricated.observation_id
+    )
+    authorization_scope = replace(
+        effect_fixtures.authorization_scope(committed),
+        original_commit_observation_id=fabricated.observation_id,
+    )
+    semantics = effect_fixtures.rollback_semantics(
+        committed,
+        original=fabricated,
+        rollback=rollback,
+        authorized=effect_fixtures.authorization(authorization_scope),
+    )
+    request = replace(
+        effect_fixtures.request(committed, EffectState.ROLLED_BACK),
+        event_id=EventId.new(),
+    )
+    before = data_rows(store)
+    with pytest.raises(ConcurrencyConflict):
+        service.transition(
+            committed.effect_id,
+            request,
+            effect_fixtures.context(committed, request, semantics),
+        )
+    assert data_rows(store) == before
+    assert fabricated not in store.supporting_records(type(fabricated))
+    store.close()
 
 
 def test_confirmed_unauthorized_effect_remains_recordable() -> None:

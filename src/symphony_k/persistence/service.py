@@ -8,6 +8,8 @@ from symphony_k.domain import (
     ConcurrencyConflict,
     CreationContext,
     CreationRequest,
+    Effect,
+    EffectState,
     EntityNotFound,
     InvariantViolation,
     create_entity,
@@ -34,6 +36,7 @@ from symphony_k.domain.transition_engine import (
 from ._records import walk
 from ._storage import Storage
 from .codec import fingerprint
+from .effect import validate_effect_historical_provenance
 from .evaluation import validate_evaluation_batch
 
 type TransitionOperation = tuple[
@@ -132,6 +135,13 @@ class LifecycleService:
                 if source.version != request.expected_version:
                     raise ConcurrencyConflict(
                         "Stored version differs from expected version"
+                    )
+                if isinstance(source, Effect):
+                    validate_effect_historical_provenance(
+                        self._storage,
+                        source,
+                        cast(TransitionRequest[EffectState], request),
+                        context,
                     )
                 for event in (
                     context.effect_compensation_start_event,
