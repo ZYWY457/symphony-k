@@ -12,16 +12,18 @@ artifacts alone.
 3. Read `AGENTS.md`.
 4. Read `VISION.md`.
 5. Read `ARCHITECTURE.md`.
-6. Read `ROADMAP.md`.
-7. Read `docs/DEVELOPMENT_PATH.md`.
-8. Read relevant `docs/core-beliefs/`, accepted ADRs and accepted designs.
-9. Read the current active stage parent plan, if `STATUS.md` names one.
-10. Read the concrete durable GitHub Issue TaskSpec.
-11. Independently inspect repository truth before trusting any Worker report.
-12. Implement only the Issue scope.
-13. Run the required validation and inspect the exact candidate diff.
-14. Create local commits only unless remote mutation is explicitly authorized.
-15. Obtain independent Human Review before stage or status promotion.
+6. Read `docs/V1_PRODUCT_CONTRACT.md`.
+7. Read `ROADMAP.md`.
+8. Read `docs/DEVELOPMENT_PATH.md`.
+9. Read `docs/REFERENCE_WORKFLOWS.md`.
+10. Read relevant `docs/core-beliefs/`, accepted ADRs and accepted designs.
+11. Read the current active stage parent plan, if `STATUS.md` names one.
+12. Read the concrete durable GitHub Issue TaskSpec.
+13. Independently inspect repository truth before trusting any Worker report.
+14. Implement only the Issue scope.
+15. Run the required validation and inspect the exact candidate diff.
+16. Create local commits only unless remote mutation is explicitly authorized.
+17. Obtain independent Human Review before stage or status promotion.
 
 If a referenced file or durable TaskSpec cannot be read, or the required
 baseline is wrong, stop before mutation and report the failed precondition.
@@ -62,6 +64,20 @@ authority boundary, trust assumption or constitutional conflict:
 4. resume implementation only after the decision and a durable bounded TaskSpec.
 
 Future parent plans identify expected ADRs but do not decide their contents.
+
+## Product intent changes
+
+The Product Contract freezes observable v1 scope and acceptance expectations;
+the Reference Workflows make that scope testable. They remain subordinate to
+the Constitution, core beliefs, accepted ADRs, Architecture and accepted
+designs.
+
+If a future TaskSpec or implementation would materially change supported
+operator behavior, the v1 deployment boundary, required observable capability,
+or canonical workflow semantics, stop rather than optimizing the documents
+around the implementation. Obtain the required Human decision and ADR/design or
+Product Contract reconciliation before resuming. Low-level choices that do not
+change those boundaries remain owned by their future bounded stages.
 
 ## Corrections and historical truth
 

@@ -27,15 +27,18 @@ rewriting accepted history.
 ## Current status and development path
 
 - [Current status](../STATUS.md)
+- [v1 Product Contract](V1_PRODUCT_CONTRACT.md)
 - [Canonical roadmap](../ROADMAP.md)
 - [Complete Stage 0–14 development path](DEVELOPMENT_PATH.md)
+- [Canonical reference workflows](REFERENCE_WORKFLOWS.md)
 
 ## Exec Plans
 
 - [Lifecycle rules](exec-plans/README.md)
 - [Planned parent plans](exec-plans/planned/) — future contracts, no execution
   authorization
-- [Active plans](exec-plans/active/) — current authorized stage/task plans
+- `exec-plans/active/` — current authorized stage/task plans; the directory may
+  be absent when no plan is active
 - [Completed plans](exec-plans/completed/) — accepted historical plans
 
 The normal lifecycle is `planned -> active -> completed`, with durable Human

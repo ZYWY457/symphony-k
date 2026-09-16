@@ -19,9 +19,13 @@ Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
 ## Project navigation
 
 - [Architecture](ARCHITECTURE.md) — planes, domain boundaries and invariants
+- [v1 Product Contract](docs/V1_PRODUCT_CONTRACT.md) — observable product,
+  operator and deployment acceptance boundary
 - [Full roadmap](ROADMAP.md) — canonical Stage 0–14 map
 - [Complete development path](docs/DEVELOPMENT_PATH.md) — entry, evidence and
   exit contracts for every stage through v1.0
+- [Reference workflows](docs/REFERENCE_WORKFLOWS.md) — canonical product
+  acceptance scenarios and stage traceability
 - [AI and maintainer handoff](docs/AI_HANDOFF.md) — resume work without chat or
   account-specific memory
 - [Constitution](CONSTITUTION.md) — highest-precedence project rules

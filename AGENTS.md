@@ -14,8 +14,10 @@ Before making changes, read the documents relevant to the task:
 - `STATUS.md` — compact current accepted stage, next work, and blocking gate.
 - `VISION.md` — product purpose, non-goals, and long-term direction.
 - `ARCHITECTURE.md` — system boundaries, core entities, planes, and invariants.
+- `docs/V1_PRODUCT_CONTRACT.md` — observable v1 product, operator, deployment, and final acceptance boundary.
 - `ROADMAP.md` — staged implementation order.
 - `docs/DEVELOPMENT_PATH.md` — complete Stage 0–14 delivery contracts.
+- `docs/REFERENCE_WORKFLOWS.md` — canonical v1 acceptance scenarios and stage-to-product traceability.
 - `docs/AI_HANDOFF.md` — model-neutral repository resume workflow.
 - `docs/TASKSPEC_TEMPLATE.md` — reusable durable Issue TaskSpec contract.
 - `docs/STAGE_EXIT_TEMPLATE.md` — independent Human stage-exit checklist.
@@ -38,6 +40,12 @@ If conversation context conflicts with durable repository truth, stop and
 reconcile rather than silently choosing one. Candidate commits and Worker
 claims do not become Human Accepted truth without the applicable independent
 review and durable governance reconciliation.
+
+If a TaskSpec or implementation would materially change observable v1 product
+scope, supported operator behavior, deployment boundary, or required reference
+workflow semantics, stop and seek the necessary Human, ADR, design, and Product
+Contract reconciliation. A Worker MUST NOT silently redefine v1 to fit an
+implementation choice.
 
 Exec Plan state is explicit:
 

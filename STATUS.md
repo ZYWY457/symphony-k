@@ -18,6 +18,10 @@
 - **Current active parent plan:** none; Stage 2 remains under `planned/`.
 - **Current roadmap source:** [ROADMAP.md](ROADMAP.md) and
   [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
+- **Current v1 product target:**
+  [docs/V1_PRODUCT_CONTRACT.md](docs/V1_PRODUCT_CONTRACT.md)
+- **Canonical acceptance scenarios:**
+  [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
 - **Current constitutional baseline:** `constitution-v0.1`
 
 ## Reading order for a new maintainer or AI
@@ -27,11 +31,13 @@
 3. [AGENTS.md](AGENTS.md)
 4. [VISION.md](VISION.md)
 5. [ARCHITECTURE.md](ARCHITECTURE.md)
-6. [ROADMAP.md](ROADMAP.md)
-7. [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
-8. relevant core beliefs, accepted ADRs and designs
-9. the current active stage parent plan, when one exists
-10. the concrete durable Issue TaskSpec
+6. [docs/V1_PRODUCT_CONTRACT.md](docs/V1_PRODUCT_CONTRACT.md)
+7. [ROADMAP.md](ROADMAP.md)
+8. [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
+9. [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
+10. relevant core beliefs, accepted ADRs and designs
+11. the current active stage parent plan, when one exists
+12. the concrete durable Issue TaskSpec
 
 Completed plans preserve historical status and commit counts; they do not
 override this file's current project summary. This file does not override the
