@@ -2,7 +2,7 @@
 
 **Version:** 1
 **Status:** Implementation and required validation completed, 2026-09-07
-**Scope:** [Implementation #4B / GitHub Issue #7](https://github.com/ZYWY457/symphony-k/issues/7), under the accepted [Stage 1 Exec Plan](../active/stage-01-domain-kernel.md), [ADR-0005](../../adr/0005-core-state-machine-semantics.md), and [Outcome design](../../design-docs/state-machines.md#6-outcome).
+**Scope:** [Implementation #4B / GitHub Issue #7](https://github.com/ZYWY457/symphony-k/issues/7), under the accepted [Stage 1 Exec Plan](stage-01-domain-kernel.md), [ADR-0005](../../adr/0005-core-state-machine-semantics.md), and [Outcome design](../../design-docs/state-machines.md#6-outcome).
 
 ## Boundary Review
 

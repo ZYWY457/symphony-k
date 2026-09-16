@@ -2,7 +2,7 @@
 
 **Version:** 1
 **Status:** Implementation and required validation completed, 2026-09-06
-**Scope:** [Implementation #2 / GitHub Issue #3](https://github.com/ZYWY457/symphony-k/issues/3), under the accepted [Stage 1 Exec Plan](../active/stage-01-domain-kernel.md), ADR-0005 and state-machine design.
+**Scope:** [Implementation #2 / GitHub Issue #3](https://github.com/ZYWY457/symphony-k/issues/3), under the accepted [Stage 1 Exec Plan](stage-01-domain-kernel.md), ADR-0005 and state-machine design.
 
 ## Boundary Review
 

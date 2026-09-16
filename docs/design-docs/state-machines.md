@@ -6,7 +6,7 @@ Final terminology cleanup preserves this baseline's 43 states and 99-edge topolo
 
 **Status:** Accepted by explicit human architecture review.
 
-**Scope:** [Stage 1 / Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) produced this design specification without implementation. The human decision **"Human Architecture Review: ACCEPTED"** now accepts this baseline, [ADR-0005](../adr/0005-core-state-machine-semantics.md), and the [Stage 1 Exec Plan](../exec-plans/active/stage-01-domain-kernel.md). Implementation is authorized only within that plan and the accepted repository hierarchy. Plan acceptance is not a declaration that Stage 1 implementation is complete.
+**Scope:** [Stage 1 / Issue #1](https://github.com/ZYWY457/symphony-k/issues/1) produced this design specification without implementation. The human decision **"Human Architecture Review: ACCEPTED"** accepted this baseline, [ADR-0005](../adr/0005-core-state-machine-semantics.md), and the [Stage 1 Exec Plan](../exec-plans/completed/stage-01-domain-kernel.md). At that review boundary, design acceptance authorized only bounded implementation and did not declare Stage 1 complete. Stage 1 was later completed and its Human Exit Review accepted; [STATUS.md](../../STATUS.md) holds current project status.
 
 **Approved baseline:** 43 core states; 99 legal transition edges; ARBITRATED Evaluation and QUARANTINED Effect semantics; Effect occurrence separate from authorization/governance truth; Evaluation conflict-set semantics; TaskProposal deferred to Stage 9; no constitutional amendment required.
 
@@ -321,7 +321,7 @@ The earlier review's topology changes below use the current terminology. The fin
 
 ## Open Questions
 
-1. **Human design approval resolved:** Explicit human architecture review on 2026-09-06 accepted ADR-0005, this baseline and the Stage 1 Exec Plan. No design approval remains pending for this baseline; Stage 1 completion and exit review remain future gates.
+1. **Human design approval resolved:** Explicit human architecture review on 2026-09-06 accepted ADR-0005, this baseline and the Stage 1 Exec Plan. No design approval remains pending for this baseline. At that historical boundary, Stage 1 completion and exit review were future gates; Issue #75 later recorded Human Exit acceptance and Stage 1 completion.
 2. **Resolved stage scope:** Human review assigned all TaskProposal representation/lifecycle/generation/governance implementation to Stage 9. There is no remaining Stage 1 scope discrepancy.
 3. **Later operational detail:** Commit dispatch/reconciliation, compensation chains, verification cancellation/timeouts, and trusted checkpoint representations need later-stage design. Existing state rules conservatively deny unsafe transitions in the meantime. Whether operational experience warrants extra Effect process states needs a separate ADR; no new state is required to express this baseline.
 

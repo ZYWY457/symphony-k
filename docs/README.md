@@ -1,32 +1,50 @@
 # Documentation Map
 
-## Core Beliefs
+Start with the root [project status](../STATUS.md), then follow the authority and
+reading order in [AGENTS.md](../AGENTS.md).
 
-Normative architectural and governance rules:
+## Constitution and core beliefs
 
-- `core-beliefs/TRUST_MODEL.md`
-- `core-beliefs/STATE_AND_AUTHORITY.md`
-- `core-beliefs/EXECUTION_ISOLATION.md`
-- `core-beliefs/VERIFICATION_MODEL.md`
-- `core-beliefs/FAILURE_AND_RECOVERY.md`
-- `core-beliefs/EFFECTS_AND_SIDE_EFFECTS.md`
-- `core-beliefs/LEARNING_AND_REPUTATION.md`
+- [Constitution](../CONSTITUTION.md)
+- [Trust model](core-beliefs/TRUST_MODEL.md)
+- [State and authority](core-beliefs/STATE_AND_AUTHORITY.md)
+- [Execution isolation](core-beliefs/EXECUTION_ISOLATION.md)
+- [Verification model](core-beliefs/VERIFICATION_MODEL.md)
+- [Failure and recovery](core-beliefs/FAILURE_AND_RECOVERY.md)
+- [Effects and side effects](core-beliefs/EFFECTS_AND_SIDE_EFFECTS.md)
+- [Learning and reputation](core-beliefs/LEARNING_AND_REPUTATION.md)
 
-## ADRs
+## Architecture, decisions and design
 
-Accepted or proposed architecture decisions live under `adr/`.
+- [Architecture](../ARCHITECTURE.md)
+- [Architecture Decision Records](adr/README.md)
+- [Design documents](design-docs/)
 
-An ADR is required for changes that alter major architecture boundaries, constitutional invariants, trust assumptions, persistence semantics, agent protocol boundaries, sandbox guarantees, effect governance, or verification philosophy.
+Accepted ADRs and designs remain subordinate to the Constitution and core
+beliefs. Material architecture changes use a new ADR rather than silently
+rewriting accepted history.
 
-## Design Docs
+## Current status and development path
 
-Detailed component designs go under `design-docs/` after the constitutional boundaries are established.
+- [Current status](../STATUS.md)
+- [Canonical roadmap](../ROADMAP.md)
+- [Complete Stage 0–14 development path](DEVELOPMENT_PATH.md)
 
 ## Exec Plans
 
-Versioned multi-step implementation plans go under:
+- [Lifecycle rules](exec-plans/README.md)
+- [Planned parent plans](exec-plans/planned/) — future contracts, no execution
+  authorization
+- [Active plans](exec-plans/active/) — current authorized stage/task plans
+- [Completed plans](exec-plans/completed/) — accepted historical plans
 
-- `exec-plans/active/`
-- `exec-plans/completed/`
+The normal lifecycle is `planned -> active -> completed`, with durable Human
+activation and exit gates.
 
-Exec Plans should define objective, constraints, milestones, acceptance criteria, dependencies, and out-of-scope items before substantial implementation begins.
+## Handoff and governance templates
+
+- [AI and maintainer handoff](AI_HANDOFF.md)
+- [Durable TaskSpec template](TASKSPEC_TEMPLATE.md)
+- [Human stage-exit template](STAGE_EXIT_TEMPLATE.md)
+
+No private conversation or AI-specific memory replaces these durable sources.
