@@ -11,9 +11,14 @@ This file is a navigation map, not the full specification.
 Before making changes, read the documents relevant to the task:
 
 - `CONSTITUTION.md` — highest-precedence project rules and amendment process.
+- `STATUS.md` — compact current accepted stage, next work, and blocking gate.
 - `VISION.md` — product purpose, non-goals, and long-term direction.
 - `ARCHITECTURE.md` — system boundaries, core entities, planes, and invariants.
 - `ROADMAP.md` — staged implementation order.
+- `docs/DEVELOPMENT_PATH.md` — complete Stage 0–14 delivery contracts.
+- `docs/AI_HANDOFF.md` — model-neutral repository resume workflow.
+- `docs/TASKSPEC_TEMPLATE.md` — reusable durable Issue TaskSpec contract.
+- `docs/STAGE_EXIT_TEMPLATE.md` — independent Human stage-exit checklist.
 - `docs/core-beliefs/TRUST_MODEL.md` — claims, evidence, facts, judgments, policies, and trust hierarchy.
 - `docs/core-beliefs/STATE_AND_AUTHORITY.md` — state machines, transition authority, invariants, and human override rules.
 - `docs/core-beliefs/EXECUTION_ISOLATION.md` — worker isolation, network, credentials, and sandbox assumptions.
@@ -21,6 +26,30 @@ Before making changes, read the documents relevant to the task:
 - `docs/core-beliefs/FAILURE_AND_RECOVERY.md` — checkpoints, Resume, Rewind, Reassign, recovery, and handoff.
 - `docs/core-beliefs/EFFECTS_AND_SIDE_EFFECTS.md` — external effects, authorization, rollback, compensation, and idempotency.
 - `docs/core-beliefs/LEARNING_AND_REPUTATION.md` — audit isolation, delayed learning, reliability, and policy evolution.
+
+## Repository Continuity
+
+No AI-specific memory, private chat context, model session, account, or Worker
+report is a source of truth. A new maintainer starts with `STATUS.md`, follows
+the authority hierarchy, and verifies repository and TaskSpec evidence
+independently.
+
+If conversation context conflicts with durable repository truth, stop and
+reconcile rather than silently choosing one. Candidate commits and Worker
+claims do not become Human Accepted truth without the applicable independent
+review and durable governance reconciliation.
+
+Exec Plan state is explicit:
+
+```text
+planned/   future parent plans; not execution authorization
+active/    current authorized planning/implementation parent plans
+completed/ exited and accepted historical plans
+```
+
+Activation requires a durable Human-approved TaskSpec and every prerequisite
+stage exit. Stage completion requires independent Human Exit acceptance and a
+subsequent reconciliation; moving a file alone grants no authority.
 
 ## Non-Negotiable Rules
 
