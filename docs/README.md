@@ -19,6 +19,8 @@ reading order in [AGENTS.md](../AGENTS.md).
 - [Architecture](../ARCHITECTURE.md)
 - [Architecture Decision Records](adr/README.md)
 - [Design documents](design-docs/)
+- [Proposed ADR-0008 sandbox boundary](adr/0008-stage-2-sandbox-execution-boundary.md)
+- [Candidate sandbox execution design](design-docs/sandbox-execution-v1.md)
 
 Accepted ADRs and designs remain subordinate to the Constitution and core
 beliefs. Material architecture changes use a new ADR rather than silently

@@ -59,6 +59,13 @@ does not import Docker/runtime concepts.
 must approve lifecycle, network enforcement, workspace trust and resource
 accounting before those contracts become implementation commitments.
 
+The current design candidates are:
+
+- [ADR-0008: Stage 2 Sandbox Execution Boundary](../../adr/0008-stage-2-sandbox-execution-boundary.md)
+  — **Proposed**;
+- [Sandbox Execution v1](../../design-docs/sandbox-execution-v1.md) —
+  **Candidate - not an accepted implementation contract**.
+
 ## Cross-stage dependencies
 
 Requires completed Stage 1, ADR-0002 and ADR-0006. It supplies Stage 3's
@@ -79,11 +86,16 @@ an unavailable or non-enforcing sandbox fails closed before Worker execution.
 
 ## Milestones
 
-1. Accept sandbox/workspace/network ADRs and executable contracts.
-2. Implement provider-neutral lifecycle and command boundary with fakes.
-3. Implement hardened Docker provider and artifact/telemetry paths.
-4. Prove limits, denial defaults, cleanup and failure normalization.
-5. Reconcile documentation and perform independent Human Exit Review.
+1. **S2-M1 current:** activation plus ADR/design candidate; independent review
+   and Human approval remain pending.
+2. **S2-M2 proposed:** after approval and a new TaskSpec, implement typed
+   contracts, workspace boundary and deterministic fake provider.
+3. **S2-M3 proposed:** implement Docker lifecycle, enforced constraints,
+   artifacts, telemetry and targeted cleanup on an eligible environment.
+4. **S2-M4 proposed:** execute adverse real-Docker, crash/reopen and cleanup
+   evidence plus operational documentation.
+5. Reconcile milestones, perform independent Human Stage 2 Exit Review, and
+   leave Stage 3 blocked until that exit is accepted and durably reconciled.
 
 ## Proposed bounded Issue decomposition
 
@@ -120,3 +132,23 @@ Temporary Docker sandboxes execute bounded commands under demonstrably enforced
 constraints, collect attributable artifacts/telemetry, normalize failures and
 clean up reliably. No AgentDriver is implemented. Human Exit Review is accepted
 and durably reconciled before Stage 3 activation.
+
+## M1 candidate evidence and next gate
+
+Issue #77 produced the two design artifacts above without runtime source, test,
+dependency or Docker mutation. The candidate defines stable requirement and
+future test IDs, provider operations, lifecycle and failure tables, ownership
+fencing, hostile artifact handling, Linux-container enforcement claims, a
+`NONE`-only initial network profile, cleanup/reopen semantics and the M2-M4
+coding map.
+
+Documentation validation for this candidate checked staged name/status,
+whitespace, complete diffs, Markdown fences, tracked relative links, stale
+planned-path references, current-status consistency, the twelve remaining
+planned Stage 3-14 parent files, requirement/test traceability and protected
+paths. Official Docker documentation was consulted on 2026-09-16; no Docker
+runtime or proposed test matrix was executed.
+
+Next gate: independent review and explicit Human approval of ADR-0008 and the
+design. Until then, runtime implementation is not authorized and Stage 2 is not
+complete.

@@ -1,6 +1,6 @@
 # Stage 02 M1 — Sandbox Execution Contract Candidate
 
-**Status:** ACTIVE - design candidate work
+**Status:** CANDIDATE PRODUCED - independent review / Human approval pending
 
 **TaskSpec:** GitHub Issue #77
 
@@ -149,3 +149,50 @@ M1 is complete only as a local documentation candidate when the exact two
 ordered commits exist, validation passes, protected paths are unchanged and the
 worktree is clean. That result remains pending independent review and Human
 approval. It does not complete Stage 2 or authorize M2 runtime work.
+
+### Produced design artifacts
+
+- [ADR-0008: Stage 2 Sandbox Execution Boundary](../../adr/0008-stage-2-sandbox-execution-boundary.md)
+  — Proposed.
+- [Sandbox Execution v1](../../design-docs/sandbox-execution-v1.md) — Candidate,
+  not an accepted implementation contract.
+
+The detailed design owns requirement IDs `SBX-R01` through `SBX-R15`, future
+test IDs `T-U01` through `T-U06`, `T-F01` through `T-F07`, and `T-D01` through
+`T-D16`. Those tests are specifications only; none executed in M1.
+
+### Actual M1 validation evidence
+
+- TaskSpec direct-read identity/revision and exact starting baseline passed.
+- Repository command runner, Git, Python 3.12.7 and uv 0.11.2 passed preflight.
+- ADR-0008 collision check passed before mutation.
+- Official Docker resource, run, none-network, rootless, seccomp and tmpfs
+  documentation was consulted on 2026-09-16; claims are marked documented, not
+  locally tested.
+- Markdown fences and tracked relative links passed repository-local inspection.
+- No stale planned Stage 2 parent reference remains; twelve Stage 3-14 parent
+  files remain under `planned/`.
+- Cached name/status, cached whitespace and full cached diff were inspected
+  before each local commit.
+- Baseline-to-candidate protected-path audit confirms no `src/`, `tests/`,
+  dependency, Constitution, core-belief, accepted ADR, Architecture, Product
+  Contract/reference workflow, completed Stage 1 or planned Stage 3-14 change.
+- No Docker command, container/image/daemon mutation, resource-abuse fixture or
+  Stage 1 test suite was run for this documentation-only task.
+
+### Proposed implementation sequence
+
+```text
+S2-M1 candidate (this Issue)
+  -> independent review + durable Human approval
+S2-M2 typed contracts + workspace/artifacts + fake provider
+S2-M3 Docker lifecycle + constraints + telemetry/cleanup
+S2-M4 adverse Docker + crash/reopen + operational evidence
+  -> milestone reconciliation
+  -> independent Human Stage 2 Exit Review
+  -> Stage 3 only after accepted exit and its own TaskSpec
+```
+
+The design document lists proposed production/test paths, prerequisites, likely
+commit boundaries and completion evidence for M2-M4. Those are planning inputs,
+not executable Issues or implementation authority.

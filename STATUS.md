@@ -16,7 +16,9 @@
 - **Stage 2 code implementation:** NOT YET STARTED
 - **Stage 2 runtime implementation authorized by Issue #77:** NO
 - **Current blocking Human gate:** independent review and Human approval of
-  the proposed sandbox ADR and candidate design before runtime implementation.
+  [proposed ADR-0008](docs/adr/0008-stage-2-sandbox-execution-boundary.md) and
+  [candidate sandbox design](docs/design-docs/sandbox-execution-v1.md) before
+  runtime implementation.
 - **Stage 2 complete:** NO
 - **Stage 3:** PLANNED — not activated
 - **Current roadmap source:** [ROADMAP.md](ROADMAP.md) and
