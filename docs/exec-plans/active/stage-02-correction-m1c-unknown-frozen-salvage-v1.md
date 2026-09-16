@@ -2,6 +2,14 @@
 
 **Status:** CANDIDATE — independent review and Human erratum approval PENDING.
 
+**Current M1C technical candidate:**
+`77acfbdaf2bed6f0536873fafc8eb7a12599da83`
+
+**Technical candidate parent:** `7ff155c29de83fbcc5487698c8b72b70b2dec075`
+
+**Technical candidate title:**
+`docs(architecture): clarify unknown frozen salvage collection`
+
 ## TaskSpec and execution precondition
 
 ```text
@@ -88,6 +96,31 @@ stable future-test IDs and traceability; final clean worktree.
 Documentation checks are not UNIT/FAKE/DOCKER execution evidence. All catalog
 cases remain future work. No Docker/systemd/cgroup/VM or adverse isolation
 test is run, and no real freeze or runtime isolation is claimed.
+
+## Recorded local validation
+
+Commit 1 changed exactly the design and this plan. Its complete staged diff,
+`git diff --cached --name-status` and `git diff --cached --check` were inspected;
+the whitespace check passed. After Commit 1, `git status --short` was empty.
+A Python standard-library read-only audit checked both staged Markdown files:
+balanced fences, all four repository-relative links resolving to tracked files,
+unique continuous T-U01..T-U10 / T-F01..T-F20 / T-D01..T-D31 catalog IDs, and
+absence of the old blanket UNKNOWN/collect prohibitions. The audit passed.
+
+The ADR-0008 blob at the starting baseline and candidate is identical:
+`599a2e1cc03a58d6e7abea9bfc90037c92f735f1`. The source, tests, dependencies
+and ADR tree have no changes. Type/state/operation/collector/cleanup prose and
+walkthrough D were inspected together: QUIESCENCE is in the kind/payload union;
+manifest references and lease/fingerprint fences are explicit; failed salvage
+uses existing result/telemetry types; UNKNOWN, cleanup and all execution/export
+prohibitions survive success. This is Worker documentation validation, not
+independent acceptance or runtime evidence.
+
+Commit 2 records only the exact candidate pointer, historical acceptance,
+current blocked queue and validation evidence in the three allowed governance
+paths. Final chain/path/link/protected-state checks are repeated after that
+commit and reported in the execution handoff; no self-referential commit hash
+or future validation outcome is invented here.
 
 ## Candidate disposition
 

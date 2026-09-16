@@ -9,10 +9,18 @@
   acceptance recorded by GitHub Issue #75 and its ordered governance commits.
 - **Latest accepted stage:** Stage 1 — Domain Kernel
 - **Current constitutional baseline:** `constitution-v0.1`
-- **Stage 2 M1 architecture/design:** **HUMAN ACCEPTED**. ADR-0008 is
+- **Historical Stage 2 M1 architecture/design:** **HUMAN ACCEPTED**. ADR-0008 is
   **ACCEPTED**, and the exact accepted sandbox design baseline is
   `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
   (`docs(architecture): resolve final sandbox contract review findings`).
+- That prior acceptance remains historical truth. Issue #79 r2 stopped before
+  mutation on contradictory UNKNOWN collection rules; the baseline cannot serve
+  as an unambiguous M2 contract until the M1C erratum is reviewed and accepted.
+- **Current M1C technical candidate:**
+  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
+  (`docs(architecture): clarify unknown frozen salvage collection`), under
+  Issue #83. Independent review and Human approval of the exact erratum are
+  **PENDING**. ADR-0008 remains Accepted and unchanged.
 - Stage 2 runtime isolation evidence is **NOT YET ESTABLISHED** and runtime
   implementation is **NOT YET STARTED**.
 
@@ -22,14 +30,16 @@
 - **Stage 2 activity:** **ACTIVE**
 - **Current parent plan:**
   [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
-- **Accepted Stage 2 technical design baseline:**
+- **Historical accepted Stage 2 technical design baseline:**
   `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
   (`docs(architecture): resolve final sandbox contract review findings`)
 - **Correction lineage:** Issue #77 candidate -> Issue #78 / candidate
   `613d71b90c36b573578f6fffb9a6c7dd9606478f` -> independent review ->
   Issue #80 continuity governance -> Issue #81 M1B correction candidate ->
   independent cumulative M1B technical review **ACCEPT** -> explicit Human M1
-  design approval -> Issue #82 governance reconciliation.
+  design approval -> Issue #82 governance reconciliation/review ACCEPT ->
+  Issue #79 r2 pre-mutation STOP -> Issue #79 r3 BLOCKED -> Issue #83 M1C
+  candidate (review and Human erratum approval PENDING).
 - **Independent cumulative M1B technical review:** **ACCEPT**, recorded on
   Issue #81 against the exact technical baseline above.
 - **Previous durable review:**
@@ -37,26 +47,39 @@
   remains **REQUEST CHANGES** against `613d71b90c36b573578f6fffb9a6c7dd9606478f`.
 - **Human disposition:** **APPROVED**, recorded on Issue #81 for ADR-0008 and
   the cumulative sandbox design at the exact accepted baseline above.
-- **Governance reconciliation:** this newer Issue #82 reconciliation commit
+- **Historical governance reconciliation:** the Issue #82 reconciliation commit
   records approval/status/history only; it does not replace or modify the
   accepted technical design baseline.
+- **Issue #82 independent governance review:** **ACCEPT** against
+  `7ff155c29de83fbcc5487698c8b72b70b2dec075`, recorded on Issue #82. This is
+  historical approval lineage, not approval of the M1C correction.
+- **Current correction plan:**
+  [M1C UNKNOWN frozen salvage](docs/exec-plans/active/stage-02-correction-m1c-unknown-frozen-salvage-v1.md).
+- **Current corrected design candidate:**
+  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`, parent
+  `7ff155c29de83fbcc5487698c8b72b70b2dec075`; candidate only, not Human Accepted.
+  It permits one guarded read-only frozen-salvage collect while retaining
+  UNKNOWN/cleanup and prohibiting reuse/export/rebinding before targeted destroy.
 - **Runtime isolation evidence:** **NOT YET ESTABLISHED**.
 - **Stage 2 runtime code:** **NOT YET STARTED**
 - **Stage 2 complete:** **NO**
 
 ## Dispatch / review queue
 
-- **Current governance work:** GitHub Issue #82 reconciles the independent M1B
-  technical **ACCEPT** and explicit Human M1 design approval. Its local
-  reconciliation commit still requires independent verification/publication.
+- **Current review work:** independently review the exact Issue #83 M1C
+  technical candidate `77acfbdaf2bed6f0536873fafc8eb7a12599da83` after publication;
+  explicit Human approval of the exact erratum remains PENDING. The later
+  governance commit records candidate pointers only, not acceptance.
 - **Issue #78:** candidate history/correction source; not itself proof of
   acceptance.
-- **Issue #79:** **BLOCKED** — M2 runtime implementation is not released and has
-  not been executed.
-- **Next action:** after independent verification and publication of the Issue
-  #82 reconciliation commit, revise Issue #79 to an explicit `READY` revision
-  against the exact post-reconciliation repository baseline. This
-  reconciliation does not release M2.
+- **Issue #79:** **BLOCKED / NOT RELEASED**, revision
+  `r3 - stage-02-m2-blocked-after-unknown-collection-stop`. Its earlier r2 was
+  released but stopped before mutation; no M2 code or implementation commit
+  was produced. Do not reuse r2 execution authority.
+- **Next action:** publish under separate authority, independently review the
+  exact M1C candidate, obtain Human erratum approval, and durably reconcile
+  acceptance before a new explicit READY revision and fresh #79 launch.
+  This candidate reconciliation does not release M2.
 - **Stage 3:** **PLANNED** — not activated.
 
 An open or `READY` Issue does not prove that a Worker is executing it. Issue

@@ -1,11 +1,21 @@
 # Stage 02 — Sandbox Execution
 
-**Status:** ACTIVE - M1 architecture/design HUMAN ACCEPTED; M2 NOT STARTED
+**Status:** ACTIVE - historical M1 design HUMAN ACCEPTED; M1C CANDIDATE;
+M2 BLOCKED / NOT STARTED
 **Constitutional baseline:** `constitution-v0.1`
 
 **Runtime implementation:** NOT YET STARTED
 
 **Sandbox ADR/design:** HUMAN ACCEPTED at `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+
+The acceptance above is historical. ADR-0008 remains Accepted and unchanged;
+the design's discovered UNKNOWN collection ambiguity requires the M1C erratum
+to be reviewed and accepted before it can serve as an unambiguous M2 contract.
+Current M1C technical candidate:
+`77acfbdaf2bed6f0536873fafc8eb7a12599da83`
+(`docs(architecture): clarify unknown frozen salvage collection`), parent
+`7ff155c29de83fbcc5487698c8b72b70b2dec075`.
+Independent review and explicit Human erratum approval are PENDING.
 
 **Runtime isolation evidence:** NOT YET ESTABLISHED
 
@@ -68,8 +78,10 @@ The accepted M1 design artifacts are:
 - [ADR-0008: Stage 2 Sandbox Execution Boundary](../../adr/0008-stage-2-sandbox-execution-boundary.md)
   — **Accepted**;
 - [Sandbox Execution v1](../../design-docs/sandbox-execution-v1.md) —
-  **Human Accepted M1 architecture/design contract** at
-  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`.
+  **historical Human Accepted M1 contract** at
+  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`, now carrying an unaccepted M1C
+  candidate erratum under
+  [the Issue #83 correction plan](stage-02-correction-m1c-unknown-frozen-salvage-v1.md).
 
 ## Cross-stage dependencies
 
@@ -96,10 +108,12 @@ an unavailable or non-enforcing sandbox fails closed before Worker execution.
    The exact technical baseline
    `b52df98530d8ce742b07d7f6c399ccd5b54e643b` passed independent cumulative
    M1B review with **ACCEPT** and received explicit Human M1 design approval.
-2. **S2-M2 not started / blocked:** Issue #79 remains BLOCKED / NOT RELEASED.
-   After independent verification and publication of the Issue #82
-   reconciliation commit, Issue #79 must be revised to an explicit READY
-   revision against the exact post-reconciliation baseline before M2 begins.
+2. **S2-M2 not started / blocked:** Issue #82 governance review accepted
+   `7ff155c29de83fbcc5487698c8b72b70b2dec075`. Issue #79 r2 was then released,
+   but stopped before mutation on the UNKNOWN/collection contradiction.
+   Current #79 r3 is BLOCKED / NOT RELEASED. Issue #83's M1C correction must
+   pass independent review and explicit Human erratum approval, with durable
+   reconciliation before a new READY revision and fresh M2 launch.
 3. **S2-M3 proposed:** implement Docker lifecycle, enforced constraints,
    artifacts, telemetry and targeted cleanup on an eligible environment.
 4. **S2-M4 proposed:** execute adverse real-Docker, crash/reopen and cleanup
@@ -185,8 +199,21 @@ and then
 for ADR-0008 and the cumulative design. This acceptance does not claim Docker,
 systemd, cgroup, VM, process-race, artifact-race or resource-adverse evidence.
 
-Next gate: independent verification and publication of the Issue #82
-governance reconciliation, followed by a separate explicit READY revision of
-Issue #79 against the exact post-reconciliation baseline. Issue #79/M2 remains
-blocked and unreleased, runtime implementation is not started, Stage 2 remains
-active and incomplete, and Stage 3 remains planned.
+Issue #82's independent governance review subsequently recorded **ACCEPT**
+against `7ff155c29de83fbcc5487698c8b72b70b2dec075`. The resulting #79 r2
+release stopped before mutation because the design both allowed collection
+after independent freeze under UNKNOWN and prohibited that observation/operation.
+Issue #79 r3 records the STOP and blocks M2; Issue #83 produces the bounded
+M1C technical candidate `77acfbdaf2bed6f0536873fafc8eb7a12599da83`.
+
+M1C preserves ADR-0008 and adds typed QUIESCENCE evidence, independent exact
+freeze guards and a single bounded salvage collect. Success retains UNKNOWN
+and cleanup, never grants process termination/reuse/export/rebinding, and
+proceeds to targeted destruction. Walkthrough D and T-U07/T-F11/T-F14/
+T-D22/T-D23 describe future verification; no runtime test was run.
+
+Next gate: separately authorized publication, independent review of that exact
+M1C technical candidate, explicit Human approval of the erratum and durable
+acceptance reconciliation before a new READY #79 revision. This governance
+record does not accept M1C or release M2. Runtime implementation is not started,
+Stage 2 remains active and incomplete, and Stage 3 remains planned.
