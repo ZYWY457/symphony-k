@@ -2,9 +2,10 @@
 
 ## Status and authority
 
-**Status:** Human Accepted M1 architecture/design contract.
+**Status:** M1C corrected design CANDIDATE; independent review and Human
+approval of the exact erratum are PENDING.
 
-**Accepted technical baseline:**
+**Historical Human Accepted technical baseline:**
 `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
 
 **Date:** 2026-09-16
@@ -14,8 +15,17 @@
 revision `r1 - stage-02-m1a-contract-closure`, and GitHub Issue #81, revision
 `r1 - stage-02-m1b-final-contract-correction`
 
-This document defines the Human Accepted Stage 2 M1 execution contract. It
-implements nothing, does not report any Docker probe as executed, and does not
+This document retains the historical Stage 2 M1 contract and proposes the
+bounded M1C UNKNOWN frozen-salvage erratum under GitHub Issue #83, revision
+`r1 - stage-02-m1c-unknown-frozen-salvage`. Issue #79 r2 stopped before mutation
+on contradictory UNKNOWN collection rules; its current r3 is BLOCKED / NOT
+RELEASED. The prior approval remains historical truth, but that baseline cannot
+serve as an unambiguous M2 contract until this erratum is reviewed and accepted.
+The current technical candidate SHA is recorded by the subsequent governance
+commit in `STATUS.md` and the active M1C correction plan.
+
+This document implements nothing, does not report any Docker probe as executed,
+and does not
 authorize changes to `src/` or `tests/`.
 [ADR-0008](../adr/0008-stage-2-sandbox-execution-boundary.md) is Accepted. The
 exact cumulative design baseline above passed the
@@ -25,8 +35,10 @@ with disposition **ACCEPT** and then received
 Issue #82 reconciles that approval without claiming runtime isolation evidence
 or releasing Issue #79.
 
-Normative words describe the accepted M1 design contract, not an implemented or
-runtime-tested sandbox.
+Normative words describe the historical M1 contract with the candidate M1C
+erratum, not an implemented or runtime-tested sandbox. ADR-0008's accepted
+architectural decision is unchanged; the M1C correction is not yet Human
+Accepted and does not release M2.
 
 ## 1. Evidence and decision taxonomy
 
@@ -362,8 +374,28 @@ set is absent while the trusted PID 1 supervisor may remain alive.
 the approved trusted collection boundary. `sandbox_resource_absent` means the
 whole provider resource is absent. `DESTROYED` requires
 `sandbox_resource_absent=true`; ordinary READY/collection never does.
-`UNKNOWN` must use `completeness=UNKNOWN`, require cleanup and cannot assert
-either absence fact or collection quiescence as true.
+`UNKNOWN` requires `completeness=UNKNOWN` and `cleanup_required=true`, but
+does not erase independently confirmed sub-facts. `worker_execution_empty=true`
+requires independent Worker-set proof; otherwise use `None` or the actually
+observed false value. `sandbox_resource_absent=true` requires exact independent
+whole-resource absence proof and normally leads to destruction/absence
+reconciliation, never reuse. `collection_quiesced=true` is legal under UNKNOWN
+only with independently verified whole-sandbox freeze/quiescence for the exact
+provider resource, Task/Run, workspace generation, lease, sandbox generation and
+resource fingerprint (sections 6.4 and 11.1). It proves neither Worker-set
+emptiness, process termination nor command terminality and does not resolve
+UNKNOWN or permit reuse. Unobserved sub-facts remain `None`.
+
+The following combination is legal under exact frozen-salvage evidence:
+
+```text
+phase = UNKNOWN
+completeness = UNKNOWN
+cleanup_required = true
+worker_execution_empty = None
+collection_quiesced = true
+sandbox_resource_absent = false
+```
 
 ### 4.4 Command request and terminal result
 
@@ -667,6 +699,15 @@ obligation and no failure. `FAILED`/`UNKNOWN` require a failure and retain an
 obligation whenever a resource may be live. All tuples and diagnostics use the
 bounds already defined; provider resource IDs are opaque UTF-8 up to 512 bytes.
 
+`ArtifactManifest.quiescence_observation_ref` must resolve to the exact
+successful `RuntimeObservation(kind=QUIESCENCE)` used for this collection,
+with `QuiescencePayload.collection_quiesced=true` and matching ownership,
+generation and resource fingerprint (section 11.1). A failed or unrelated
+quiescence observation cannot support a manifest. A successful frozen-salvage
+`ArtifactCollectionResult(COLLECTED)` describes only bounded untrusted bytes;
+the sandbox remains UNKNOWN/cleanup-required. `export_workspace` from
+`SandboxPhase.UNKNOWN` is prohibited, even with `EXPORT_FOR_REVIEW` retention.
+
 `CANCEL_REQUESTED` contains a nonterminal command observation and never marks
 the sandbox reusable. `CANCELLED` contains a confirmed cancelled terminal
 result. `ALREADY_TERMINAL` contains the actual prior terminal result without
@@ -798,9 +839,9 @@ provider labels or a caller handle.
 | `execute` | `CommandHandle` / `TerminalResult` / in-progress | ready only; binding persisted and independent fail-safe armed first; one active/unknown command | T-U08, T-U10, T-F01-T-F04, T-F08-T-F10, T-F13-T-F16, T-F20 |
 | `inspect` | `SandboxObservation` | exact identity/generation; read-only snapshot | T-U03, T-F03 |
 | `inspect_command` | `CommandObservation` / `TerminalResult` | observation time never invents process end | T-U05, T-F04 |
-| `cancel` | `CancellationResult` / in-progress | STARTING/RUNNING/CANCELLING/UNKNOWN; race preserves actual result | T-F04, T-F10 |
-| `collect` | `ArtifactCollectionResult` / in-progress | confirmed Worker-set empty or verified live freeze/quiescence; atomic manifest or none | T-U06-T-U07, T-F07, T-F11-T-F12 |
-| `export_workspace` | `WorkspaceExportResult` / in-progress | durable commit before normal removal; loss explicit | T-F07, T-F11 |
+| `cancel` | `CancellationResult` / in-progress | command STARTING/RUNNING/CANCELLING/UNKNOWN; sandbox UNKNOWN uses targeted destroy; race preserves actual result | T-F04, T-F10 |
+| `collect` | `ArtifactCollectionResult` / in-progress | confirmed Worker-set empty or verified live freeze/quiescence; UNKNOWN only through section 6.4 frozen-salvage guard; typed QUIESCENCE reference; atomic manifest or none | T-U06-T-U07, T-F07, T-F11-T-F14 |
+| `export_workspace` | `WorkspaceExportResult` / in-progress | non-UNKNOWN only; durable commit before normal removal; loss explicit | T-F07, T-F11 |
 | `destroy` | `CleanupResult` / in-progress | targeted whole sandbox; absence required for success | T-F05-T-F06, T-F08-T-F09 |
 | `reopen_owned_resources` | tuple of `OwnedResourceObservation` | bounded query; observation only, no implicit cleanup/Run recovery | T-F06 |
 
@@ -855,8 +896,9 @@ command requires terminal command/stream observations and trusted confirmation
 that the Worker execution set is empty. The live PID 1 supervisor is outside
 that set and may remain alive for collection or reuse. If Worker-set emptiness
 is false or unprovable, the sandbox becomes `UNKNOWN`/cleanup-required, cannot
-be collected from unless an independently verified whole-container freeze is
-established, and is never reused before targeted destruction. M3/M4 must
+be collected from except through the bounded frozen-salvage guard in section
+6.4, and is never reused before targeted destruction. Salvage neither resolves
+UNKNOWN nor supplies missing process/termination facts. M3/M4 must
 validate the process-enumeration/container-inspection boundary and race
 resistance; a Docker client timeout or the end of one attached process is
 insufficient.
@@ -934,8 +976,12 @@ proves no Worker process was created, the Worker execution set is empty and
 the effective resource is intact. A sandbox/container start failure may remain
 `CREATED` only under the same no-process proof. If a process began it follows
 normal terminal/cleanup semantics; if occurrence is unresolved it becomes
-`UNKNOWN`. `UNKNOWN` permits inspect and targeted destroy only; no start,
-execute, collect or reuse.
+`UNKNOWN`. `SandboxPhase.UNKNOWN` permits `inspect`, `inspect_command` where
+command identity exists, targeted destroy/cleanup, and only the section 6.4
+frozen-salvage exception for `collect`. It prohibits start, execute, ordinary
+collection based on assumed termination, reuse, `export_workspace` and lease
+rebinding. Command-phase cancellation rules do not grant extra operations on
+an UNKNOWN sandbox; required termination belongs to its targeted destroy path.
 
 ### 6.3 Operation transition contract
 
@@ -947,9 +993,9 @@ execute, collect or reuse.
 | `execute` | `READY`; no active/unknown command; cwd/env/limits valid | handle or terminal result; exact command replay | deadline binding persisted and independent fail-safe armed before start gate; confirmed no-process failure is exact `START_FAILED`; lost start occurrence is `UNKNOWN` | binding/unit plus ordered start/process-set/stream/exit evidence; yes |
 | `inspect` | any known sandbox phase; full tuple match | current observation, including missing/unknown | read retry allowed; absence must match owned identity | inspected config/state; no mutation |
 | `inspect_command` | known command and request digest | current/terminal observation | read retry allowed; unknown remains unknown | state/exit/stream completeness evidence |
-| `cancel` | command `STARTING`, `RUNNING`, `CANCELLING` or `UNKNOWN` | typed cancel-requested, confirmed cancelled, already terminal, or unknown | authorized request may only shorten; guardian coordinates TERM while independent unit remains armed; whole-sandbox escalation if needed | signal/Worker-set/unit/container evidence; yes until confirmed |
-| `collect` | no active Worker execution, or exact live container is independently frozen; lease valid | manifest/result; exact key replays | disconnect before durable manifest returns unknown; inspect storage before retry | Worker-set or freeze quiescence plus walk/hash/copy observations; rejection cleanup; no new live process |
-| `export_workspace` | not executing; retention explicitly `EXPORT_FOR_REVIEW` | immutable untrusted snapshot ref | no replay until snapshot identity checked | snapshot hash/size; partial export cleanup |
+| `cancel` | command `STARTING`, `RUNNING`, `CANCELLING` or `UNKNOWN`; sandbox UNKNOWN uses targeted destroy instead | typed cancel-requested, confirmed cancelled, already terminal, or unknown | authorized request may only shorten; guardian coordinates TERM while independent unit remains armed; whole-sandbox escalation if needed | signal/Worker-set/unit/container evidence; yes until confirmed |
+| `collect` | no active Worker execution, or exact live container independently frozen; lease valid; sandbox UNKNOWN requires every section 6.4 guard | manifest/result bound to successful QUIESCENCE; exact key replays; salvage retains UNKNOWN/cleanup | disconnect before durable manifest returns unknown; inspect storage before replay; no second salvage traversal | continuous identity/freeze fence plus walk/hash/copy observations; rejection cleanup; no new live process or reuse |
+| `export_workspace` | sandbox not UNKNOWN and not executing; retention explicitly `EXPORT_FOR_REVIEW` | immutable untrusted snapshot ref; UNKNOWN salvage cannot produce a recovery/reuse snapshot | no replay until snapshot identity checked | snapshot hash/size; partial export cleanup |
 | `destroy` | owned resource in any non-destroyed phase | confirmed destroyed only with whole-resource absence, otherwise cleanup failure/unknown; repeated confirmed destroy replays | target immutable provider ID; reconcile independent timer; reconnect and inspect; never global prune | stop/kill/remove/resource-absence observations; yes on failure |
 | `reopen_owned_resources` | authenticated provider startup/reopen and Run scope | bounded observations only | safe repeat; does not resume Run | reconciles metadata/labels; cleanup decision remains external |
 
@@ -963,6 +1009,71 @@ observed ordering is `UNKNOWN`; never infer the winner from receipt timestamps.
 If termination, stream EOF or Worker execution-set emptiness cannot be
 confirmed, keep the cleanup obligation, block reuse and destroy the whole
 sandbox. Whole-sandbox absence is confirmed only by the destroy path.
+
+### 6.4 UNKNOWN frozen-salvage guard
+
+An UNKNOWN sandbox may perform one bounded read-only frozen-salvage `collect`
+operation before targeted destruction/reconciliation. This is a collection
+exception, not a new phase, execution authority or recovery path. All of the
+following are required before traversal:
+
+1. The exact immutable provider resource ID and full Task/Run/workspace
+   generation/lease/sandbox generation match authoritative metadata.
+2. That exact resource and workspace are independently confirmed live/present.
+3. The trusted collector establishes and independently verifies whole-sandbox
+   freeze; Worker claims are not evidence of this boundary.
+4. The same identity, generation, lease and resource fingerprint continuously
+   fence the freeze, traversal and final commit.
+5. The Worker cannot unfreeze the sandbox or mutate the trusted collector or
+   its control path.
+6. The request passes all existing path/type/count/depth/byte restrictions.
+
+The existing COLLECT operation scope/receipt and atomic store rules in sections
+5 and 11.1 fence this single salvage operation. Concurrent or new-key attempts
+cannot start another salvage traversal for that bound sandbox generation.
+Exact replay returns the recorded result/in-progress receipt; a lost response
+requires inspection of that same operation/storage, not a new collection.
+Once a salvage operation has begun, success or failure proceeds to targeted
+destruction/reconciliation, not a second collection attempt.
+
+Within `collect`, the trusted collector appends the successful typed
+`QUIESCENCE(WHOLE_SANDBOX_FROZEN)` observation before reading candidate files.
+This is provider-internal verification through the existing operation, not a
+caller-supplied freeze assertion or a hidden state setter. Successful salvage
+may return `ArtifactCollectionResult(COLLECTED)` whose manifest references that
+observation, while leaving `phase=UNKNOWN`, `completeness=UNKNOWN` and
+`cleanup_required=true`. Worker-set emptiness remains unknown/false unless
+separately proven. No command is made terminal and no deadline/cleanup
+obligation is cleared by collection.
+
+Failure of a guard or loss of identity, freeze, live workspace or management
+access before commit yields no successful manifest and discards partial trusted
+output. Use `ArtifactCollectionResult(REJECTED|UNKNOWN)` with a typed failure
+according to actual evidence. Source disappearance is recorded as
+`ArtifactPayload(disposition=LOST, source_lost=true)` without output references;
+LOST is not an added `ArtifactCollectionResult` disposition or a successful
+empty collection. Cleanup remains required.
+
+Ordering is: UNKNOWN -> exact live identity -> independently verified freeze
+-> successful QUIESCENCE -> bounded read-only collect -> atomic manifest commit
+or complete discard/loss -> UNKNOWN/cleanup-required -> targeted destroy ->
+exact whole-resource absence. Safety cleanup and the existing independent
+deadline take precedence; salvage never extends or disables enforcement.
+Do not deliberately unfreeze into general execution after salvage. Any
+provider-specific unfreeze needed solely for trusted destruction belongs to
+destroy/cleanup and must not create a reuse window.
+
+`start`, `execute`, ordinary collection based on assumed termination, sandbox
+reuse, `export_workspace` (including a recovery/reuse snapshot) and lease
+rebinding remain prohibited. Salvaged bytes remain untrusted candidate
+artifacts, not Outcome/Evaluation truth or Stage 5 recovery/checkpoint authority.
+Final destroy releases the original workspace terminally under section 8.1.
+
+Normal non-UNKNOWN collection is unchanged: confirmed Worker-set emptiness
+supports `QUIESCENCE(WORKER_EXECUTION_EMPTY)` while the workspace lives, or an
+approved exact freeze supports `WHOLE_SANDBOX_FROZEN`. Normal collect/export
+does not waive the separate READY/reuse rules. Whole-resource absence is a
+destruction fact and is never a prerequisite for live-workspace collection.
 
 ## 7. Normalized failure contract
 
@@ -1107,7 +1218,10 @@ collector revalidates provider/container/PID/mount/generation/freeze identity
 before every root traversal batch and again before commit. A generation change,
 unfreeze, PID reuse, mount replacement, container stop/removal or management
 disconnect aborts the operation, discards partial trusted output and returns
-`UNKNOWN`/`LOST` as applicable. The adapter records quiescence and then:
+`UNKNOWN`/`LOST` as applicable to the operation's result/telemetry types.
+UNKNOWN collection must satisfy section 6.4 throughout and cannot use the
+normal export/reuse path. The adapter appends the exact successful typed
+QUIESCENCE observation (section 11.1) and then:
 
 1. Reject empty, absolute, drive-qualified, NUL-containing, `.`/`..` escaping
    and non-normal relative request paths.
@@ -1135,15 +1249,23 @@ accepted only when their already-open descriptor still has the same identity
 and requested relative name remains valid at final revalidation; otherwise the
 whole result is rejected. Links and special files are never copied.
 
-After success or failure, unfreeze occurs only if the exact container identity
-and generation still match and no emergency destruction is pending. Unfreeze
-failure makes the sandbox unknown and triggers targeted destruction. If safety
+On the normal non-UNKNOWN path after success or failure, unfreeze occurs only
+if the exact container identity and generation still match and no emergency
+destruction is pending. Unfreeze failure makes the sandbox unknown and triggers
+targeted destruction. If safety
 requires emergency whole-container stop, or the container/tmpfs disappears
 before durable export commit, artifact preservation is abandoned: record
 `ExportDisposition.LOST`/unavailability, discard partial output, perform safety
 cleanup and never report an empty export or reconstruct fictional bytes. Loss
 of these untrusted candidate bytes is distinct from authoritative Stage 1 state,
 which remains outside the sandbox.
+
+For UNKNOWN frozen salvage, the freeze remains fenced through commit/discard
+and the operation leaves UNKNOWN plus cleanup-required. There is no normal
+unfreeze/reuse step; only targeted destroy may perform any unfreeze strictly
+needed for destruction without reopening execution. If safety cleanup removes
+the workspace before commit, record loss and discard all partial output using
+the result/telemetry mapping in section 6.4.
 
 This closes simple resolve-then-open TOCTOU behavior. M4 must still attack
 rename/link races and confirm the chosen OS primitives fail safely.
@@ -1349,7 +1471,15 @@ RuntimeObservation(
 
 ObservationKind = CAPABILITY | LIFECYCLE | PROCESS | STREAM |
                   RESOURCE_USAGE | ARTIFACT | CLEANUP | CONTROL_CHANNEL |
-                  DEADLINE_ENFORCEMENT
+                  DEADLINE_ENFORCEMENT | QUIESCENCE
+
+QuiescenceMechanism = WORKER_EXECUTION_EMPTY | WHOLE_SANDBOX_FROZEN
+
+QuiescencePayload(
+    mechanism: QuiescenceMechanism,
+    collection_quiesced: bool,
+    resource_fingerprint: Sha256Digest,
+)
 
 CapabilityPayload(
     capability_digest: Sha256Digest,
@@ -1427,7 +1557,7 @@ DeadlineEnforcementPayload(
 ObservationPayload = CapabilityPayload | LifecyclePayload | ProcessPayload |
                      StreamPayload | ResourceUsagePayload | ArtifactPayload |
                      CleanupPayload | ControlChannelPayload |
-                     DeadlineEnforcementPayload
+                     DeadlineEnforcementPayload | QuiescencePayload
 ```
 
 Sequence gaps are explicit. Adapter receipt time is always present; provider
@@ -1437,6 +1567,27 @@ payload class above. Encoded payloads are at most 32 KiB; tuples retain at most
 bounds. Telemetry includes create/start/attach/exit/signal/inspect/resource-
 usage/artifact/cleanup observations, but no hidden reasoning, secret values or
 unbounded daemon logs.
+
+`kind=QUIESCENCE` requires `QuiescencePayload`. A true
+`collection_quiesced` with `WORKER_EXECUTION_EMPTY` requires independently
+confirmed Worker execution-set emptiness while the exact workspace is live.
+With `WHOLE_SANDBOX_FROZEN`, it requires trusted independent verification of
+exact ownership/generation/resource fingerprint and whole live sandbox freeze.
+False is not a successful collection boundary. The RuntimeObservation envelope
+supplies provider/Task/Run/workspace/sandbox/generation/time identity; its
+resource fingerprint is checked against the current exact lease/workspace
+generation and immutable resource binding in the COLLECT operation scope.
+The manifest's `quiescence_observation_ref` resolves to this exact successful
+observation, not any earlier/unrelated freeze. The same binding and freeze/live
+boundary must remain valid through commit; stale evidence cannot authorize it.
+
+A successful quiescence observation records only that sub-fact. In UNKNOWN
+frozen salvage the SandboxObservation still has `completeness=UNKNOWN`, retains
+cleanup and uses `worker_execution_empty=None` unless independently known.
+M2/Fake may deterministically simulate QUIESCENCE only under SIMULATED
+capability provenance; neither this payload nor a manifest proves a real
+freeze or qualifies as real isolation evidence. M3/M4 require actual trusted
+collector observations and adverse evidence.
 
 The provider-neutral runtime metadata boundary is:
 
@@ -1551,7 +1702,12 @@ transition or Evaluation request. The provider cannot call persistence
 5. On the normal preservation path, freeze/quiesce the exact live container (or
    use already confirmed Worker-set emptiness), collect/export, and commit the
    durable manifest/snapshot before removal. This step does not require whole-
-   sandbox absence.
+   sandbox absence. For UNKNOWN, only section 6.4's single guarded salvage
+   collect is permitted: exact live identity -> independent freeze -> typed
+   QUIESCENCE -> bounded collect -> atomic commit or complete discard/loss ->
+   retain UNKNOWN/cleanup -> targeted destroy. No export snapshot or normal
+   unfreeze/reuse is allowed; failure to establish the guard does not delay
+   required safety cleanup or independent deadline enforcement.
 6. On an independent fail-safe action, emergency whole-container stop or
    unexpected whole-container loss before export commit, record explicit
    artifact loss/unavailability and proceed with safety cleanup; never
@@ -1728,7 +1884,7 @@ authoritative Stage 1 state remains available outside the sandbox.
 | Create/start | `start(SandboxHandle, MutationContext)` -> `SandboxObservation(READY)` | receipt advances exact sandbox generation; effective profile and no-Worker-before-gate observations are appended |
 | Execute gate | `execute(SandboxHandle, CommandRequest)` -> `CommandHandle` | request receipt and immutable `DeadlineBinding` persist; protected timer/helper is confirmed `ARMED`; only then is `START_GATE_RELEASED` appended |
 | Command finishes | `inspect_command` -> `TerminalResult` and `inspect` -> `SandboxObservation` | actual process/stream observations persist; `worker_execution_empty=true` is independently observed while trusted PID 1 remains alive; the exact deadline unit is safely reconciled |
-| Collect/export live workspace | `collect`/`export_workspace` -> manifest/snapshot result | Worker-set emptiness or exact freeze sets `collection_quiesced=true`; same-byte bounded export and manifest commit occur while `sandbox_resource_absent=false` |
+| Collect/export live workspace | non-UNKNOWN `collect`/`export_workspace` -> manifest/snapshot result | Worker-set emptiness or exact freeze produces successful typed QUIESCENCE with `collection_quiesced=true`; manifest references it; same-byte bounded export and manifest commit occur while `sandbox_resource_absent=false` |
 | Reuse or destroy | same sandbox may return to `READY`, or `destroy` -> `CleanupResult` | reuse requires confirmed Worker-set emptiness; destroy targets only the bound generation and retains the receipt on uncertainty |
 | Final absence | confirmed `CleanupResult(DESTROYED|ALREADY_ABSENT)` | exact inspection sets `sandbox_resource_absent=true`, cancels/removes the matching deadline unit if necessary, releases the lease and makes workspace metadata terminal `RELEASED` |
 
@@ -1761,6 +1917,24 @@ without a hidden guardian restart assumption**.
 
 Result: **representable without fabricating process lifetime or streams**.
 
+### 12.4 Cross-contract walkthrough D — UNKNOWN frozen salvage
+
+| Step | Public input/result | Authoritative runtime-metadata rule |
+| --- | --- | --- |
+| Process knowledge lost | `inspect_command` -> unknown observation/result; `inspect` -> `SandboxObservation(UNKNOWN)` | actual loss observation retained; `completeness=UNKNOWN`, `cleanup_required=true`, `worker_execution_empty=None`; no invented terminal time or exit |
+| Request bounded salvage | `collect(SandboxHandle, ArtifactRequest, MutationContext)` -> in-progress COLLECT receipt | existing `begin_operation` fences exact identity/workspace generation/lease/sandbox generation and the single salvage operation; exact replay does not reread files |
+| Verify live identity and freeze | within `collect`, trusted collector independently identifies and freezes the exact live resource | append `RuntimeObservation(kind=QUIESCENCE, payload=QuiescencePayload(WHOLE_SANDBOX_FROZEN, true, resource_fingerprint))`; current binding checked against receipt scope; no public freeze operation or hidden state injection |
+| Record known sub-fact | `SandboxObservation(UNKNOWN)` with `collection_quiesced=true`, `sandbox_resource_absent=false`, `worker_execution_empty=None` | overall `completeness=UNKNOWN` and cleanup-required persist; quiescence does not prove termination or grant reuse |
+| Bounded copy and commit | `ArtifactCollectionResult(COLLECTED)` with manifest/artifact reference | exact successful QUIESCENCE reference, continuous fence, same-byte hash, all bounds and atomic commit; no Outcome/Evaluation/recovery promotion |
+| Loss variant before commit | `ArtifactCollectionResult` with REJECTED or UNKNOWN; source loss additionally records `ArtifactPayload(LOST)` | discard all partial output and commit no manifest; retain actual failure/loss evidence and cleanup; no second traversal |
+| Preserve unsafe state | `inspect` still returns UNKNOWN/cleanup-required | no start/execute/export/reuse/rebinding; no normal unfreeze; command state remains unresolved unless independently observed |
+| Targeted destruction | `destroy(SandboxHandle, MutationContext)` -> confirmed `CleanupResult` only on exact absence | trusted cleanup may unfreeze solely for destruction without a reuse window; final absence allows DESTROYED/RELEASED; failures retain obligation |
+
+Result: **representable by the defined public operations, QUIESCENCE payload,
+COLLECT receipt and existing store boundary**. The successful artifact result
+does not change the UNKNOWN phase. This is a design walkthrough only, not an
+executed UNIT/FAKE/DOCKER test or real freeze evidence.
+
 ## 13. Future test catalog
 
 Evidence classes are deliberately separate:
@@ -1780,7 +1954,7 @@ Evidence classes are deliberately separate:
 | T-U04 | UNIT | argv/cwd/env/stdin validation prohibits host-shell/path/env injection | M2 |
 | T-U05 | UNIT | failure mapping preserves unknown/retry/live-resource fields | M2 |
 | T-U06 | UNIT | artifact validator rejects each hostile path/type/limit independently | M2 |
-| T-U07 | UNIT | Worker-set emptiness, collection quiescence and whole-resource absence have distinct legal combinations; `DESTROYED` requires only the last to be true | M2 |
+| T-U07 | UNIT | distinct Worker-set/quiescence/absence facts; UNKNOWN + completeness UNKNOWN + cleanup-required + quiesced true + Worker-set None + resource-absent false is legal only with exact frozen-salvage evidence; typed QUIESCENCE/manifest reference checked; false/stale evidence rejected; reuse forbidden; DESTROYED requires whole-resource absence | M2 |
 | T-U08 | UNIT | deadline observation requires persisted binding plus independently armed fail-safe; attempted, confirmed, unknown and stale-rejected combinations are closed | M2 |
 | T-U09 | UNIT | `READY_UNLEASED` and first-lease acquisition/release require exact generation/store version and forbid hidden or conflicting binding | M2 |
 | T-U10 | UNIT | confirmed no-process `START_FAILED`, possibly-started `UNKNOWN`, started-process terminal results and all invalid time/exit/stream combinations are exact | M2 |
@@ -1794,10 +1968,10 @@ Evidence classes are deliberately separate:
 | T-F08 | FAKE | armed deadline survives adapter death with no restart and produces only bound timeout/unknown cleanup semantics | M2 |
 | T-F09 | FAKE | management-channel loss and guardian/control interference cannot disable or retarget enforcement | M2 |
 | T-F10 | FAKE | stale deadline identity and STARTING/natural-exit/cancel races preserve actual causality or unknown | M2 |
-| T-F11 | FAKE | workspace disappearance, stale container identity, freeze failure and partial copy commit no manifest | M2 |
+| T-F11 | FAKE | normal and UNKNOWN salvage workspace disappearance, stale identity/generation/lease/fingerprint, freeze loss/failure, management loss and partial copy discard all output and commit no manifest; source loss explicit; cleanup retained | M2 |
 | T-F12 | FAKE | unsafe metadata or emergency termination before preservation records rejection/loss, never empty success | M2 |
 | T-F13 | FAKE | PID 1 may remain alive while Worker execution set becomes empty; normal collection succeeds without whole-resource absence | M2 |
-| T-F14 | FAKE | false/unknown Worker-set emptiness blocks reuse and final destroyed success requires whole-resource absence | M2 |
+| T-F14 | FAKE | false/unknown Worker-set emptiness blocks reuse; exact frozen salvage may COLLECT once with successful QUIESCENCE while sandbox stays UNKNOWN/cleanup-required and Worker-set remains unknown; exact replay does not recollect, competing/new-key salvage rejected; start/execute/export/rebinding forbidden; no normal unfreeze, targeted destroy requires exact absence | M2 |
 | T-F15 | FAKE | guardian exit and alive-but-unresponsive paths leave the independently armed exact deadline scheduled and grant no extra budget | M2 |
 | T-F16 | FAKE | exact-bound fail-safe action records attempted/confirmed/unknown honestly and stale binding cannot target a newer generation | M2 |
 | T-F17 | FAKE | empty store through `READY_UNLEASED` and two concurrent create attempts yields exactly one first lease/binding | M2 |
@@ -1825,8 +1999,8 @@ Evidence classes are deliberately separate:
 | T-D19 | DOCKER | descendant changing process group/session or daemonizing cannot survive whole-container escalation | M3/M4 |
 | T-D20 | DOCKER | Worker cannot signal, authenticate to, reconfigure or starve away the protected guardian | M4 |
 | T-D21 | DOCKER | stale deadline generation and timeout/cancel/natural-exit races never target/relabel another command | M3/M4 |
-| T-D22 | DOCKER | co-located collector continuously fences container/PID/mount/freeze identity and discards partial output | M3/M4 |
-| T-D23 | DOCKER | workspace disappearance, freeze/unfreeze failure, unsafe metadata and emergency stop report rejection/unknown/loss | M4 |
+| T-D22 | DOCKER | real co-located collector continuously fences container/PID/mount/generation/lease/fingerprint/freeze for normal collection and UNKNOWN salvage; exact whole-sandbox freeze yields QUIESCENCE referenced by manifest; invalidation discards partial output; salvage remains UNKNOWN without reuse and proceeds to targeted destruction | M3/M4 |
+| T-D23 | DOCKER | normal and UNKNOWN salvage workspace disappearance, identity/freeze loss, management loss, freeze/unfreeze failure, unsafe metadata and emergency stop discard partial output with no manifest and honest rejection/unknown/loss; no salvage unfreeze into general execution | M4 |
 | T-D24 | DOCKER | trusted PID 1 remains alive while Worker execution set becomes empty and live-workspace collection succeeds before whole-resource absence | M3/M4 |
 | T-D25 | DOCKER | session-changed/daemonized Worker descendants cannot survive Worker-set terminalization; false/unknown observation blocks reuse | M3/M4 |
 | T-D26 | DOCKER | guardian process exit after Worker start with no restart leaves protected deadline action executable for the exact sandbox | M3/M4 |
@@ -1852,17 +2026,17 @@ isolation evidence.
 | --- | --- | --- | --- |
 | SBX-R01 approved sandbox/no host | 3, 9.2-9.3 | T-F01, T-D01 | M2 contract; M3/M4 proof |
 | SBX-R02 provider replaceability | 4-5, 9.3, 9.5 | T-F01-T-F20, architecture import check | M2 |
-| SBX-R03 Run/workspace lifetime | 3, 4.3, 5, 8, 12.1 | T-U03, T-U07, T-U09, T-F06, T-F11-T-F14, T-F17-T-F19, T-D16, T-D22-T-D25, T-D31 | M2/M3; Stage 5 owns reuse |
+| SBX-R03 Run/workspace lifetime | 3, 4.3, 5, 6.4, 8, 12.1, 12.4 | T-U03, T-U07, T-U09, T-F06, T-F11-T-F14, T-F17-T-F19, T-D16, T-D22-T-D25, T-D31 | M2/M3; Stage 5 owns reuse |
 | SBX-R04 authority separation | 3, 11.1 | contract/import tests; no provider UoW dependency | M2 |
 | SBX-R05 capability preflight/normalization | 4.1, 4.4, 7, 9.1 | T-U05, T-U08, T-U10, T-F03, T-F15-T-F16, T-F20, T-D02-D12, T-D26-T-D30 | M2-M4 |
 | SBX-R06 privilege/mount/socket/writable boundary | 8, 9.2-9.3 | T-D02-D04 | M3/M4 |
 | SBX-R07 resource/time/output bounds | 4.2, 4.4, 6.2, 9.3, 12.2-12.3 | T-U08, T-U10, T-F08-T-F10, T-F15-T-F16, T-F20, T-D05-T-D10, T-D17-T-D21, T-D26-T-D30 | M2-M4 |
 | SBX-R08 typed network/fail closed | 4.2, 9.3, 10 | T-U01, T-D11 | M2/M3/M4 |
 | SBX-R09 secret/env boundary | 9.2-9.3, 10 | T-U04, env adverse probe | M2/M3/M4 |
-| SBX-R10 artifact claims remain untrusted | 4.5, 8.2, 11.2, 12 | T-U06-T-U07, T-F07, T-F11-T-F14, T-D13, T-D22-T-D25 | M2-M4; Stage 4 evaluates |
+| SBX-R10 artifact claims remain untrusted | 4.5, 6.4, 8.2, 11.1-11.2, 12.4 | T-U06-T-U07, T-F07, T-F11-T-F14, T-D13, T-D22-T-D25 | M2-M4; Stage 4 evaluates |
 | SBX-R11 preserved work needs recovery authority | 8.1-8.2, SCN-12, SCN-14 | T-F11-T-F12, T-D16, T-D22-T-D23 | M2-M4; Stage 5 recovery |
 | SBX-R12 no Effect dispatch | 3, 11.1 | dependency/authority architecture test | M2; Stage 6 Effects |
-| SBX-R13 observable cleanup/unknown state | 6-7, 11.2, 12.1-12.3 | T-U07-T-U10, T-F03-T-F20, T-D14-T-D31 | M2-M4 |
+| SBX-R13 observable cleanup/unknown state | 6-7, 11.1-11.2, 12.1-12.4 | T-U07-T-U10, T-F03-T-F20, T-D14-T-D31 | M2-M4 |
 | SBX-R14 dynamic isolation evidence | 9.3, 13 | T-D01-T-D31 | M4 and Stage 2 exit |
 | SBX-R15 Stage 3 blocked | candidate status, 16-17 | governance/status review | M1 review/Stage 2 exit |
 
@@ -1973,7 +2147,7 @@ accepted exit plus a new TaskSpec may activate Stage 3.
 
 | Question/risk | Current safe behavior | Owner and blocking milestone |
 | --- | --- | --- |
-| Are interface/default decisions accepted? | accepted for M2 contract implementation; no runtime isolation evidence | Resolved by Issue #81 independent review and Human approval; Issue #79 release still blocks M2 |
+| Are interface/default decisions accepted? | historical M1B acceptance retained; UNKNOWN collection ambiguity requires exact M1C erratum review/approval before M2; no runtime isolation evidence | Issue #83 candidate review and Human approval pending; Issue #79 r3 BLOCKED |
 | Which exact Engine/kernel/distribution versions are supported? | no support claim | M3 TaskSpec/preflight; blocks M3 execution evidence |
 | Do tmpfs `size`, block and inode options enforce correctly in the selected environment? | mark capability unsupported and do not start | M3 implementation, M4 adverse proof; blocks Stage 2 exit |
 | Can the selected Linux host provide protected service-manager timer/helper scheduling independent of guardian lifetime, local daemon control, race-resistant Worker execution-set proof, final resource-absence proof and the required pidfd/procfs/openat2 collector primitives? | capability unsupported; no Worker start | M3 preflight/implementation and M4 T-D17-T-D31; blocks supported profile |
@@ -2021,7 +2195,7 @@ The earlier **REQUEST CHANGES** review against
 `613d71b90c36b573578f6fffb9a6c7dd9606478f` remains historical evidence. The
 forward-corrected cumulative candidate at
 `b52df98530d8ce742b07d7f6c399ccd5b54e643b` received independent technical
-review **ACCEPT** and explicit Human M1 design approval on Issue #81. Current
+review **ACCEPT** and explicit Human M1 design approval on Issue #81. Historical
 disposition after Issue #82 governance reconciliation:
 
 ```text
@@ -2034,3 +2208,13 @@ Stage 2 runtime implementation authorized by this correction = NO
 Stage 2 complete = NO
 Stage 3 = PLANNED
 ```
+
+Issue #79 r2 subsequently stopped before mutation on the UNKNOWN collection
+contradiction. Issue #83 proposes only the bounded frozen-salvage erratum in
+this document. Its exact technical candidate is recorded by the subsequent
+governance commit in STATUS and the M1C plan. Independent review and Human
+approval of that exact erratum are **PENDING**; prior M1B acceptance is not
+approval of M1C. ADR-0008 remains Accepted and unchanged. Issue #79 r3 remains
+BLOCKED / NOT RELEASED, runtime code is NOT STARTED, Stage 2 remains ACTIVE /
+NOT COMPLETE and Stage 3 remains PLANNED. No future test in this document was
+executed by this documentation correction.
