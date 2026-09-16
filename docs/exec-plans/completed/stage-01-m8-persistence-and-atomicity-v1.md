@@ -1,11 +1,17 @@
 # Stage 1 M8 - Persistence and Atomicity
 
 **Version:** 1
-**Status:** M8 implementation candidate; independent Human Review required
+**Status:** M8 HUMAN ACCEPTED
 **TaskSpec reference:** https://github.com/ZYWY457/symphony-k/issues/72
 **TaskSpec access mode:** materialized-handoff
 **TaskSpec precondition:** PASS
 **Phase 0 parent:** `e59c61c54a27f3a4751fc5102c44ca0aa5379895`
+
+**Acceptance basis:** Issue #72 implementation candidate plus Issue #73
+corrected M8D historical-provenance closure.
+
+**Accepted cumulative HEAD:**
+`3a6421c2d3097fc99c0493eeede1956b434f4701`
 
 ## Plan and acceptance
 
@@ -31,8 +37,8 @@ approved disposable-cache fallback; lock/dependency inputs remain unchanged.
 
 Six roots, 43 states, 99 edges. No domain import of persistence/SQLite; no Agent,
 Docker, network dispatch, Effect execution, credentials, ORM, migration framework
-or later-stage runtime. M7 remains Human Accepted; M8/M9 remain candidates and
-Stage 1 remains incomplete.
+or later-stage runtime. At the Issue #72 candidate boundary, M7 remained Human
+Accepted, M8/M9 remained candidates, and Stage 1 remained incomplete.
 
 ## M8A validation
 
@@ -100,7 +106,8 @@ CAS zero-row rollback; and second-member Evaluation failure rolling back the
 first member and supporting history. Compensation retains original snapshots,
 commit events, occurrence evidence and residual-impact records.
 
-M8 implementation candidate = COMPLETE. M8 Human Accepted = NO.
+At the Issue #72 candidate boundary, M8 implementation candidate = COMPLETE and
+M8 Human Accepted = NO.
 No accepted M7 source, state, edge or authority semantic changed.
 
 The final batch audit also rejects changing an already-CONFLICTED participant
@@ -131,4 +138,18 @@ Q2/UNCERTAIN lineage, same-identity changed content and direct-completion start
 authorization substitution. Focused persistence suites passed 92 tests total
 (23 codec, 12 SQLite, 42 service, 5 Evaluation, 10 Effect); the full suite passed
 3269. Locked sync, Ruff, format (211 files), mypy (123 source files) and diff
-checks passed. M8 remains an implementation candidate pending Human Review.
+checks passed. At the corrected Issue #73 pre-review boundary, M8 remained an
+implementation candidate pending Human Review.
+
+## Human Review disposition
+
+Issue #72 alone received REQUEST CHANGES. The remaining blocker concerned
+durable Effect historical provenance. Corrected Issue #73 closed that blocker
+without changing M7.
+
+Independent cumulative Human Review accepted M8 at
+`3a6421c2d3097fc99c0493eeede1956b434f4701`.
+
+```text
+M8 HUMAN ACCEPTED
+```

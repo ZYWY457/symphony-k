@@ -2,7 +2,7 @@
 
 **Version:** 1
 **Status:** Active
-**Scope:** GitHub Issues #53, #61, #67, #70, and #72 - governance reconciliation
+**Scope:** GitHub Issues #53, #61, #67, #70, #72, #73, and #74 - governance reconciliation
 
 ## Purpose and baseline
 
@@ -187,31 +187,69 @@ non-creation accepted = 91 / 91
 creation accepted     = 8 / 8
 integrated accepted   = 99 / 99
 M7 = HUMAN ACCEPTED
-M8 Persistence and Atomicity = NEXT
+historical next milestone at that boundary = M8 Persistence and Atomicity
 ```
 
 Completed M7D3/D4/D5/D6 and M7D6A plans are archived under `../completed/`.
-The M7 authoritative creation architecture remains active as the frozen
-contract; its current status is reconciled without changing its meaning.
+At that Issue #72 boundary, the M7 authoritative creation architecture remained
+active as the frozen contract. This reconciliation archives it without changing
+its meaning.
+
+## Accepted cumulative M8/M9 implementation
+
+Issue #72 implemented the M8/M9 candidate stack. Independent Human Review
+requested changes because Effect historical supporting provenance was not yet
+durably bound. Issue #72 alone was not independently sufficient.
+
+Issue #73 initially stopped before mutation because its first same-S1
+acceptance condition contradicted accepted M7 semantics. Human Review corrected
+Issue #73 without changing M7. The corrected Issue #73 commit was:
+
+```text
+3a6421c2d3097fc99c0493eeede1956b434f4701
+fix(persistence): bind effect transitions to durable history
+```
+
+That correction closed the M8 historical-backfill blocker. Independent
+cumulative Human Review accepted Issue #72 plus corrected Issue #73.
+
+```text
+M8 = HUMAN ACCEPTED
+M9 = HUMAN ACCEPTED
+```
 
 ## Remaining Stage 1 order
 
-M8 Persistence and Atomicity -> M9 Constitutional Test Suite -> Stage 1
-reconciliation -> Human Stage 1 Exit Review -> Stage 2 only after acceptance.
-Issue #72 authorizes the ordered M8/M9 candidate stack. Implementation success
-is not Human acceptance.
+```text
+CURRENT
+Stage 1 implementation reconciliation
 
-M8 owns repository interfaces, SQLite adapter, authoritative currentness,
+NEXT
+Human Stage 1 Exit Review
+
+ONLY AFTER HUMAN EXIT ACCEPTANCE
+Stage 1 complete = YES
+Stage 2 may be authorized
+```
+
+M8 owns repository interfaces, the SQLite adapter, authoritative currentness,
 optimistic concurrency, atomic lifecycle/history/event persistence, structural
 constraints, uniqueness and replay. M9 proves the accepted constitutional
-invariants. Neither milestone is complete at this governance boundary.
+invariants. Their implementation milestones are complete and Human Accepted;
+the separate Human Stage 1 Exit Review has not yet been performed.
 
 ## Exit boundary
 
 ```text
 M7 Human Accepted = YES
-M8 Human Accepted = NO
-M9 Human Accepted = NO
+Human Accepted lifecycle coverage = 99 / 99
+
+M8 Human Accepted = YES
+M9 Human Accepted = YES
+
+Stage 1 implementation reconciliation = COMPLETE
+Human Stage 1 Exit Review = NEXT
+
 Stage 1 complete = NO
 Stage 2 authorized = NO
 ```

@@ -1,7 +1,7 @@
 # Stage 1 M9 - Constitutional Test Suite
 
 **Version:** 1
-**Status:** M9 candidate; independent Human Review required
+**Status:** M9 HUMAN ACCEPTED
 **TaskSpec reference:** https://github.com/ZYWY457/symphony-k/issues/72
 **TaskSpec access mode:** materialized-handoff
 **TaskSpec precondition:** PASS
@@ -204,5 +204,16 @@ construct their critical Effect history through production create/transition
 paths rather than relying on a boundary-only Effect snapshot.
 
 The constitutional suite passed 32 tests and the complete suite passed 3269.
-Ruff, format, mypy and diff checks passed. M9 remains a candidate pending the
-next independent cumulative Human Review.
+Ruff, format, mypy and diff checks passed. At the corrected Issue #73 pre-review
+boundary, M9 remained a candidate pending the next independent cumulative
+Human Review.
+
+## Final Human disposition
+
+Issue #72's M9 candidate remained pending while the cumulative M8 blocker was
+unresolved. After corrected Issue #73 closed the remaining persistence
+historical-truth gap, independent cumulative Human Review accepted M9.
+
+```text
+M9 HUMAN ACCEPTED
+```

@@ -1,7 +1,7 @@
 # Stage 1 Correction M8D - Effect Historical Provenance
 
 **Version:** 1
-**Status:** correction candidate complete; independent Human Review required
+**Status:** HUMAN ACCEPTED
 **TaskSpec reference:** https://github.com/ZYWY457/symphony-k/issues/73
 **TaskSpec access mode:** materialized-handoff
 **TaskSpec precondition:** PASS
@@ -82,3 +82,18 @@ Final focused evidence: codec 23, SQLite 12, service 42, Evaluation 5, Effect
 10, and constitutional 32 passed. The full suite passed all 3269 tests. Locked
 sync, Ruff, format (211 files), mypy (123 source files) and the unstaged diff
 check passed. The correction changes no domain source.
+
+## Final Human disposition
+
+The initial Issue #73 execution STOPPED before mutation because the original
+same-S1 TaskSpec condition contradicted accepted M7 semantics. Human Review
+corrected the TaskSpec; M7 remained unchanged.
+
+The corrected implementation is:
+
+```text
+3a6421c2d3097fc99c0493eeede1956b434f4701
+fix(persistence): bind effect transitions to durable history
+```
+
+Independent cumulative Human Review accepted M8 after this correction.

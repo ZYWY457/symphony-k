@@ -1,11 +1,15 @@
 # Stage 1 M7 — Authoritative Creation Architecture
 
 **Version:** 1
-**Status:** Frozen architecture contract; corrected cumulative M7 HUMAN ACCEPTED after Issue #71
+**Status:** Frozen architecture contract; corrected cumulative M7 HUMAN ACCEPTED; implementation complete; archived after Stage 1 implementation reconciliation
 **TaskSpec:** [GitHub Issue #62](https://github.com/ZYWY457/symphony-k/issues/62)
 **TaskSpec access mode:** `materialized-handoff`
 **Starting baseline:** `9f61877c74d79caff72efca908ab18219fd4996c`
 (`docs(governance): record effect non-creation acceptance`)
+
+**Archival note:** References below to unresolved creation edges describe the
+historical architecture-freeze boundary and are retained intentionally. The
+corrected cumulative M7 implementation is Human Accepted at 99 / 99.
 
 ## 1. Objective
 
@@ -732,5 +736,12 @@ Independent Human Review accepted the corrected cumulative result through
 creation 8 / 8, integrated 99 / 99. M7 is HUMAN ACCEPTED.
 The original candidate counts and validation above are historical evidence,
 not the current acceptance boundary; Issue #70 alone was not accepted.
-Status reconciled under Issue #72; the architecture contract remains active.
-M8 and M9 remain incomplete; Stage 1 is not complete.
+At the Issue #72 candidate boundary, the architecture contract remained active
+and M8/M9 remained incomplete; that historical status is retained here.
+
+## Final archival disposition - Issue #74
+
+The frozen contract is archived after Stage 1 implementation reconciliation.
+The corrected cumulative M7 implementation remains HUMAN ACCEPTED at 99 / 99.
+Archival changes neither the accepted architecture nor its historical freeze
+boundary.

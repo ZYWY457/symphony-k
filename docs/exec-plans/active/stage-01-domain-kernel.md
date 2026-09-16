@@ -11,6 +11,27 @@
 
 **Human review correction:** Stage 1 core objects are limited to Objective, Task, Run, Outcome, Evaluation and Effect. TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9 (Planner); a proposal is planning input and never directly executable. The diagram below shows later-system context, not additional Stage 1 scope.
 
+## Stage 1 implementation reconciliation
+
+```text
+M7 = HUMAN ACCEPTED
+M8 = HUMAN ACCEPTED
+M9 = HUMAN ACCEPTED
+
+99 / 99 lifecycle edges = HUMAN ACCEPTED
+```
+
+Implementation milestones are complete through
+`3a6421c2d3097fc99c0493eeede1956b434f4701`.
+
+Human Stage 1 Exit Review remains required. This parent plan stays active until
+that review is accepted.
+
+```text
+Stage 1 complete = NO
+Stage 2 authorized = NO
+```
+
 ---
 
 ## 1. Objective
