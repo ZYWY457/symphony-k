@@ -1,233 +1,147 @@
 # Roadmap
 
-This roadmap defines implementation order, not permanent architecture. Each stage must preserve the constitutional rules in `ARCHITECTURE.md` and `docs/core-beliefs/`.
+This is the canonical high-level stage map for Symphony-K. It defines delivery
+order and stage boundaries, not permanent implementation choices. Detailed
+contracts live in [the development path](docs/DEVELOPMENT_PATH.md) and stage
+parent Exec Plans. Every stage remains subject to the Constitution, core
+beliefs, accepted ADRs, and independent Human Exit Review.
+
+## Delivery status
+
+| Stage | Name | Status |
+| ---: | --- | --- |
+| 0 | Constitution and Repository Harness | COMPLETE |
+| 1 | Domain Kernel | COMPLETE — Human Exit ACCEPTED |
+| 2 | Sandbox Execution | NEXT |
+| 3 | First AgentDriver | PLANNED |
+| 4 | Verification Plane | PLANNED |
+| 5 | Failure and Recovery | PLANNED |
+| 6 | Budget, Risk, Permission, and Effects | PLANNED |
+| 7 | Second Agent and Architecture Test | PLANNED |
+| 8 | Router and Escalation | PLANNED |
+| 9 | Planner | PLANNED |
+| 10 | Learning and Reputation | PLANNED |
+| 11 | Application Control Plane and Human Governance Surface | PLANNED |
+| 12 | End-to-End Integration and Operational Safety | PLANNED |
+| 13 | Production Hardening and Release Engineering | PLANNED |
+| 14 | v1.0 Release Candidate and Final Delivery | PLANNED |
+
+`PLANNED` and `NEXT` describe sequence only. Stage 2 implementation has not
+started and requires a separate durable Human-approved TaskSpec before code may
+change.
 
 ## Stage 0 — Constitution and Repository Harness
 
-Deliver:
-
-- `AGENTS.md`
-- `VISION.md`
-- `ARCHITECTURE.md`
-- `ROADMAP.md`
-- core-belief documents
-- ADR process
-- Exec Plan process
-- initial repository structure
-
-Exit criteria:
-
-- top-level domain boundaries are frozen for v0,
-- constitutional invariants are documented,
-- Codex can navigate the repository without requiring the project history to be restated in every prompt.
+Established the Constitution, vision, architecture, core beliefs, ADR and Exec
+Plan processes, and repository harness. **Complete.**
 
 ## Stage 1 — Domain Kernel
 
-Implement:
-
-- Objective,
-- Task,
-- Run,
-- Outcome,
-- Evaluation,
-- Effect,
-- state transition engine,
-- persistence abstraction,
-- audit event model,
-- concurrency/version semantics.
-
-The Stage 1 core domain objects are limited to Objective, Task, Run, Outcome, Evaluation and Effect. TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9, not Stage 1.
-
-Exit criteria:
-
-- domain objects can be created and transitioned only through valid paths,
-- illegal transitions are rejected,
-- audit history is generated for all authoritative transitions,
-- worker identity has no direct state mutation path.
+Established Objective, Task, Run, Outcome, Evaluation and Effect lifecycles;
+transition authority; persistence; immutable history; concurrency; and
+constitutional tests. Human Accepted coverage is 99 / 99 lifecycle edges.
+**Complete; Human Stage 1 Exit Review accepted.**
 
 ## Stage 2 — Sandbox Execution
 
-Implement:
-
-- SandboxProvider abstraction,
-- DockerSandbox provider,
-- workspace abstraction,
-- resource limits,
-- timeouts,
-- network policy abstraction,
-- artifact collection,
-- teardown and cleanup,
-- sandbox execution telemetry.
-
-Exit criteria:
-
-- arbitrary bounded commands can run in temporary Docker sandboxes,
-- host environment is not used as the worker runtime,
-- privileged mode and Docker socket exposure are prohibited by default,
-- resource and network restrictions are testable.
+Establish the `SandboxProvider` and `Workspace` abstractions, a hardened first
+Docker provider, bounded command execution, resource and network policy,
+artifact collection, cleanup, telemetry and normalized failures. Exit proves
+arbitrary bounded commands run under enforceable temporary isolation. Stage 2
+does not implement an AgentDriver.
 
 ## Stage 3 — First AgentDriver
 
-Implement:
-
-- AgentDriver interface,
-- capability model,
-- structured AgentRequest types,
-- Codex adapter as the first implementation,
-- session/run event ingestion,
-- usage reporting,
-- cancellation and resumability where supported.
-
-Exit criteria:
-
-- a Task can be executed by Codex through the driver boundary without Codex-specific concepts entering core domain models.
+Establish the replaceable `AgentDriver` boundary and integrate Codex as the
+first adapter, including capabilities, structured requests/events/results,
+usage, cancellation and provider-supported resume. Exit proves a governed Run
+can use the adapter and sandbox without vendor concepts entering the core.
 
 ## Stage 4 — Verification Plane
 
-Implement:
-
-- ValidationPlanner,
-- evidence collection,
-- precondition checks,
-- static validators,
-- intermediate assertions,
-- dynamic validators,
-- semantic validator interface,
-- confidence gate,
-- evaluation conflict handling.
-
-Exit criteria:
-
-- system completion decisions do not rely on worker self-report,
-- evidence-backed Evaluation reports are persisted,
-- validation intensity can vary by Task profile.
+Establish validation planning, independent evidence collection, static,
+dynamic and semantic validators, intermediate assertions, confidence gates,
+persisted Evaluations and conflict/arbitration integration. Exit removes Worker
+self-report from authoritative completion and acceptance decisions.
 
 ## Stage 5 — Failure and Recovery
 
-Implement:
-
-- CheckpointManifest,
-- trusted/incomplete checkpoint states,
-- FailureClassifier,
-- RecoveryController,
-- Resume,
-- Rewind,
-- Reassign,
-- HandoffPackage,
-- loop/progress-stall detection,
-- recovery budgets and limits.
-
-Exit criteria:
-
-- worker or sandbox loss does not erase Task progress,
-- temporary failure can resume,
-- invalid execution paths can rewind,
-- unsuitable execution profiles can reassign.
+Establish trusted checkpoints, normalized failure classification,
+`RecoveryController`, Resume, Rewind, Reassign, handoff packages, loop detection
+and bounded recovery. Exit proves authoritative work survives Worker, sandbox
+and provider loss.
 
 ## Stage 6 — Budget, Risk, Permission, and Effects
 
-Implement:
-
-- BudgetProfile and ledger,
-- RiskProfile,
-- ValueProfile,
-- ConfidenceProfile,
-- Verifiability profile,
-- PermissionEnvelope,
-- EffectIntent,
-- Effect Controller,
-- Prepare–Verify–Authorize–Commit flow,
-- idempotency,
-- rollback records,
-- Saga-style compensation records,
-- human approval gates.
-
-Exit criteria:
-
-- budget exhaustion and permission boundaries are enforced,
-- important external side effects cannot bypass the Effect Controller,
-- irreversible effects require configured human authorization,
-- committed effects produce verifiable receipts.
+Establish governed profiles and ledgers, permission envelopes, scoped
+credentials, and the Effect Controller runtime with
+Prepare–Verify–Authorize–Commit, receipts, idempotency, rollback and
+compensation. Exit proves consequential external changes cannot bypass the
+Effect path and irreversible effects retain explicit Human authorization.
 
 ## Stage 7 — Second Agent and Architecture Test
 
-Integrate a materially different second agent runtime.
-
-Candidate: Hermes or another multi-model agent.
-
-Exit criteria:
-
-- integration requires a new driver/configuration/sandbox image but no core orchestration redesign,
-- routing can select between at least two agent runtimes.
-
-Failure of this stage means the Agent abstraction is not sufficiently decoupled.
+Integrate one materially different Agent runtime through the existing
+boundaries. Selection is a future bounded decision; Hermes is only a candidate.
+Exit requires adapter/configuration/image work rather than core redesign.
 
 ## Stage 8 — Router and Escalation
 
-Implement:
-
-- capability registry,
-- rule-based routing,
-- execution profile selection,
-- cost-aware routing,
-- reliability-aware routing,
-- escalation and degradation strategies,
-- history-backed routing inputs.
-
-Exit criteria:
-
-- system can choose an execution profile based on explicit constraints rather than a hard-coded agent.
+Establish capability and health registries, resolved execution routes,
+constraint-based eligibility, cost/reliability-aware selection, degradation and
+escalation. Exit replaces hard-coded Agent choice with explicit governed route
+selection. Learned routing remains deferred until trustworthy Stage 10 inputs.
 
 ## Stage 9 — Planner
 
-Implement:
-
-- TaskProposal representation and lifecycle as non-executable planning input,
-- Objective-to-TaskProposal planning,
-- bounded DAG generation,
-- planning depth limits,
-- planning budget,
-- dependency modeling,
-- proposal governance.
-
-Exit criteria:
-
-- Planner cannot directly launch arbitrary work,
-- generated proposals pass through governance before becoming Tasks.
-
-A TaskProposal is never directly executable; governance creates separate executable Task work.
+Establish bounded Objective-to-`TaskProposal` planning, dependency DAGs,
+planning limits, rationale/evidence and proposal governance. A proposal is
+never executable; promotion creates a separate Task only after governance.
 
 ## Stage 10 — Learning and Reputation
 
-Implement:
+Establish delayed verified-experience promotion, scoped reliability views,
+candidate policy generation, shadow evaluation, canaries and reversible
+versioned policy. Raw audit history never directly mutates production policy.
 
-- immutable audit source,
-- delayed observation pipeline,
-- verified experience pool,
-- domain-specific reliability profiles,
-- validator reliability,
-- policy candidates,
-- shadow mode,
-- canary rollout,
-- rollback of policy versions.
+## Stage 11 — Application Control Plane and Human Governance Surface
 
-Exit criteria:
+Establish application services, a stable local API and operator interface,
+workflow inspection, approval/rejection, override and break-glass recording,
+identity/authorization and audit queries. Exit lets an operator govern the
+system without raw database edits or internal Python calls.
 
-- raw events cannot directly mutate production policy,
-- negative trust evidence propagates faster than trust recovery,
-- policy changes are versioned and reversible.
+## Stage 12 — End-to-End Integration and Operational Safety
 
-## Later Stages
+Prove complete cross-plane workflows and realistic failure scenarios, including
+verification conflict, recovery, budget and permission denial, safe Effects,
+unauthorized occurrence recording, replay and process restart. Add correlated
+observability and operational runbooks.
 
-Potential future work:
+## Stage 13 — Production Hardening and Release Engineering
 
-- distributed workers,
-- remote sandbox providers,
-- GPU/local-model resource pools,
-- microVM isolation,
-- advanced schedulers,
-- richer human governance UI,
-- organization-level tenancy,
-- external tracker adapters,
-- self-hosted policy analytics,
-- learned routing after sufficient reliable data exists.
+Establish packaging, configuration, migrations, backup/restore, secrets
+integration, observability, security and dependency gates, reproducible release
+artifacts, performance baselines and upgrade/rollback procedures. The accepted
+v1 deployment may be single-node; distributed or HA claims require separate
+implementation and evidence.
+
+## Stage 14 — v1.0 Release Candidate and Final Delivery
+
+Freeze scope, complete operator/developer documentation and examples, perform
+architecture/security and end-to-end acceptance review, publish reproducible
+release artifacts, and obtain final Human v1 acceptance. Tagging or publishing
+v1.0 remains a separate remote Effect requiring explicit Human authorization.
+
+## Post-v1 non-blocking backlog
+
+The following are candidates, not v1 blockers unless a Human roadmap amendment
+changes that boundary:
+
+- distributed workers and HA control-plane clustering;
+- remote sandbox providers and microVM isolation;
+- GPU and local-model resource pools;
+- advanced schedulers and learned routing after sufficient evidence;
+- richer governance UI and organization/multi-tenant controls;
+- external tracker adapters and self-hosted policy analytics;
+- additional specialized AgentDrivers.
