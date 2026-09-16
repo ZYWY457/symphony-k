@@ -1,6 +1,6 @@
-# Stage 02 M1 — Sandbox Execution Contract Candidate
+# Stage 02 M1 — Sandbox Execution Contract
 
-**Status:** CANDIDATE CORRECTED BY M1A + M1B - independent review / Human approval pending
+**Status:** M1 ARCHITECTURE/DESIGN HUMAN ACCEPTED; Stage 2 remains active
 
 **TaskSpec:** GitHub Issue #77
 
@@ -14,8 +14,14 @@
 
 **Constitutional baseline:** `constitution-v0.1`
 
-**Current technical candidate:**
+**Accepted technical design baseline:**
 `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+
+**Independent cumulative M1B technical review:** **ACCEPT**, recorded on
+[Issue #81](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5698811579)
+
+**Human M1 design approval:** **APPROVED**, recorded on
+[Issue #81](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5699311994)
 
 ## Objective
 
@@ -26,18 +32,21 @@ before any runtime implementation becomes eligible.
 
 ## Authority and disposition
 
-This plan authorizes documentation and architecture-candidate work only. It
-does not authorize changes under `src/` or `tests/`, dependency changes, Docker
-installation or mutation, container execution, Stage 3 activation, or runtime
-implementation. The planned outputs are:
+This plan originally authorized documentation and architecture-candidate work
+only. It did not authorize changes under `src/` or `tests/`, dependency
+changes, Docker installation or mutation, container execution, Stage 3
+activation, or runtime implementation. The planned outputs were:
 
 ```text
 docs/adr/0008-stage-2-sandbox-execution-boundary.md
 docs/design-docs/sandbox-execution-v1.md
 ```
 
-ADR-0008 must remain Proposed and the detailed design must remain Candidate
-until independent review and explicit Human approval are durably recorded.
+At candidate production, ADR-0008 had to remain Proposed and the detailed
+design had to remain Candidate until independent review and explicit Human
+approval were durably recorded. Those gates were later satisfied on Issue #81
+for the exact baseline above and reconciled by Issue #82. This does not release
+Issue #79 or establish runtime isolation evidence.
 
 ## TaskSpec and preflight evidence
 
@@ -139,7 +148,7 @@ than silently treated as accepted facts.
 
 | Risk or unresolved decision | Safe M1 disposition | Blocking owner |
 | --- | --- | --- |
-| Human acceptance of proposed interface/defaults | no runtime implementation | M1 independent review / Human approval |
+| Human acceptance of interface/defaults | accepted at exact baseline; no runtime isolation evidence | Resolved by Issue #81 independent review and Human approval |
 | Host/kernel/daemon enforcement capability | fail closed as unsupported | M3 runtime preflight and Docker integration |
 | Writable storage byte/inode quota portability | do not claim ordinary volume quota | M3 profile implementation; M4 adverse proof |
 | Crash/leak discovery completeness | require ownership labels plus metadata design | M3 implementation; M4 crash testing |
@@ -148,17 +157,20 @@ than silently treated as accepted facts.
 
 ## Candidate completion evidence
 
-M1 is complete only as a local documentation candidate when the exact two
-ordered commits exist, validation passes, protected paths are unchanged and the
-worktree is clean. That result remains pending independent review and Human
-approval. It does not complete Stage 2 or authorize M2 runtime work.
+M1 first became complete as a local documentation candidate when the exact two
+ordered commits existed, validation passed, protected paths were unchanged and
+the worktree was clean. That candidate later passed independent cumulative M1B
+technical review and received explicit Human approval at the exact accepted
+baseline. M1 design acceptance does not complete Stage 2 or authorize M2
+runtime work.
 
 ### Produced design artifacts
 
 - [ADR-0008: Stage 2 Sandbox Execution Boundary](../../adr/0008-stage-2-sandbox-execution-boundary.md)
-  — Proposed.
-- [Sandbox Execution v1](../../design-docs/sandbox-execution-v1.md) — Candidate,
-  not an accepted implementation contract.
+  — Accepted.
+- [Sandbox Execution v1](../../design-docs/sandbox-execution-v1.md) — Human
+  Accepted M1 architecture/design contract at
+  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`.
 
 The detailed design owns requirement IDs `SBX-R01` through `SBX-R15`, future
 test IDs `T-U01` through `T-U06`, `T-F01` through `T-F07`, and `T-D01` through
@@ -186,8 +198,9 @@ test IDs `T-U01` through `T-U06`, `T-F01` through `T-F07`, and `T-D01` through
 ### Proposed implementation sequence
 
 ```text
-S2-M1 candidate (this Issue)
-  -> independent review + durable Human approval
+S2-M1 accepted design at b52df98530d8ce742b07d7f6c399ccd5b54e643b
+  -> Issue #82 governance reconciliation
+  -> explicit READY revision of currently BLOCKED Issue #79
 S2-M2 typed contracts + workspace/artifacts + fake provider
 S2-M3 Docker lifecycle + constraints + telemetry/cleanup
 S2-M4 adverse Docker + crash/reopen + operational evidence
@@ -216,7 +229,8 @@ bounded forward correction recorded in
 `stage-02-correction-m1a-sandbox-contract-closure-v1.md`. The correction also
 adds the requested primary-source backend comparison. It does not change the
 Issue #77 TaskSpec or commits, accept ADR-0008/the design, authorize Issue #79,
-or alter the Docker-first decision. M1 acceptance remains pending.
+or alter the Docker-first decision. M1 acceptance remained pending at that
+historical M1A boundary.
 
 ## Independent review, continuity governance and M1B correction
 
@@ -241,6 +255,8 @@ The design now walks the empty-store/bootstrap/success lifecycle, guardian-
 failure deadline lifecycle and no-process start-failure lifecycle using defined
 types, states, operations and metadata receipts. Added UNIT/FAKE/DOCKER cases
 remain future specifications, not evidence executed by M1B. The old review
-artifact remains REQUEST CHANGES evidence against the old candidate; the new
-M1B candidate's independent review and Human approval are PENDING. Issue #79
-remains BLOCKED and runtime code remains NOT STARTED.
+artifact remains REQUEST CHANGES evidence against the old candidate. The exact
+M1B baseline `b52df98530d8ce742b07d7f6c399ccd5b54e643b` subsequently received
+independent technical review **ACCEPT** and explicit Human M1 design approval on
+Issue #81. Issue #79 remains BLOCKED / NOT RELEASED, runtime code remains NOT
+STARTED, Stage 2 remains active and incomplete, and Stage 3 remains planned.

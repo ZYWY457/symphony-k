@@ -1,11 +1,13 @@
 # Stage 02 — Sandbox Execution
 
-**Status:** ACTIVE - M1 architecture/design; M1B correction candidate pending independent review
+**Status:** ACTIVE - M1 architecture/design HUMAN ACCEPTED; M2 NOT STARTED
 **Constitutional baseline:** `constitution-v0.1`
 
 **Runtime implementation:** NOT YET STARTED
 
-**New sandbox ADR/design:** PROPOSED / pending independent review and Human approval
+**Sandbox ADR/design:** HUMAN ACCEPTED at `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+
+**Runtime isolation evidence:** NOT YET ESTABLISHED
 
 **Stage 2 complete:** NO
 
@@ -16,10 +18,12 @@ GitHub Issue #77, revision `r1 - stage-02-m1-design-start`, against repository
 baseline `60b647f825d2eed4dc56a4d3087f165545a1ea88`. The Issue was read directly
 from GitHub at observed `updatedAt` `2026-09-16T07:50:33Z` before mutation.
 
-This activation authorizes M1 architecture/design only. It does not accept the
-proposed ADR or candidate design, authorize runtime source or test changes, or
-open Stage 3. The next gate is independent review and Human approval of the
-sandbox ADR/design candidate.
+This activation authorized M1 architecture/design only. At activation it did
+not accept the proposed ADR or candidate design, authorize runtime source or
+test changes, or open Stage 3. The later cumulative M1B design baseline
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b` passed independent technical review
+and received explicit Human M1 design approval on Issue #81. Issue #82 records
+that approval without releasing M2 or opening Stage 3.
 
 ## Objective and why this stage exists
 
@@ -59,12 +63,13 @@ does not import Docker/runtime concepts.
 must approve lifecycle, network enforcement, workspace trust and resource
 accounting before those contracts become implementation commitments.
 
-The current design candidates are:
+The accepted M1 design artifacts are:
 
 - [ADR-0008: Stage 2 Sandbox Execution Boundary](../../adr/0008-stage-2-sandbox-execution-boundary.md)
-  — **Proposed**;
+  — **Accepted**;
 - [Sandbox Execution v1](../../design-docs/sandbox-execution-v1.md) —
-  **Candidate - not an accepted implementation contract**.
+  **Human Accepted M1 architecture/design contract** at
+  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`.
 
 ## Cross-stage dependencies
 
@@ -86,13 +91,15 @@ an unavailable or non-enforcing sandbox fails closed before Worker execution.
 
 ## Milestones
 
-1. **S2-M1 current:** activation plus ADR/design candidate, M1A correction
+1. **S2-M1 accepted:** activation plus ADR/design candidate, M1A correction
    under Issue #78, and final bounded R1-R4 M1B correction under Issue #81.
-   Current technical candidate
-   `b52df98530d8ce742b07d7f6c399ccd5b54e643b` awaits independent review and
-   Human approval.
-2. **S2-M2 proposed:** after approval and a new TaskSpec, implement typed
-   contracts, workspace boundary and deterministic fake provider.
+   The exact technical baseline
+   `b52df98530d8ce742b07d7f6c399ccd5b54e643b` passed independent cumulative
+   M1B review with **ACCEPT** and received explicit Human M1 design approval.
+2. **S2-M2 not started / blocked:** Issue #79 remains BLOCKED / NOT RELEASED.
+   After independent verification and publication of the Issue #82
+   reconciliation commit, Issue #79 must be revised to an explicit READY
+   revision against the exact post-reconciliation baseline before M2 begins.
 3. **S2-M3 proposed:** implement Docker lifecycle, enforced constraints,
    artifacts, telemetry and targeted cleanup on an eligible environment.
 4. **S2-M4 proposed:** execute adverse real-Docker, crash/reopen and cleanup
@@ -136,7 +143,7 @@ constraints, collect attributable artifacts/telemetry, normalize failures and
 clean up reliably. No AgentDriver is implemented. Human Exit Review is accepted
 and durably reconciled before Stage 3 activation.
 
-## M1 candidate evidence and next gate
+## M1 evidence, acceptance and next gate
 
 Issue #77 produced the two design artifacts above without runtime source, test,
 dependency or Docker mutation. The candidate defines stable requirement and
@@ -170,7 +177,16 @@ workspace lease acquisition is atomic in `create_sandbox`; and no-process
 `START_FAILED` has closed time/exit/stream semantics. The prior review artifact
 remains historical evidence against the prior candidate and is not rewritten.
 
-Next gate: independent review and explicit Human approval of the M1B cumulative
-technical candidate. Until then, M1 acceptance remains pending, Issue #79/M2
-remains blocked and unreleased, runtime implementation is not authorized and
-Stage 2 is not complete.
+The exact cumulative M1B technical candidate
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b` received an
+[independent technical review disposition of **ACCEPT**](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5698811579)
+and then
+[explicit Human M1 design approval](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5699311994)
+for ADR-0008 and the cumulative design. This acceptance does not claim Docker,
+systemd, cgroup, VM, process-race, artifact-race or resource-adverse evidence.
+
+Next gate: independent verification and publication of the Issue #82
+governance reconciliation, followed by a separate explicit READY revision of
+Issue #79 against the exact post-reconciliation baseline. Issue #79/M2 remains
+blocked and unreleased, runtime implementation is not started, Stage 2 remains
+active and incomplete, and Stage 3 remains planned.

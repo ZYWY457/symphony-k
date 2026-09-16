@@ -2,14 +2,20 @@
 
 ## Status
 
-Proposed.
+Accepted.
 
 This is a Worker-produced candidate under GitHub Issue #77, corrected forward
 under Issues #78 and #81 after independent reviews requested changes. Issue
 #81 is the final bounded M1B technical-contract correction for Worker execution
 set observation, independent deadline enforcement, first workspace lease
-bootstrap and `START_FAILED` process semantics. It is not Human Accepted and
-does not authorize runtime implementation.
+bootstrap and `START_FAILED` process semantics. The cumulative technical design
+at `b52df98530d8ce742b07d7f6c399ccd5b54e643b` passed the
+[independent M1B technical review](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5698811579)
+with disposition **ACCEPT** and then received
+[explicit Human M1 design approval](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5699311994).
+Issue #82 durably reconciles that approval into repository governance. This
+acceptance does not establish runtime isolation evidence, complete Stage 2 or
+release blocked Issue #79.
 
 ## Date
 
@@ -36,7 +42,7 @@ shares the execution environment's kernel; enforcement also depends on the
 daemon, kernel, cgroups, namespaces, filesystem and storage configuration.
 Unknown or unsupported enforcement must not fall back to host execution.
 
-## Proposed decision
+## Decision
 
 ### Provider and authority boundary
 
@@ -359,11 +365,13 @@ Not selected. Rootless limitations need environment-specific evidence, while a
 microVM would broaden v1 scope. Both remain possible provider/deployment
 variants behind the same contract.
 
-## Required evidence before acceptance
+## Acceptance record and required runtime evidence
 
-The detailed [sandbox execution candidate](../design-docs/sandbox-execution-v1.md)
-defines stable requirements, future test cases and M2-M4 ownership. Acceptance
-requires independent review of that traceability and explicit Human answers to:
+The detailed [sandbox execution design](../design-docs/sandbox-execution-v1.md)
+defines stable requirements, future test cases and M2-M4 ownership. The
+independent cumulative M1B review and explicit Human approval accepted the
+following M1 design questions at the exact baseline
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`:
 
 1. Is the provider/authority boundary sufficient to keep domain transitions and
    acceptance outside the sandbox layer?
@@ -381,7 +389,14 @@ requires independent review of that traceability and explicit Human answers to:
 8. Are first-lease bootstrap and `START_FAILED`/unknown process combinations
    complete enough for deterministic M2 implementation?
 
-Issues #78 and #81 close their requested candidate gaps but do not answer the
-approval questions on behalf of the Human reviewer. Until the corrected
-decision is accepted durably, ADR-0008 remains Proposed, M1 acceptance remains
-pending and blocked Issue #79/M2 is not authorized by either correction.
+Issues #78 and #81 close their requested candidate gaps. The independent M1B
+review recorded **ACCEPT**, and the Human approval recorded **APPROVED** for
+ADR-0008 and the exact cumulative design baseline above. The earlier
+**REQUEST CHANGES** review against `613d71b90c36b573578f6fffb9a6c7dd9606478f`
+remains historical evidence and is not rewritten.
+
+This is M1 architecture/design acceptance only. Docker, systemd, cgroup, VM,
+process-race, artifact-race and resource-adverse evidence remains for M3/M4;
+runtime isolation evidence is not yet established. Issue #79 remains BLOCKED /
+NOT RELEASED, M2 code is not started, Stage 2 remains active and incomplete,
+and Stage 3 remains planned.

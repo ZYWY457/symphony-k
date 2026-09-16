@@ -1,6 +1,6 @@
 # Stage 02 M1B — Final Sandbox Contract Correction
 
-**Status:** CORRECTION CANDIDATE - independent review / Human approval pending
+**Status:** CORRECTION ACCEPTED - independent review ACCEPT / Human approval APPROVED
 
 **TaskSpec:** GitHub Issue #81
 
@@ -26,7 +26,7 @@
 `docs/reviews/stage-02-m1a-613d71b-review.md` against candidate
 `613d71b90c36b573578f6fffb9a6c7dd9606478f`
 
-**Current technical candidate:**
+**Accepted technical design baseline:**
 `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
 
 **Technical candidate parent:**
@@ -34,6 +34,15 @@
 
 **Technical candidate title:**
 `docs(architecture): resolve final sandbox contract review findings`
+
+**Independent cumulative M1B technical review:** **ACCEPT**, recorded in the
+[Issue #81 review comment](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5698811579)
+
+**Human M1 design approval:** **APPROVED**, recorded in the
+[Issue #81 approval comment](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5699311994)
+
+**Governance reconciliation:** GitHub Issue #82, revision
+`r1 - stage-02-m1-human-approval-reconciliation`
 
 ## Objective and authority
 
@@ -126,7 +135,7 @@ support remains `NONE` only.
 - audit protected paths and final worktree state;
 - do not claim planned UNIT/FAKE/DOCKER cases executed.
 
-## Candidate disposition
+## Candidate disposition at production
 
 ```text
 Stage 1 = COMPLETE, unchanged
@@ -136,6 +145,34 @@ Sandbox design = corrected M1B CANDIDATE
 R1-R4 = addressed by candidate; independent acceptance PENDING
 Issue #79 = BLOCKED / NOT RELEASED
 Stage 2 runtime code = NOT YET STARTED
+Stage 2 complete = NO
+Stage 3 = PLANNED / not activated
+remote mutation = none
+```
+
+The block above preserves the candidate-production truth before independent
+review and Human approval. It is not rewritten by the later disposition.
+
+## Later review, Human approval and current disposition
+
+The cumulative technical baseline
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b` passed independent M1B technical
+review with disposition **ACCEPT**. The Human then explicitly approved ADR-0008
+and the cumulative Stage 2 sandbox execution design at that exact baseline.
+Issue #82 reconciles those later decisions while preserving the earlier
+**REQUEST CHANGES** review against
+`613d71b90c36b573578f6fffb9a6c7dd9606478f`.
+
+```text
+Stage 1 = COMPLETE, unchanged
+Stage 2 = ACTIVE
+M1 architecture/design = HUMAN ACCEPTED
+ADR-0008 = ACCEPTED
+Accepted sandbox design baseline = b52df98530d8ce742b07d7f6c399ccd5b54e643b
+Independent cumulative M1B technical review = ACCEPT
+Runtime isolation evidence = NOT YET ESTABLISHED
+Issue #79 = BLOCKED / NOT RELEASED
+M2 runtime code = NOT STARTED
 Stage 2 complete = NO
 Stage 3 = PLANNED / not activated
 remote mutation = none

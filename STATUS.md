@@ -9,40 +9,54 @@
   acceptance recorded by GitHub Issue #75 and its ordered governance commits.
 - **Latest accepted stage:** Stage 1 — Domain Kernel
 - **Current constitutional baseline:** `constitution-v0.1`
-- Stage 2 sandbox ADR/design and runtime are not Human Accepted.
+- **Stage 2 M1 architecture/design:** **HUMAN ACCEPTED**. ADR-0008 is
+  **ACCEPTED**, and the exact accepted sandbox design baseline is
+  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+  (`docs(architecture): resolve final sandbox contract review findings`).
+- Stage 2 runtime isolation evidence is **NOT YET ESTABLISHED** and runtime
+  implementation is **NOT YET STARTED**.
 
-## Current candidate + review status
+## Current Stage 2 status
 
 - **Current stage:** Stage 2 — Sandbox Execution
 - **Stage 2 activity:** **ACTIVE**
 - **Current parent plan:**
   [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
-- **Current Stage 2 technical candidate:**
+- **Accepted Stage 2 technical design baseline:**
   `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
   (`docs(architecture): resolve final sandbox contract review findings`)
 - **Correction lineage:** Issue #77 candidate -> Issue #78 / candidate
   `613d71b90c36b573578f6fffb9a6c7dd9606478f` -> independent review ->
-  Issue #80 continuity governance -> Issue #81 M1B correction candidate.
-- **Latest review status of the current technical candidate:** **PENDING
-  independent review**.
+  Issue #80 continuity governance -> Issue #81 M1B correction candidate ->
+  independent cumulative M1B technical review **ACCEPT** -> explicit Human M1
+  design approval -> Issue #82 governance reconciliation.
+- **Independent cumulative M1B technical review:** **ACCEPT**, recorded on
+  Issue #81 against the exact technical baseline above.
 - **Previous durable review:**
   [docs/reviews/stage-02-m1a-613d71b-review.md](docs/reviews/stage-02-m1a-613d71b-review.md)
   remains **REQUEST CHANGES** against `613d71b90c36b573578f6fffb9a6c7dd9606478f`.
-- **Human disposition / acceptance of the current candidate:** **PENDING**;
-  neither Issue #81 nor its Worker commit grants approval.
+- **Human disposition:** **APPROVED**, recorded on Issue #81 for ADR-0008 and
+  the cumulative sandbox design at the exact accepted baseline above.
+- **Governance reconciliation:** this newer Issue #82 reconciliation commit
+  records approval/status/history only; it does not replace or modify the
+  accepted technical design baseline.
+- **Runtime isolation evidence:** **NOT YET ESTABLISHED**.
 - **Stage 2 runtime code:** **NOT YET STARTED**
 - **Stage 2 complete:** **NO**
 
 ## Dispatch / review queue
 
-- **Current technical work:** GitHub Issue #81 produced the bounded M1B R1-R4
-  correction candidate above; independent review is now required.
+- **Current governance work:** GitHub Issue #82 reconciles the independent M1B
+  technical **ACCEPT** and explicit Human M1 design approval. Its local
+  reconciliation commit still requires independent verification/publication.
 - **Issue #78:** candidate history/correction source; not itself proof of
   acceptance.
 - **Issue #79:** **BLOCKED** — M2 runtime implementation is not released and has
   not been executed.
-- **Next action:** independent review of the cumulative M1B technical candidate;
-  no M2 release or runtime work precedes durable Human approval/reconciliation.
+- **Next action:** after independent verification and publication of the Issue
+  #82 reconciliation commit, revise Issue #79 to an explicit `READY` revision
+  against the exact post-reconciliation repository baseline. This
+  reconciliation does not release M2.
 - **Stage 3:** **PLANNED** — not activated.
 
 An open or `READY` Issue does not prove that a Worker is executing it. Issue

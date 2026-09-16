@@ -1,8 +1,11 @@
 # Sandbox Execution v1
 
-## Candidate status and authority
+## Status and authority
 
-**Status:** Candidate - not an accepted implementation contract.
+**Status:** Human Accepted M1 architecture/design contract.
+
+**Accepted technical baseline:**
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`
 
 **Date:** 2026-09-16
 
@@ -11,21 +14,26 @@
 revision `r1 - stage-02-m1a-contract-closure`, and GitHub Issue #81, revision
 `r1 - stage-02-m1b-final-contract-correction`
 
-This document proposes the Stage 2 execution contract. It implements nothing,
-does not report any Docker probe as executed, and does not authorize changes to
-`src/` or `tests/`. [ADR-0008](../adr/0008-stage-2-sandbox-execution-boundary.md)
-is Proposed. Issues #78 and #81 close bounded review gaps but do not accept the
-decision. Independent review and explicit Human approval remain the next gate.
+This document defines the Human Accepted Stage 2 M1 execution contract. It
+implements nothing, does not report any Docker probe as executed, and does not
+authorize changes to `src/` or `tests/`.
+[ADR-0008](../adr/0008-stage-2-sandbox-execution-boundary.md) is Accepted. The
+exact cumulative design baseline above passed the
+[independent M1B technical review](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5698811579)
+with disposition **ACCEPT** and then received
+[explicit Human M1 design approval](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5699311994).
+Issue #82 reconciles that approval without claiming runtime isolation evidence
+or releasing Issue #79.
 
-Normative words in this candidate describe the proposed contract, not an
-already accepted or tested implementation.
+Normative words describe the accepted M1 design contract, not an implemented or
+runtime-tested sandbox.
 
 ## 1. Evidence and decision taxonomy
 
 | Class | Meaning in this document |
 | --- | --- |
 | Inherited requirement | Higher-authority repository rule that this design must satisfy |
-| Proposed decision | Concrete M1 recommendation awaiting Human approval |
+| Accepted M1 decision | Concrete M1 design accepted at the baseline recorded above |
 | Documented technical behavior | Behavior described by Docker's official documentation, not locally proved |
 | Tested evidence | None for the proposed runtime; this TaskSpec prohibited container/probe execution |
 | Unresolved question | Explicitly owned item with a fail-closed behavior and blocking milestone |
@@ -1965,7 +1973,7 @@ accepted exit plus a new TaskSpec may activate Stage 3.
 
 | Question/risk | Current safe behavior | Owner and blocking milestone |
 | --- | --- | --- |
-| Are interface/default decisions acceptable? | no runtime coding | M1 independent review / Human approval; blocks M2 |
+| Are interface/default decisions accepted? | accepted for M2 contract implementation; no runtime isolation evidence | Resolved by Issue #81 independent review and Human approval; Issue #79 release still blocks M2 |
 | Which exact Engine/kernel/distribution versions are supported? | no support claim | M3 TaskSpec/preflight; blocks M3 execution evidence |
 | Do tmpfs `size`, block and inode options enforce correctly in the selected environment? | mark capability unsupported and do not start | M3 implementation, M4 adverse proof; blocks Stage 2 exit |
 | Can the selected Linux host provide protected service-manager timer/helper scheduling independent of guardian lifetime, local daemon control, race-resistant Worker execution-set proof, final resource-absence proof and the required pidfd/procfs/openat2 collector primitives? | capability unsupported; no Worker start | M3 preflight/implementation and M4 T-D17-T-D31; blocks supported profile |
@@ -1996,7 +2004,8 @@ the host as Worker runtime.
 
 ## 18. Approval questions and disposition
 
-Independent review should answer:
+The independent cumulative M1B review and explicit Human approval considered
+and accepted these M1 design questions:
 
 1. Approve or reject the exact provider types, ownership tuple and one-active-
    command rule.
@@ -2008,13 +2017,18 @@ Independent review should answer:
 5. Confirm M2-M4 paths, evidence classes and Stage 3 gate cover every parent
    requirement without importing later-stage authority.
 
-Candidate disposition after Issues #78 and #81 forward-corrected the Issue #77
-candidate:
+The earlier **REQUEST CHANGES** review against
+`613d71b90c36b573578f6fffb9a6c7dd9606478f` remains historical evidence. The
+forward-corrected cumulative candidate at
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b` received independent technical
+review **ACCEPT** and explicit Human M1 design approval on Issue #81. Current
+disposition after Issue #82 governance reconciliation:
 
 ```text
-ADR-0008 = PROPOSED
-Sandbox design = corrected M1B CANDIDATE
-M1 independent review / Human approval = PENDING
+ADR-0008 = ACCEPTED
+Sandbox design at b52df98530d8ce742b07d7f6c399ccd5b54e643b = HUMAN ACCEPTED
+Independent cumulative M1B technical review = ACCEPT
+Runtime isolation evidence = NOT YET ESTABLISHED
 M2 / Issue #79 = BLOCKED; NOT STARTED
 Stage 2 runtime implementation authorized by this correction = NO
 Stage 2 complete = NO
