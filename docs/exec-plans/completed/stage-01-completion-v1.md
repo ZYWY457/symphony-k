@@ -1,8 +1,13 @@
 # Stage 1 Completion Map
 
 **Version:** 1
-**Status:** Active
+**Status:** Completed — Human Exit Accepted
 **Scope:** GitHub Issues #53, #61, #67, #70, #72, #73, and #74 - governance reconciliation
+
+**Final disposition:** GitHub Issue #75 records the independent Human Stage 1
+Exit Review as **ACCEPTED**. Stage 1 is complete. This map was archived from
+`active/` to `completed/`; Stage 2 implementation remains unauthorized until
+its own durable TaskSpec exists.
 
 ## Purpose and baseline
 
@@ -218,7 +223,9 @@ M8 = HUMAN ACCEPTED
 M9 = HUMAN ACCEPTED
 ```
 
-## Remaining Stage 1 order
+## Historical remaining Stage 1 order
+
+The sequence below records the state before the Issue #75 Human Exit decision.
 
 ```text
 CURRENT
@@ -238,7 +245,7 @@ constraints, uniqueness and replay. M9 proves the accepted constitutional
 invariants. Their implementation milestones are complete and Human Accepted;
 the separate Human Stage 1 Exit Review has not yet been performed.
 
-## Exit boundary
+## Historical pre-exit boundary
 
 ```text
 M7 Human Accepted = YES
@@ -252,6 +259,25 @@ Human Stage 1 Exit Review = NEXT
 
 Stage 1 complete = NO
 Stage 2 authorized = NO
+```
+
+## Final Human Stage 1 Exit Review
+
+Issue #75 records safe answers to all eight parent-plan exit questions: Workers
+cannot directly mutate lifecycle state; normal APIs reject impossible state;
+history is superseded rather than rewritten; version checks prevent silent
+overwrite; Worker claims cannot accept Outcomes; committed Effects remain in
+history; secondary Objective links do not propagate lifecycle state; and the
+Stage 1 suite runs without an Agent or Docker.
+
+```text
+M7 Human Accepted = YES
+Human Accepted lifecycle coverage = 99 / 99
+M8 Human Accepted = YES
+M9 Human Accepted = YES
+Stage 1 implementation reconciliation = COMPLETE
+Human Stage 1 Exit Review = ACCEPTED
+Stage 1 complete = YES
 ```
 
 ## Issue #72 execution evidence

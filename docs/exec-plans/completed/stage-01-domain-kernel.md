@@ -1,6 +1,6 @@
 # Stage 01 — Domain Kernel
 
-**Status:** Accepted
+**Status:** Completed — Human Exit Accepted
 **Stage:** 01
 **Constitution Baseline:** `constitution-v0.1`
 **Primary Goal:** Establish the authoritative domain model, state machines, transition authority, invariants, domain events, and persistence boundaries that every later subsystem must obey.
@@ -11,7 +11,23 @@
 
 **Human review correction:** Stage 1 core objects are limited to Objective, Task, Run, Outcome, Evaluation and Effect. TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9 (Planner); a proposal is planning input and never directly executable. The diagram below shows later-system context, not additional Stage 1 scope.
 
-## Stage 1 implementation reconciliation
+## Final Human Stage 1 Exit disposition
+
+Issue #75 records the independent Human Stage 1 Exit Review as **ACCEPTED**.
+All eight section 35 review questions have safe answers, M7/M8/M9 are Human
+Accepted, and Human Accepted lifecycle coverage is 99 / 99.
+
+```text
+Stage 1 complete = YES
+Stage 2 planning may begin = YES
+Stage 2 implementation requires its own durable TaskSpec = YES
+```
+
+This plan was archived from `active/` to `completed/` after that acceptance.
+The reconciliation snapshot immediately below is retained as historical
+pre-exit context and does not override this final disposition.
+
+## Historical pre-exit implementation reconciliation
 
 ```text
 M7 = HUMAN ACCEPTED
