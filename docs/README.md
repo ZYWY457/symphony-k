@@ -51,5 +51,7 @@ activation and exit gates.
 - [AI and maintainer handoff](AI_HANDOFF.md)
 - [Durable TaskSpec template](TASKSPEC_TEMPLATE.md)
 - [Human stage-exit template](STAGE_EXIT_TEMPLATE.md)
+- [Independent review records](reviews/) — durable review evidence when a
+  review materially controls current execution or readiness
 
 No private conversation or AI-specific memory replaces these durable sources.

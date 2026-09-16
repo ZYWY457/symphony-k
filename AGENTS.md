@@ -47,6 +47,18 @@ workflow semantics, stop and seek the necessary Human, ADR, design, and Product
 Contract reconciliation. A Worker MUST NOT silently redefine v1 to fit an
 implementation choice.
 
+Before mutation, follow the current-task discovery procedure in
+[`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md). Consider the exact current candidate
+and its latest review, and inspect correction or dependent Issue state when it
+materially determines the current TaskSpec's lineage, readiness or approval.
+A discovered TaskSpec is not execution authority when it is blocked,
+unreleased, overlaps known active work or otherwise fails its preconditions.
+
+A Worker MAY propose a bounded technical solution when the TaskSpec asks it to;
+that proposal is not self-approval. Never fabricate a Human preference, a
+missing precondition, a validation result, a Worker-occupancy fact or a future
+Issue identity.
+
 Exec Plan state is explicit:
 
 ```text

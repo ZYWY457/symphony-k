@@ -7,6 +7,8 @@ read access.
 
 At execution time the Issue number and URL MUST be concrete. A placeholder,
 title-only reference, future Issue or conversation-only draft is prohibited.
+The starting baseline must also be exact and source-backed; a guessed SHA or
+future baseline is not executable authority.
 
 ## Title
 
@@ -37,6 +39,31 @@ The Worker must stop before mutation on any mismatch.
 
 List only durable Human Accepted facts and exact evidence/commit boundaries.
 Distinguish historical candidate facts from currently accepted truth.
+
+## Readiness, review and correction context
+
+- Accepted baseline:
+- Current candidate and correction ancestry, if applicable:
+- Latest review record and disposition, if applicable:
+- Human disposition and approval reference:
+- Materially related predecessor/correction/dependent Issues:
+- Execution readiness: `READY` | `BLOCKED` | `REVIEW-ONLY`
+- Known execution overlap / occupancy source, or `UNKNOWN`:
+- Exact release conditions for a blocked future task:
+
+`UNKNOWN` occupancy is not permission to assume that no other Worker exists.
+Resolve it from an authoritative coordination source or stop before overlapping
+mutation. An open or `READY` Issue is not by itself proof that work is unclaimed.
+
+A future TaskSpec may be prepared durably as `BLOCKED`, but it is not executable
+until its stated release conditions are satisfied and a concrete released
+revision supplies every required precondition. Placeholder or future Issue
+identity and a guessed baseline remain prohibited.
+
+Review findings must name the exact candidate commit they evaluated. Inspect
+only related Issues that materially determine the current task, correction
+lineage, readiness or approval state; this template does not require reading
+every historical Issue.
 
 ## Governing documents
 

@@ -10,23 +10,70 @@ artifacts alone.
 1. Read `CONSTITUTION.md`.
 2. Read `STATUS.md`.
 3. Read `AGENTS.md`.
-4. Read `VISION.md`.
-5. Read `ARCHITECTURE.md`.
-6. Read `docs/V1_PRODUCT_CONTRACT.md`.
-7. Read `ROADMAP.md`.
-8. Read `docs/DEVELOPMENT_PATH.md`.
-9. Read `docs/REFERENCE_WORKFLOWS.md`.
-10. Read relevant `docs/core-beliefs/`, accepted ADRs and accepted designs.
-11. Read the current active stage parent plan, if `STATUS.md` names one.
-12. Read the concrete durable GitHub Issue TaskSpec.
-13. Independently inspect repository truth before trusting any Worker report.
-14. Implement only the Issue scope.
-15. Run the required validation and inspect the exact candidate diff.
-16. Create local commits only unless remote mutation is explicitly authorized.
-17. Obtain independent Human Review before stage or status promotion.
+4. Perform the current-task and review discovery sequence below.
+5. Read `VISION.md`.
+6. Read `ARCHITECTURE.md`.
+7. Read `docs/V1_PRODUCT_CONTRACT.md`.
+8. Read `ROADMAP.md`.
+9. Read `docs/DEVELOPMENT_PATH.md`.
+10. Read `docs/REFERENCE_WORKFLOWS.md`.
+11. Read relevant `docs/core-beliefs/`, accepted ADRs and accepted designs.
+12. Read the current active stage parent plan, if `STATUS.md` names one.
+13. Freshly read the concrete durable GitHub Issue TaskSpec.
+14. Independently inspect repository truth before trusting any Worker report.
+15. Implement only the Issue scope.
+16. Run the required validation and inspect the exact candidate diff.
+17. Create local commits only unless remote mutation is explicitly authorized.
+18. Obtain independent Human Review before stage or status promotion.
 
 If a referenced file or durable TaskSpec cannot be read, or the required
 baseline is wrong, stop before mutation and report the failed precondition.
+
+## Current-task and review discovery
+
+After reading `STATUS.md` and before mutation:
+
+1. identify the exact accepted baseline and current stage;
+2. identify the exact current candidate commit, if one exists, and inspect that
+   object rather than relying on a Worker summary;
+3. locate and read the latest review record for that exact candidate;
+4. identify and read the concrete TaskSpec named as current governance or
+   execution work;
+5. inspect only the predecessor, correction and dependent Issues that
+   materially determine the current task's lineage, readiness, review or
+   approval state;
+6. distinguish repository status from the dispatch/review queue;
+7. establish whether execution overlap or Worker occupancy is known from a
+   durable source before accepting a write task;
+8. verify readiness, release conditions, baseline and approval independently;
+9. report stale, missing or contradictory pointers instead of silently choosing
+   one source; and
+10. never invent a correction Issue identity or future baseline.
+
+Do not make every historical Issue mandatory reading. Related-Issue discovery
+is bounded by what can materially change the current task's authority or
+interpretation.
+
+The following distinctions are mandatory:
+
+```text
+Task discovery != execution authority.
+Proposal/recommendation != approval.
+Open/READY != known unclaimed work.
+Largest Issue number != next task.
+Unknown Worker occupancy != permission to assume no overlap.
+No remote-write authority != no local implementation authority.
+No write capability != no read capability.
+```
+
+A lack of stated Human implementation preference is not automatically a
+missing precondition when the TaskSpec explicitly asks the Worker to recommend
+a bounded solution. The Worker may recommend; it may not approve its own
+proposal. Local implementation is permitted only when the TaskSpec authorizes
+it and the environment supports it, even if remote writes remain prohibited.
+Read and write capabilities must be checked and reported separately. Workers
+must report actual tool limitations and must not claim validation they did not
+execute.
 
 ## Authority and current truth
 
@@ -119,6 +166,28 @@ DRAFT TASKSPEC
 GitHub Issues are the current manual development-governance carrier, not a
 future Symphony-K product-domain dependency. Remote publication is an external
 effect and remains outside a Worker Task unless explicitly authorized.
+
+## Read-only cold-start acceptance checklist
+
+Given only the repository URL and read access, a capable fresh maintainer or AI
+must be able to report, with durable source references and without prior chat
+memory:
+
+- [ ] the exact accepted baseline and current stage;
+- [ ] the exact current candidate commit;
+- [ ] the latest review disposition and review artifact;
+- [ ] which task is current governance/review work;
+- [ ] which implementation task is blocked and why;
+- [ ] the exact next technical correction required;
+- [ ] which facts are Human Accepted versus candidate or reviewer judgment; and
+- [ ] what it can and cannot execute with its actual tools.
+
+Pass means correct, source-backed task/state discovery and honest capability
+reporting. It does not require stylistic similarity or agreement with a
+preferred model. A model that misreads complete durable evidence has failed the
+execution/review test; governance documents should not expand indefinitely to
+make every model pass. This checklist does not certify another AI. A Human may
+run a separate external cold-start read-only test after publication.
 
 ## Handoff evidence
 
