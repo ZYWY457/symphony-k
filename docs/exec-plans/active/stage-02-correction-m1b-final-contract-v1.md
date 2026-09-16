@@ -26,8 +26,14 @@
 `docs/reviews/stage-02-m1a-613d71b-review.md` against candidate
 `613d71b90c36b573578f6fffb9a6c7dd9606478f`
 
-**Current technical candidate:** PENDING COMMIT 1; Commit 2 records the exact
-technical-correction SHA.
+**Current technical candidate:**
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+
+**Technical candidate parent:**
+`0e93897b519b28485fe04013e4de10e673ac7dbf`
+
+**Technical candidate title:**
+`docs(architecture): resolve final sandbox contract review findings`
 
 ## Objective and authority
 
@@ -90,6 +96,16 @@ The corrected design includes explicit typed/store walkthroughs for:
 
 UNIT/FAKE/DOCKER test IDs remain future specifications. They cover every R1-R4
 branch and are not execution evidence from this documentation task.
+
+## Candidate production evidence
+
+Commit `b52df98530d8ce742b07d7f6c399ccd5b54e643b` changed exactly the proposed
+ADR-0008, candidate sandbox design and this M1B plan. Before commit, the staged
+name/status, whitespace check and complete diff were inspected. Markdown fences
+were balanced; tracked relative links resolved; test catalog IDs were unique
+and continuous (`T-U01`-`T-U10`, `T-F01`-`T-F20`, `T-D01`-`T-D31`); legacy
+whole-container-cgroup reuse names were absent. No runtime, Docker, systemd,
+cgroup, VM or adverse test was run.
 
 ## Protected boundaries
 

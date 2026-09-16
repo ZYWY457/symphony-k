@@ -1,6 +1,6 @@
 # Stage 02 M1 — Sandbox Execution Contract Candidate
 
-**Status:** CANDIDATE CORRECTED BY M1A - independent review / Human approval pending
+**Status:** CANDIDATE CORRECTED BY M1A + M1B - independent review / Human approval pending
 
 **TaskSpec:** GitHub Issue #77
 
@@ -13,6 +13,9 @@
 **Starting baseline:** `60b647f825d2eed4dc56a4d3087f165545a1ea88`
 
 **Constitutional baseline:** `constitution-v0.1`
+
+**Current technical candidate:**
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`
 
 ## Objective
 
@@ -214,3 +217,30 @@ bounded forward correction recorded in
 adds the requested primary-source backend comparison. It does not change the
 Issue #77 TaskSpec or commits, accept ADR-0008/the design, authorize Issue #79,
 or alter the Docker-first decision. M1 acceptance remains pending.
+
+## Independent review, continuity governance and M1B correction
+
+The durable independent review in
+`../../reviews/stage-02-m1a-613d71b-review.md` records REQUEST CHANGES against
+candidate `613d71b90c36b573578f6fffb9a6c7dd9606478f` for:
+
+1. Worker execution-set termination versus collection quiescence and final
+   whole-sandbox absence;
+2. independently executable deadline enforcement after guardian failure;
+3. the first workspace lease/sandbox-binding bootstrap; and
+4. confirmed no-process `START_FAILED` time/exit/stream semantics.
+
+Issue #80 persisted that review and current queue truth; it did not resolve the
+findings. GitHub Issue #81, revision
+`r1 - stage-02-m1b-final-contract-correction`, authorizes the bounded final M1B
+correction recorded in
+`stage-02-correction-m1b-final-contract-v1.md`. Its technical commit is
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`.
+
+The design now walks the empty-store/bootstrap/success lifecycle, guardian-
+failure deadline lifecycle and no-process start-failure lifecycle using defined
+types, states, operations and metadata receipts. Added UNIT/FAKE/DOCKER cases
+remain future specifications, not evidence executed by M1B. The old review
+artifact remains REQUEST CHANGES evidence against the old candidate; the new
+M1B candidate's independent review and Human approval are PENDING. Issue #79
+remains BLOCKED and runtime code remains NOT STARTED.

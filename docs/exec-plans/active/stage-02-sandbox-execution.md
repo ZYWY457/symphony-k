@@ -1,6 +1,6 @@
 # Stage 02 — Sandbox Execution
 
-**Status:** ACTIVE - M1 architecture/design; M1A correction candidate
+**Status:** ACTIVE - M1 architecture/design; M1B correction candidate pending independent review
 **Constitutional baseline:** `constitution-v0.1`
 
 **Runtime implementation:** NOT YET STARTED
@@ -86,9 +86,11 @@ an unavailable or non-enforcing sandbox fails closed before Worker execution.
 
 ## Milestones
 
-1. **S2-M1 current:** activation plus ADR/design candidate, followed by the
-   bounded M1A correction under Issue #78; independent review and Human
-   approval remain pending.
+1. **S2-M1 current:** activation plus ADR/design candidate, M1A correction
+   under Issue #78, and final bounded R1-R4 M1B correction under Issue #81.
+   Current technical candidate
+   `b52df98530d8ce742b07d7f6c399ccd5b54e643b` awaits independent review and
+   Human approval.
 2. **S2-M2 proposed:** after approval and a new TaskSpec, implement typed
    contracts, workspace boundary and deterministic fake provider.
 3. **S2-M3 proposed:** implement Docker lifecycle, enforced constraints,
@@ -157,7 +159,18 @@ starting M2. The correction also records a bounded primary-source comparison of
 Codex, OpenClaw and lower-footprint backend candidates without changing
 ADR-0002's Docker-first decision.
 
-Next gate: independent review and explicit Human approval of corrected
-ADR-0008 and the corrected design. Until then, M1 acceptance remains pending,
-Issue #79/M2 remains blocked, runtime implementation is not authorized and
+The durable review of candidate `613d71b90c36b573578f6fffb9a6c7dd9606478f`
+then recorded REQUEST CHANGES for R1-R4. Issue #80 persisted that review and
+hardened handoff continuity without changing the technical design. Issue #81
+produced the final bounded M1B technical correction at
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`: Worker execution-set emptiness is
+separate from collection quiescence and whole-resource absence; a protected
+service-manager timer/helper remains executable after guardian failure; first
+workspace lease acquisition is atomic in `create_sandbox`; and no-process
+`START_FAILED` has closed time/exit/stream semantics. The prior review artifact
+remains historical evidence against the prior candidate and is not rewritten.
+
+Next gate: independent review and explicit Human approval of the M1B cumulative
+technical candidate. Until then, M1 acceptance remains pending, Issue #79/M2
+remains blocked and unreleased, runtime implementation is not authorized and
 Stage 2 is not complete.

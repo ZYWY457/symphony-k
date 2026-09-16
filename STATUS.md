@@ -11,36 +11,38 @@
 - **Current constitutional baseline:** `constitution-v0.1`
 - Stage 2 sandbox ADR/design and runtime are not Human Accepted.
 
-## Current candidate + latest independent review
+## Current candidate + review status
 
 - **Current stage:** Stage 2 — Sandbox Execution
 - **Stage 2 activity:** **ACTIVE**
 - **Current parent plan:**
   [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
-- **Current Stage 2 candidate:**
-  `613d71b90c36b573578f6fffb9a6c7dd9606478f`
-  (`docs(architecture): close sandbox execution contract gaps`)
-- **Candidate history:** Issue #77 candidate + Issue #78 forward correction;
-  Issue #78 is a correction source, not proof of acceptance.
-- **Latest independent review:** **REQUEST CHANGES**
-- **Review artifact:**
+- **Current Stage 2 technical candidate:**
+  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+  (`docs(architecture): resolve final sandbox contract review findings`)
+- **Correction lineage:** Issue #77 candidate -> Issue #78 / candidate
+  `613d71b90c36b573578f6fffb9a6c7dd9606478f` -> independent review ->
+  Issue #80 continuity governance -> Issue #81 M1B correction candidate.
+- **Latest review status of the current technical candidate:** **PENDING
+  independent review**.
+- **Previous durable review:**
   [docs/reviews/stage-02-m1a-613d71b-review.md](docs/reviews/stage-02-m1a-613d71b-review.md)
-- **Human disposition of that review:** **PENDING**
+  remains **REQUEST CHANGES** against `613d71b90c36b573578f6fffb9a6c7dd9606478f`.
+- **Human disposition / acceptance of the current candidate:** **PENDING**;
+  neither Issue #81 nor its Worker commit grants approval.
 - **Stage 2 runtime code:** **NOT YET STARTED**
 - **Stage 2 complete:** **NO**
 
 ## Dispatch / review queue
 
-- **Current governance task:** GitHub Issue #80 — persist the M1A review and
-  harden cold-start handoff; this work does not accept or correct the sandbox
-  design.
+- **Current technical work:** GitHub Issue #81 produced the bounded M1B R1-R4
+  correction candidate above; independent review is now required.
 - **Issue #78:** candidate history/correction source; not itself proof of
   acceptance.
 - **Issue #79:** **BLOCKED** — M2 runtime implementation is not released and has
   not been executed.
-- **Next technical action after Issue #80 is accepted:** a bounded correction
-  TaskSpec addressing R1-R4. No Issue identity or future baseline may be
-  invented before that durable TaskSpec exists.
+- **Next action:** independent review of the cumulative M1B technical candidate;
+  no M2 release or runtime work precedes durable Human approval/reconciliation.
 - **Stage 3:** **PLANNED** — not activated.
 
 An open or `READY` Issue does not prove that a Worker is executing it. Issue
