@@ -5,8 +5,11 @@
 Proposed.
 
 This is a Worker-produced candidate under GitHub Issue #77, corrected forward
-under Issue #78 after independent review requested changes. It is not Human
-Accepted and does not authorize runtime implementation.
+under Issues #78 and #81 after independent reviews requested changes. Issue
+#81 is the final bounded M1B technical-contract correction for Worker execution
+set observation, independent deadline enforcement, first workspace lease
+bootstrap and `START_FAILED` process semantics. It is not Human Accepted and
+does not authorize runtime implementation.
 
 ## Date
 
@@ -73,38 +76,79 @@ return an unknown state requiring fenced cleanup. Duplicate requests replay a
 recorded result only when identity and request digest match; a conflicting
 digest fails closed.
 
-The proposed initial enforcement topology uses a minimal trusted sandbox
-guardian co-located with the native Linux Docker Engine host. Before a Worker
-command can start, the guardian records and arms a monotonic deadline bound to
-the exact provider, Run, workspace lease, sandbox ID/generation, command ID and
-request digest. It runs outside the Worker container/cgroup under a dedicated
-host identity and service-manager supervision. Its authenticated local control
-socket and Docker management authority are unavailable inside the container;
-the adapter may start/cancel/observe the exact bound operation but may neither
-extend an armed deadline nor retarget it.
+The proposed initial enforcement topology separates coordination from the
+independently executable fail-safe. A minimal trusted sandbox guardian is
+co-located with the native Linux Docker Engine host, but it is not the sole
+timer or kill actor. Before a Worker command can start, the adapter/guardian
+durably records an immutable deadline bound to the exact provider, Run,
+workspace lease, sandbox ID/generation, command ID and request digest, then
+arms a protected service-manager timer. Expiry invokes a minimal trusted kill
+helper that verifies the exact binding and resource fingerprint before
+requesting whole-sandbox termination. The guardian, timer and helper run
+outside the Worker container/cgroup under protected host identities; their
+authenticated control/management authority is unavailable inside the
+container. The adapter may start, cancel early and observe the exact bound
+operation but may neither extend an armed deadline nor retarget it.
 
 The binding records the trusted host boot identity and monotonic arm/expiry
-values; wall-clock time is audit metadata only. Same-boot guardian restart uses
-the original expiry. A host reboot makes that monotonic value incomparable and
-requires immediate unknown-state reconciliation/whole-sandbox cleanup rather
-than a fabricated timeout observation.
+values; wall-clock time is audit metadata only. A same-boot guardian restart
+may reconcile the existing service-manager unit but cannot change its original
+expiry. A host reboot makes that monotonic value incomparable and requires
+immediate unknown-state reconciliation/whole-sandbox cleanup rather than a
+fabricated timeout observation.
 
-Caller, adapter or adapter-management-channel loss therefore does not disarm
-the deadline. At expiry the guardian requests TERM through the immutable image's
-non-root command supervisor, waits the recorded grace interval, then escalates
-to whole-container kill/removal if complete command-tree termination is not
-proved. Process-group signaling alone is insufficient because descendants may
-change session/group or daemonize. The sandbox is reusable only after terminal
-command/stream observations and an empty owned container cgroup are confirmed;
-otherwise it is `UNKNOWN`, blocks reuse and requires targeted destruction.
+Caller, adapter, guardian or adapter-management-channel loss therefore does
+not disarm the already armed service-manager deadline. During normal operation
+the guardian may request TERM through the immutable image's non-root command
+supervisor and observe the recorded grace interval. At expiry the independent
+timer/helper verifies the immutable binding and escalates to exact whole-
+sandbox kill/stop when graceful command termination is unavailable or
+unproved. Process-group signaling alone is insufficient because descendants
+may change session/group or daemonize.
+
+The initial Docker profile defines the **Worker execution set** as every
+untrusted process in the sandbox PID namespace except the explicitly named
+trusted PID 1 command supervisor and any separately enumerated trusted helper
+authorized by this design. PID 1 reaps descendants and participates in
+observation. A command may become terminal/reusable only after the trusted
+boundary confirms that this Worker execution set is empty; a process-group
+observation is insufficient. The live PID 1 supervisor does not make the
+Worker execution set nonempty. Collection requires confirmed Worker-set
+emptiness or an approved freeze/quiescence boundary while the workspace is
+live. Whole-sandbox resource absence is a different fact required only for
+confirmed final destruction.
+Any unknown or false Worker-set observation blocks reuse and forces targeted
+whole-sandbox destruction before another command.
 
 The trusted host kernel, service manager and Docker daemon remain prerequisites,
 not observable guarantees during their own failure or compromise. Guardian
-failure is detected by service-manager/metadata reconciliation and causes an
-immediate whole-sandbox stop attempt plus `UNKNOWN`; runtime preflight rejects
-an environment that cannot keep the guardian separately scheduled, protect its
-channel/identity or enforce whole-container escalation. M3 validates the named
-mechanism rather than choosing its owner.
+exit, lost control channel and guardian unresponsiveness are distinct from
+service-manager, daemon and host/kernel failure. While the service manager is
+healthy, guardian failure leaves the original timer/helper armed and grants no
+additional budget. Service-manager or daemon failure after start yields honest
+unknown state and exact-ownership reconciliation when the substrate returns.
+Runtime preflight rejects an environment that cannot independently schedule
+the timer/helper, protect their identity and channel, or enforce exact whole-
+sandbox escalation. M3 validates the named service-manager API, supported
+versions and race resistance rather than choosing a different owner.
+
+`create_workspace` produces a staged `READY_UNLEASED` workspace with no lease
+or sandbox binding. `create_sandbox` is the one deliberate exception to the
+rule that later mutations supply an existing lease: it atomically verifies the
+exact unleased workspace generation/version, acquires the first trusted-
+allocated lease, binds the requested sandbox identity and records the
+idempotent cleanup fence before external provider create. Confirmed pre-
+provider rejection acquires no lease. A post-acquisition create proven to have
+created no resource may release the lease through a versioned trusted-store
+transition; uncertainty retains the exact lease/binding and blocks another
+sandbox until inspection and targeted cleanup resolve it.
+
+Command terminal results explicitly record whether a Worker process started.
+A confirmed no-process `START_FAILED` has `process_started=false`, no process
+timestamps, duration or exit code, `termination_confirmed=false`, and exact
+empty/no-stream fields. If start occurrence is unresolved, the result is
+`UNKNOWN` with `process_started=None`, not `START_FAILED`; operation timing
+never masquerades as process lifetime.
 
 ### Initial Linux-container profile
 
@@ -291,9 +335,11 @@ requires inspection and fenced cleanup.
 
 ### Let the adapter process own the only deadline timer
 
-Rejected. Adapter death would remove enforcement. The co-located guardian owns
-the timer outside the Worker/adapter lifetime and retains only deadline,
-signal/whole-container-stop, inspection and evidence-recording authority.
+Rejected. Adapter death would remove enforcement. The co-located guardian
+coordinates an immutable binding, while the protected service-manager timer
+and minimal exact-bound kill helper remain executable outside the Worker,
+adapter and guardian process lifetimes. Their authority is limited to the
+bound deadline action, inspection and evidence recording.
 
 ### Use Docker archive/copy or a remote API as the trusted tmpfs reader
 
@@ -328,8 +374,14 @@ requires independent review of that traceability and explicit Human answers to:
 4. Is `NONE` the only accepted initial network profile?
 5. Is the proposed Linux Docker environment/support boundary honest and narrow
    enough for M3/M4 evidence?
+6. Do the Worker execution-set, collection-quiescence and final resource-
+   absence facts prevent both live-PID-1 contradiction and premature reuse?
+7. Is the protected service-manager timer/kill-helper path sufficiently
+   independent from guardian process lifetime?
+8. Are first-lease bootstrap and `START_FAILED`/unknown process combinations
+   complete enough for deterministic M2 implementation?
 
-Issue #78 closes the requested candidate gaps but does not answer the approval
-questions on behalf of the Human reviewer. Until the corrected decision is
-accepted durably, ADR-0008 remains Proposed, M1 acceptance remains pending and
-blocked Issue #79/M2 is not authorized by this correction.
+Issues #78 and #81 close their requested candidate gaps but do not answer the
+approval questions on behalf of the Human reviewer. Until the corrected
+decision is accepted durably, ADR-0008 remains Proposed, M1 acceptance remains
+pending and blocked Issue #79/M2 is not authorized by either correction.

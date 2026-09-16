@@ -8,12 +8,13 @@
 
 **TaskSpec history:** GitHub Issue #77, revision
 `r1 - stage-02-m1-design-start`; corrected forward by GitHub Issue #78,
-revision `r1 - stage-02-m1a-contract-closure`
+revision `r1 - stage-02-m1a-contract-closure`, and GitHub Issue #81, revision
+`r1 - stage-02-m1b-final-contract-correction`
 
 This document proposes the Stage 2 execution contract. It implements nothing,
 does not report any Docker probe as executed, and does not authorize changes to
 `src/` or `tests/`. [ADR-0008](../adr/0008-stage-2-sandbox-execution-boundary.md)
-is Proposed. Issue #78 closes requested review gaps but does not accept the
+is Proposed. Issues #78 and #81 close bounded review gaps but do not accept the
 decision. Independent review and explicit Human approval remain the next gate.
 
 Normative words in this candidate describe the proposed contract, not an
@@ -124,10 +125,11 @@ All byte counts are non-negative unsigned 64-bit integers. Durations use
 integer milliseconds and are positive unless explicitly optional. Timestamps
 are UTC with an offset. Relative paths use `/`, are normalized once for syntax,
 and are still validated during descriptor-relative traversal.
-Generations, lease/store versions and observation sequences are positive
-unsigned 64-bit integers and must not wrap; exhaustion rejects new work. Exit
-codes and signal numbers, where present, are signed 32-bit integers validated
-against the selected platform contract.
+Generations, store versions and observation sequences are positive unsigned
+64-bit integers and must not wrap; exhaustion rejects new work. Lease version
+zero is reserved for `READY_UNLEASED`; an acquired lease uses a positive
+version. Exit codes and signal numbers, where present, are signed 32-bit
+integers validated against the selected platform contract.
 
 Closed candidate enums are:
 
@@ -143,7 +145,8 @@ CommandPhase = PENDING | STARTING | RUNNING | CANCELLING | EXITED |
                CANCELLED | UNKNOWN
 CommandDisposition = EXITED_ZERO | EXITED_NONZERO | TIMED_OUT | CANCELLED |
                      START_FAILED | RESOURCE_LIMIT | UNKNOWN
-WorkspacePhase = DECLARED | STAGING | LEASED | ACTIVE | QUIESCING | QUIESCED |
+WorkspacePhase = DECLARED | STAGING | READY_UNLEASED | LEASED | ACTIVE |
+                 QUIESCING | QUIESCED |
                  EXPORTING | EXPORTED_UNTRUSTED | RELEASING | RELEASED |
                  CLEANUP_REQUIRED | CLEANUP_FAILED | UNKNOWN
 OperationDisposition = IN_PROGRESS | SUCCEEDED | REJECTED | FAILED | UNKNOWN
@@ -151,10 +154,11 @@ CancellationDisposition = CANCEL_REQUESTED | CANCELLED | ALREADY_TERMINAL |
                           UNKNOWN
 ExportDisposition = EXPORTED | REJECTED | LOST | UNKNOWN
 CleanupDisposition = DESTROYED | ALREADY_ABSENT | FAILED | UNKNOWN
+DeadlineEnforcementDisposition = ARMED | ATTEMPTED | CONFIRMED | UNKNOWN
 CapabilityProvenance = REAL_PROBE | SIMULATED
 ObservationCompleteness = COMPLETE | PARTIAL | UNKNOWN
 OwnedResourceKind = WORKSPACE_STAGING | CONTAINER | ARTIFACT_PARTIAL |
-                    SNAPSHOT_PARTIAL | GUARDIAN_DEADLINE
+                    SNAPSHOT_PARTIAL | DEADLINE_ENFORCEMENT
 OperationKind = CAPABILITIES | CREATE_WORKSPACE | CREATE_SANDBOX | START |
                 EXECUTE | INSPECT | INSPECT_COMMAND | CANCEL | COLLECT |
                 EXPORT_WORKSPACE | DESTROY | REOPEN_OWNED_RESOURCES
@@ -198,7 +202,7 @@ ProviderCapabilities(
     supports_private_pid_ipc: bool,
     supports_restart_discovery: bool,
     supports_co_located_linux_collector: bool,
-    supports_external_deadline_guardian: bool,
+    supports_independent_deadline_enforcement: bool,
     provenance: CapabilityProvenance,
     observed_at: UtcTimestamp,
     probe_evidence_refs: tuple[EvidenceRef, ...],
@@ -271,7 +275,7 @@ WorkspaceSpec(
     input_snapshot_ref: ArtifactRef | None,
     retention: WorkspaceRetention,    # DESTROY | EXPORT_FOR_REVIEW
     generation: int,                  # >= 1; never reused for this identity
-    lease_version: int,               # >= 1
+    lease_version: int,               # exactly 0 before first lease acquisition
 )
 
 SandboxSpec(
@@ -325,8 +329,9 @@ SandboxObservation(
     phase: SandboxPhase,
     observed_at: UtcTimestamp,
     provider_resource_id: str | None, # bounded opaque adapter value
-    worker_processes_present: bool | None,
-    owned_cgroup_empty: bool | None,
+    worker_execution_empty: bool | None,
+    collection_quiesced: bool | None,
+    sandbox_resource_absent: bool | None,
     effective_profile_digest: Sha256Digest | None,
     cleanup_required: bool,
     completeness: ObservationCompleteness,
@@ -339,10 +344,18 @@ Specifications are immutable after successful create. A change requires a new
 sandbox identity and generation; changing route or Run requires a new `RunId`
 under ADR-0006. A workspace lease is exclusive. A stale lease version or handle
 generation returns `OWNERSHIP_MISMATCH` without touching the provider resource.
-`LEASED`/`ACTIVE` require non-null `lease_id`, `leased_sandbox_id` and matching
-lease version; released workspaces have neither. `DESTROYED` observations must
-report no Worker processes and an empty owned cgroup. `UNKNOWN` must use
-`completeness=UNKNOWN`, require cleanup and cannot assert either absence field.
+`READY_UNLEASED` requires `lease_id=None`, `leased_sandbox_id=None` and
+`lease_version=0`; it is eligible for exactly one atomic first-lease
+acquisition. `LEASED`/`ACTIVE` require non-null `lease_id`,
+`leased_sandbox_id` and `lease_version>=1`; released workspaces have neither.
+`worker_execution_empty` means every untrusted process in the Worker execution
+set is absent while the trusted PID 1 supervisor may remain alive.
+`collection_quiesced` means the exact live workspace is frozen or otherwise at
+the approved trusted collection boundary. `sandbox_resource_absent` means the
+whole provider resource is absent. `DESTROYED` requires
+`sandbox_resource_absent=true`; ordinary READY/collection never does.
+`UNKNOWN` must use `completeness=UNKNOWN`, require cleanup and cannot assert
+either absence fact or collection quiescence as true.
 
 ### 4.4 Command request and terminal result
 
@@ -376,8 +389,25 @@ DeadlineBinding(
     deadline_monotonic_ns: int,
     grace_ms: int,
     confirmation_ms: int,
+    enforcement_unit_id: str,         # protected service-manager unit identity
+    enforcement_action: Literal["TERMINATE_EXACT_SANDBOX"],
+    resource_fingerprint: Sha256Digest,
     recorded_at: UtcTimestamp,         # audit only, never deadline authority
     binding_digest: Sha256Digest,
+)
+
+DeadlineEnforcementObservation(
+    binding_digest: Sha256Digest,
+    binding_persisted: bool,
+    fail_safe_armed: bool,
+    guardian_available: bool | None,
+    disposition: DeadlineEnforcementDisposition,
+    action_attempted_at: UtcTimestamp | None,
+    action_confirmed_at: UtcTimestamp | None,
+    stale_binding_rejected: bool,
+    cleanup_required: bool,
+    failure: SandboxFailure | None,
+    observation_ref: EvidenceRef,
 )
 
 CommandHandle(
@@ -399,13 +429,15 @@ CommandObservation(
     handle: CommandHandle,
     phase: CommandPhase,
     observed_at: UtcTimestamp,
+    process_started: bool | None,
     started_at: UtcTimestamp | None,
     process_ended_at: UtcTimestamp | None,
     exit_code: int | None,
     termination_confirmed: bool,
+    worker_execution_empty: bool | None,
     stream_eof_confirmed: bool,
-    deadline_armed: bool,
     deadline_expired: bool,
+    deadline_enforcement: DeadlineEnforcementObservation,
     completeness: ObservationCompleteness,
     failure: SandboxFailure | None,
     observation_ref: EvidenceRef,
@@ -414,6 +446,7 @@ CommandObservation(
 TerminalResult(
     command_id: CommandId,
     disposition: CommandDisposition,
+    process_started: bool | None,
     exit_code: int | None,
     started_at: UtcTimestamp | None,
     ended_at: UtcTimestamp | None,
@@ -432,22 +465,60 @@ TerminalResult(
 )
 ```
 
-A confirmed terminal process result requires `termination_confirmed=true`, a
-non-null actual `ended_at`, stream EOF or explicitly partial stream evidence,
-and the disposition-permitted exit-code combination below. An `UNKNOWN` result
-has `termination_confirmed=false`, `ended_at=None`, `exit_code=None` and a
-state-unknown failure. `observed_at` belongs to observations only and never
-substitutes for the process end time.
+A confirmed terminal result for a process that actually started requires
+`process_started=true`, `termination_confirmed=true`, a non-null actual
+`started_at` and `ended_at`, stream EOF or explicitly partial stream evidence,
+and the disposition-permitted exit-code combination below. A confirmed no-
+process `START_FAILED` is terminal at the operation level but is not process
+termination. An `UNKNOWN` result may use `process_started=None` when start
+occurrence is unresolved and always has `termination_confirmed=false`,
+`ended_at=None`, `exit_code=None` and a state-unknown failure. `observed_at`
+belongs to observations only and never substitutes for process start/end time.
 
-| Disposition | Exit code | Required cause/result relationship |
-| --- | --- | --- |
-| `EXITED_ZERO` | exactly 0 | natural process exit confirmed |
-| `EXITED_NONZERO` | nonzero signed 32-bit | natural/program exit confirmed |
-| `START_FAILED` | `None` | no process start; failed start confirmed |
-| `TIMED_OUT` | actual code when observed, otherwise `None` | deadline caused termination; timeout failure retained separately |
-| `CANCELLED` | actual code when observed, otherwise `None` | accepted cancel caused termination |
-| `RESOURCE_LIMIT` | actual code when observed, otherwise `None` | independently observed limit event caused/preceded termination |
-| `UNKNOWN` | `None` | termination unconfirmed; no `ended_at` |
+| Disposition | `process_started` | Exit code | Required cause/result relationship |
+| --- | --- | --- | --- |
+| `EXITED_ZERO` | `true` | exactly 0 | natural process exit confirmed |
+| `EXITED_NONZERO` | `true` | nonzero signed 32-bit | natural/program exit confirmed |
+| `START_FAILED` | `false` | `None` | provider proves no Worker process was created; `started_at`, `ended_at`, `duration_ms` and stream refs are `None`; both observed/retained byte counts are `0`; truncation flags are false; `termination_confirmed=false`; typed start failure has `state_known=true` |
+| `TIMED_OUT` | `true` | actual code when observed, otherwise `None` | deadline caused confirmed Worker execution-set termination; timeout failure retained separately |
+| `CANCELLED` | `true` | actual code when observed, otherwise `None` | accepted cancel caused confirmed Worker execution-set termination |
+| `RESOURCE_LIMIT` | `true` | actual code when observed, otherwise `None` | independently observed limit event caused/preceded confirmed termination |
+| `UNKNOWN` | `true` or `None` | `None` | termination/start occurrence or streams unresolved; never invent `ended_at` or exit code |
+
+For `START_FAILED`, `stdout_ref=None`, `stderr_ref=None`, both observed and
+retained byte counts are exactly zero, and both truncation flags are false.
+Attempt acceptance/completion timestamps belong to `OperationReceipt` and
+observations; they are never copied into process fields. If the start/attach
+response is lost, or a process may have started before observation failed, the
+result is `UNKNOWN`, retains cleanup/reconciliation obligations and does not
+use zeros that would claim no process existed. Invalid combinations such as
+`START_FAILED` plus `ended_at`, a nonzero exit code or
+`termination_confirmed=true` are rejected at construction.
+For every disposition, `termination_confirmed=true` means an actually started
+process and its Worker execution set are confirmed terminated; it never means
+only that an API or start attempt completed.
+
+`DeadlineEnforcementObservation` is provider-neutral. `ARMED` requires the
+immutable binding to be durably persisted and the protected fail-safe unit to
+be successfully armed before the Worker start gate opens. `ATTEMPTED` records
+the exact bound helper action without claiming resource absence. `CONFIRMED`
+requires independent observation of the bound action's required result;
+`UNKNOWN` retains cleanup/reconciliation. Guardian availability is a separate
+observation and never changes the deadline. A stale timer/helper event sets
+`stale_binding_rejected=true`, performs no provider mutation and cannot be
+retargeted. Cancellation/removal of the unit is legal only after the exact
+command has reached an allowed confirmed terminal state with no remaining
+fail-safe need, or as part of confirmed whole-sandbox destruction. A lost
+cancel response is reconciled idempotently by binding/unit identity.
+
+The closed deadline combinations are: `ARMED` has no action timestamps and no
+failure; `ATTEMPTED` has `action_attempted_at` but no confirmed time and does
+not imply termination; `CONFIRMED` has both action timestamps, no failure and
+the actual bound result observation; `UNKNOWN` has a `state_known=false`
+failure and `cleanup_required=true`, with the attempted time present only if
+that attempt was observed. A stale-rejected event has no action timestamp and
+cannot be `CONFIRMED`. Service-manager unavailability during preflight cannot
+produce `ARMED` and rejects Worker start.
 
 Output truncation is orthogonal: any confirmed disposition may have either
 stream truncated while preserving the actual exit status. Cleanup outcome is
@@ -458,8 +529,9 @@ concatenated into a host command. An explicit request such as
 `("/bin/sh", "-lc", "...")` invokes a shell inside the sandbox only and is
 subject to the same policy.
 
-`*_observed_bytes` is exact only when the adapter saw stream EOF; disconnect or
-lost telemetry makes it `None`. Retained bytes are always exact. The adapter
+`*_observed_bytes` is exact only when the adapter saw stream EOF or the provider
+proved no process was created; disconnect or lost telemetry makes it `None`.
+Retained bytes are always exact. The adapter
 drains stdout and stderr concurrently until EOF or confirmed process-tree
 termination, retains each prefix independently, increments observed counts
 without retaining excess, and marks truncation. Output overflow does not stop
@@ -607,6 +679,7 @@ trusted boundary.
 MutationContext(
     request_id: RequestId,
     idempotency_key: IdempotencyKey,
+    expected_workspace_version: int | None,
     expected_workspace_generation: int | None,
     expected_lease_id: WorkspaceLeaseId | None,
     expected_lease_version: int | None,
@@ -661,39 +734,64 @@ production allocator and persists the complete immutable request before the
 first provider call. It reuses both after a lost response. The provider stores
 the key under `(provider_id, operation_kind, authoritative ownership scope)`.
 The request fingerprint is the SHA-256 of the canonical encoding of contract
-version, operation kind, request ID, full ownership tuple, workspace generation,
+version, operation kind, request ID, full ownership tuple, workspace store
+version/generation,
 lease ID/version, sandbox generation and every semantic parameter, including
 all ordered argv/include values and sorted map/set content. It excludes only
 the idempotency key itself. Same key/same digest replays; same key/different
 digest conflicts; same request ID under another key also conflicts.
 
-Only `create_workspace` permits all expected generation/lease/sandbox fields to
-be `None`; its new identity/generation live in `WorkspaceSpec`. Every later
-mutation requires workspace generation, lease ID/version and, once allocated,
-sandbox generation. Presence/absence combinations outside that rule are
-`INVALID_SCOPE` before provider mutation.
+`create_workspace` permits all expected store-version, generation, lease and
+sandbox fields to be `None`; its new identity/generation live in
+`WorkspaceSpec`, and success
+produces `READY_UNLEASED` with lease version zero. `create_sandbox` is the one
+deliberate first-lease exception: it requires the exact expected workspace
+generation and store version while expected lease and sandbox-generation
+fields are absent. Every later mutation requires workspace generation, lease
+ID/version and, once allocated, sandbox generation. Presence/absence
+combinations outside those two rules are `INVALID_SCOPE` before provider
+mutation.
 
-All operations first compare expected generation and lease against one
-authoritative metadata snapshot. On a successful mutation the store atomically
-writes the new phase/version, operation receipt and cleanup obligation before
-the result is exposed. Provider-side mutation followed by store uncertainty is
-`UNKNOWN` and requires inspect/reconciliation; it is never rolled back in
-memory and reported absent. Reads return one immutable snapshot. No operation
-may widen ownership from provider labels or a caller handle.
+Before the external create call, `create_sandbox` atomically verifies the exact
+eligible `READY_UNLEASED` workspace generation/version, verifies that no lease
+or sandbox binding exists, allocates a trusted `WorkspaceLeaseId`, sets
+`lease_version=1`, binds the requested `sandbox_id`, and records the operation
+receipt, request fingerprint and cleanup fence. Only that exact successful or
+replayed operation may use the binding. A conflicting concurrent acquisition
+loses the compare-and-set and touches no provider resource.
+
+A confirmed pre-provider rejection leaves the workspace `READY_UNLEASED`. If
+the lease was acquired but the provider proves no resource was created, one
+trusted-store transition may release the binding to the same generation's
+`READY_UNLEASED` state, increment metadata version and preserve the failed
+receipt; replay of the same key returns that outcome and a new attempt needs a
+new request/key. If create may have happened, its response was lost or a
+partial resource exists, the lease remains bound to the exact sandbox,
+cleanup/unknown is recorded, and no other sandbox may acquire the workspace
+until exact inspection and targeted cleanup resolve the obligation.
+
+All operations first compare the expected store version, generation and lease
+fields applicable to their bootstrap rule against one authoritative metadata
+snapshot. On a successful mutation the store atomically writes the new phase/
+version, operation receipt and cleanup obligation before the result is exposed.
+Provider-side mutation followed by store uncertainty is `UNKNOWN` and requires
+inspect/reconciliation; it is never rolled back in memory and reported absent.
+Reads return one immutable snapshot. No operation may widen ownership from
+provider labels or a caller handle.
 
 ### 5.1 Public-operation completeness checklist
 
 | Operation | Defined result | State/consistency rule | Planned tests |
 | --- | --- | --- | --- |
 | `capabilities` | `ProviderCapabilities` | provenance/version scoped; Fake is simulated | T-U01, architecture import check |
-| `create_workspace` | `WorkspaceRecord` / `OperationInProgress` | declared through leased or cleanup-required; exact replay | T-U02-T-U03, T-F01, T-F05 |
-| `create_sandbox` | `SandboxObservation` / `OperationInProgress` | absent/allocating/create; partial failure retains obligation | T-F01, T-F03, T-F05 |
+| `create_workspace` | `WorkspaceRecord` / `OperationInProgress` | no record to `READY_UNLEASED`, no lease/binding; exact replay | T-U02-T-U03, T-U09, T-F01, T-F05, T-F17 |
+| `create_sandbox` | `SandboxObservation` / `OperationInProgress` | atomically acquires first lease/binding before provider create; uncertainty retains both | T-U09, T-F01, T-F03, T-F05, T-F17-T-F19 |
 | `start` | `SandboxObservation` / `OperationInProgress` | created/starting to ready, stopped or unknown | T-F01, T-F03 |
-| `execute` | `CommandHandle` / `TerminalResult` / in-progress | ready only; deadline armed first; one active/unknown command | T-F01-T-F04, T-F08-T-F10 |
+| `execute` | `CommandHandle` / `TerminalResult` / in-progress | ready only; binding persisted and independent fail-safe armed first; one active/unknown command | T-U08, T-U10, T-F01-T-F04, T-F08-T-F10, T-F13-T-F16, T-F20 |
 | `inspect` | `SandboxObservation` | exact identity/generation; read-only snapshot | T-U03, T-F03 |
 | `inspect_command` | `CommandObservation` / `TerminalResult` | observation time never invents process end | T-U05, T-F04 |
 | `cancel` | `CancellationResult` / in-progress | STARTING/RUNNING/CANCELLING/UNKNOWN; race preserves actual result | T-F04, T-F10 |
-| `collect` | `ArtifactCollectionResult` / in-progress | quiesced/frozen identity; atomic manifest or none | T-U06, T-F07, T-F11 |
+| `collect` | `ArtifactCollectionResult` / in-progress | confirmed Worker-set empty or verified live freeze/quiescence; atomic manifest or none | T-U06-T-U07, T-F07, T-F11-T-F12 |
 | `export_workspace` | `WorkspaceExportResult` / in-progress | durable commit before normal removal; loss explicit | T-F07, T-F11 |
 | `destroy` | `CleanupResult` / in-progress | targeted whole sandbox; absence required for success | T-F05-T-F06, T-F08-T-F09 |
 | `reopen_owned_resources` | tuple of `OwnedResourceObservation` | bounded query; observation only, no implicit cleanup/Run recovery | T-F06 |
@@ -732,79 +830,119 @@ a sandbox. An unknown command blocks a new command until inspection proves it
 terminal or fenced destruction removes the sandbox.
 
 The approved image contains a minimal trusted PID 1 command supervisor. It
-starts exactly one non-root Worker process group, reaps descendants and applies
-termination to the entire group. Its control channel is adapter-owned and not
-exposed as a Worker capability. `READY` after a command requires the supervisor
-and provider to observe no surviving Worker process. If that cannot be proved,
-the sandbox becomes `UNKNOWN`/cleanup-required and is never reused. M3/M4 must
-validate this mechanism; a Docker client timeout or the end of one attached
-process is insufficient.
+starts the non-root Worker only after the trusted start gate opens, reaps
+descendants and participates in trusted process observation. Its control
+channel is adapter-owned and not exposed as a Worker capability.
+
+For the initial Docker profile, the **Worker execution set** is every untrusted
+process in the sandbox PID namespace except the explicitly named trusted PID 1
+supervisor and any separately enumerated trusted helper authorized by this
+design. The initial profile authorizes no other resident in-container helper;
+the guardian, timer/helper and collector are protected host services outside
+the sandbox PID namespace. All Worker descendants remain in the container/
+PID-namespace containment even when they call `setsid`, change process groups
+or daemonize.
+Process-group emptiness alone is therefore insufficient. `READY` after a
+command requires terminal command/stream observations and trusted confirmation
+that the Worker execution set is empty. The live PID 1 supervisor is outside
+that set and may remain alive for collection or reuse. If Worker-set emptiness
+is false or unprovable, the sandbox becomes `UNKNOWN`/cleanup-required, cannot
+be collected from unless an independently verified whole-container freeze is
+established, and is never reused before targeted destruction. M3/M4 must
+validate the process-enumeration/container-inspection boundary and race
+resistance; a Docker client timeout or the end of one attached process is
+insufficient.
 
 The PID 1 supervisor is not the deadline owner. A minimal host guardian on the
-same native Linux host as the Docker daemon runs outside the Worker cgroup under
-a dedicated OS identity and service-manager supervision. Before the adapter may
-release the Worker start gate, the guardian durably records and arms a monotonic
-deadline plus grace/confirmation bounds for the exact provider, Run, workspace
-generation/lease, sandbox ID/generation, command ID and request digest. Its
-local authenticated socket is accessible only to the adapter service identity;
-the Worker has no socket, token, host PID namespace, daemon endpoint or signal
-permission for either trusted process. The adapter may request earlier cancel
-but cannot extend, disable or retarget an armed deadline.
+same native Linux host as the Docker daemon coordinates deadline binding, but
+the guardian process is not the sole timer or kill actor. Before the adapter
+may release the Worker start gate, the trusted boundary must (1) durably record
+the immutable `DeadlineBinding`, (2) know the exact sandbox resource identity,
+(3) arm a protected service-manager timer, and (4) bind that timer's minimal
+kill helper to the same provider, Run, workspace lease, sandbox generation,
+command and request/resource fingerprints. The timer/helper remain executable
+without the guardian process. The local authenticated control interfaces are
+accessible only to trusted host service identities; the Worker has no socket,
+token, host PID namespace, daemon endpoint, service-manager authentication or
+signal permission for any trusted component. The adapter/guardian may request
+earlier cancel but cannot extend, disable or retarget an armed deadline.
 
-The guardian survives API caller/adapter loss and, at expiry, requests TERM of
-the Worker process group, observes for the immutable grace, then requests
-whole-container kill and targeted removal if the supervisor does not prove an
-empty command tree. Container/cgroup containment—not process group membership—
-covers descendants that call `setsid`, change groups or daemonize. A terminal
-command result requires actual process exit plus stream completion evidence;
-sandbox reuse additionally requires the exact owned cgroup to be empty. Failure
-to confirm either yields `UNKNOWN`, retains the deadline/cleanup obligation and
-forces whole-sandbox destruction before any reuse.
+During normal operation the guardian may request TERM of the Worker execution
+set and observe the immutable grace. At expiry, the protected service-manager
+timer invokes the minimal helper. The helper first rejects any binding,
+generation or resource-fingerprint mismatch; on an exact match it requests the
+bound whole-sandbox kill/stop action when graceful command termination is
+unavailable or unproved. Container/PID-namespace containment—not process-group
+membership—covers descendants that call `setsid`, change groups or daemonize.
+A terminal/reusable command requires actual process semantics, required stream
+evidence and confirmed Worker execution-set emptiness. Whole-container cgroup
+emptiness/resource absence is not required for normal reuse or preservation;
+it is required for final `DESTROYED`. Failure to confirm Worker-set emptiness
+yields `UNKNOWN`, retains the deadline/cleanup obligation and forces whole-
+sandbox destruction before any reuse.
 
 Caller loss changes no state. Adapter or adapter-to-guardian channel loss leaves
-the already armed guardian active. Adapter-to-daemon management loss leaves the
-deadline active but may make the later result `UNKNOWN`; the guardian retries
-only the bound action and retains evidence. Guardian process failure is detected
-by the service manager and authoritative outstanding-deadline record; restart
-on the same host boot re-arms no later than the recorded monotonic deadline. A
-boot-ID change makes the old monotonic value incomparable and triggers immediate
-whole-sandbox reconciliation/stop rather than fabricating elapsed time. Any
-other uncertainty triggers immediate whole-sandbox stop. Failure/compromise of
-the trusted host kernel, service manager or daemon is outside the promise while
-that substrate is unavailable;
-after recovery every affected resource is unknown and targeted cleanup is
-required. Preflight rejects an environment that cannot isolate/schedule the
-guardian, protect its channel, store the binding or perform whole-container
-escalation.
+the already armed service-manager unit active. Guardian process exit and
+guardian-alive-but-unresponsive are recorded separately; neither cancels,
+re-arms nor extends the independent timer. Adapter-to-daemon management loss
+may make the later result `UNKNOWN`, but the timer/helper attempts only its
+exact bound action and retains evidence. A guardian restart may reconcile and
+observe the existing unit; deadline enforcement does not depend on that
+restart.
+
+A boot-ID change makes the old monotonic value incomparable and triggers
+immediate unknown-state exact-ownership reconciliation rather than fabricated
+elapsed time. Service-manager failure, Docker-daemon failure and trusted
+host/kernel failure are separate substrate failures. While those trusted
+substrates are unavailable, the contract promises neither action nor
+termination observation. After recovery every possibly live affected resource
+is unknown until exact inspection and targeted cleanup complete. Preflight
+rejects an environment that cannot isolate/schedule the guardian, independently
+arm the timer/helper, protect their channels/identity, store the binding or
+perform exact whole-sandbox escalation.
+
+The independent unit may be cancelled/removed only after the exact command has
+an allowed confirmed terminal result and no later fail-safe action is required,
+or as part of confirmed whole-sandbox destruction. A lost cancellation response
+retains the obligation and is reconciled idempotently by the unit and binding
+identity. Stale unit/helper events fail closed on generation/fingerprint
+mismatch and never target a replacement generation.
 
 The material alternative is an independently protected in-container watchdog.
 It is not selected because sharing the Worker cgroup lets CPU/PID/memory pressure
 attack deadline enforcement and makes whole-container escalation depend on the
-same failing boundary. M3 may validate the named guardian mechanism and exact
-platform APIs, not defer ownership again.
+same failing boundary. M3 may choose the exact service-manager API (for example
+a protected transient systemd timer/service or equivalent) and supported
+versions, but may not defer the independent enforcement owner again or replace
+it with a shell-CLI architectural contract.
 
 Create failure is an operation result, not a sandbox phase. When inspection
-proves no provider resource, the record returns to `ABSENT`; when a partial
-resource exists it remains `ALLOCATING`/`UNKNOWN` with cleanup required until
-`destroy`. Start failure may return to confirmed `CREATED` only if no Worker
-process began and the effective resource is intact; otherwise it becomes
-`STOPPED` or `UNKNOWN` and only inspect/destroy are permitted. `UNKNOWN` permits
-inspect and targeted destroy only; no start, execute, collect or reuse.
+proves no provider resource, the trusted store may release the first lease back
+to the same generation's `READY_UNLEASED` state while preserving the receipt;
+when a partial or possible resource exists it remains bound in
+`ALLOCATING`/`UNKNOWN` with cleanup required until `destroy`. A confirmed
+command `START_FAILED` may return the sandbox to `READY` only when the provider
+proves no Worker process was created, the Worker execution set is empty and
+the effective resource is intact. A sandbox/container start failure may remain
+`CREATED` only under the same no-process proof. If a process began it follows
+normal terminal/cleanup semantics; if occurrence is unresolved it becomes
+`UNKNOWN`. `UNKNOWN` permits inspect and targeted destroy only; no start,
+execute, collect or reuse.
 
 ### 6.3 Operation transition contract
 
 | Operation | Allowed phase and ownership check | Result / duplicate behavior | Timeout, disconnect and retry | Evidence and cleanup; live resource possible? |
 | --- | --- | --- | --- | --- |
-| `create_workspace` | no record for ID; Task/Run exist and lease unclaimed | `WorkspaceRecord`; exact key replays | pre-response loss requires metadata lookup; never recreate blindly | allocation observations; partial staging cleanup; yes |
-| `create_sandbox` | workspace lease valid; sandbox absent; all capabilities supported | `CREATED`; exact key replays; conflict rejected | inspect by immutable ID/labels before retry | effective config/image/ownership; partial container cleanup; yes |
-| `start` | `CREATED`; full tuple/generation match | `READY`; repeated start on ready replays/observes | confirmed no-process failure may remain `CREATED`; otherwise `STOPPED`/`UNKNOWN`, inspect before retry | start/inspect observations; yes |
-| `execute` | `READY`; no active/unknown command; cwd/env/limits valid | handle or terminal result; exact command replay | guardian deadline must be armed before start gate; caller loss changes nothing | binding plus ordered stream/start/exit evidence; yes |
+| `create_workspace` | no record for ID; Task/Run exist | `READY_UNLEASED`, lease/binding absent; exact key replays | pre-response loss requires metadata lookup; never recreate blindly | staging/record observations; partial staging cleanup; no sandbox resource |
+| `create_sandbox` | exact `READY_UNLEASED` workspace generation/store version; expected lease absent; sandbox ID absent; capabilities supported | atomically acquire first lease/binding, then `CREATED`; exact key replays; concurrent conflict rejected | proven no-resource create failure may release lease by trusted transition; uncertainty retains binding and requires inspect/cleanup | lease receipt before provider call; effective config/image/ownership; partial container possible |
+| `start` | `CREATED`; full tuple/generation match | `READY`; repeated start on ready replays/observes | confirmed no-process container-start failure may remain `CREATED`; otherwise `STOPPED`/`UNKNOWN`, inspect before retry | `process_started` proof and start/inspect observations; yes |
+| `execute` | `READY`; no active/unknown command; cwd/env/limits valid | handle or terminal result; exact command replay | deadline binding persisted and independent fail-safe armed before start gate; confirmed no-process failure is exact `START_FAILED`; lost start occurrence is `UNKNOWN` | binding/unit plus ordered start/process-set/stream/exit evidence; yes |
 | `inspect` | any known sandbox phase; full tuple match | current observation, including missing/unknown | read retry allowed; absence must match owned identity | inspected config/state; no mutation |
 | `inspect_command` | known command and request digest | current/terminal observation | read retry allowed; unknown remains unknown | state/exit/stream completeness evidence |
-| `cancel` | command `STARTING`, `RUNNING`, `CANCELLING` or `UNKNOWN` | typed cancel-requested, confirmed cancelled, already terminal, or unknown | guardian shortens deadline; TERM/grace then whole-container kill if needed; race may return actual exit | signal/cgroup/container evidence; yes until confirmed |
-| `collect` | sandbox not executing; quiescence confirmed; lease valid | manifest/result; exact key replays | disconnect before durable manifest returns unknown; inspect storage before retry | walk/hash/copy observations; rejection cleanup; no new live process |
+| `cancel` | command `STARTING`, `RUNNING`, `CANCELLING` or `UNKNOWN` | typed cancel-requested, confirmed cancelled, already terminal, or unknown | authorized request may only shorten; guardian coordinates TERM while independent unit remains armed; whole-sandbox escalation if needed | signal/Worker-set/unit/container evidence; yes until confirmed |
+| `collect` | no active Worker execution, or exact live container is independently frozen; lease valid | manifest/result; exact key replays | disconnect before durable manifest returns unknown; inspect storage before retry | Worker-set or freeze quiescence plus walk/hash/copy observations; rejection cleanup; no new live process |
 | `export_workspace` | not executing; retention explicitly `EXPORT_FOR_REVIEW` | immutable untrusted snapshot ref | no replay until snapshot identity checked | snapshot hash/size; partial export cleanup |
-| `destroy` | owned resource in any non-destroyed phase | confirmed destroyed or cleanup failure/unknown; repeated confirmed destroy replays | target immutable provider ID; reconnect and inspect; never global prune | stop/kill/remove/absence observations; yes on failure |
+| `destroy` | owned resource in any non-destroyed phase | confirmed destroyed only with whole-resource absence, otherwise cleanup failure/unknown; repeated confirmed destroy replays | target immutable provider ID; reconcile independent timer; reconnect and inspect; never global prune | stop/kill/remove/resource-absence observations; yes on failure |
 | `reopen_owned_resources` | authenticated provider startup/reopen and Run scope | bounded observations only | safe repeat; does not resume Run | reconciles metadata/labels; cleanup decision remains external |
 
 Cancellation race rule: acceptance of a cancel request is not cancellation.
@@ -814,8 +952,9 @@ cancel signal caused the confirmed termination, return `CANCELLED` while
 retaining the observed signal/exit code. If the monotonic deadline was the first
 cause, return `TIMED_OUT` even if a later cancel arrived. Simultaneous/partially
 observed ordering is `UNKNOWN`; never infer the winner from receipt timestamps.
-If termination, stream EOF or owned-cgroup emptiness cannot be confirmed, keep
-the cleanup obligation, block reuse and destroy the whole sandbox.
+If termination, stream EOF or Worker execution-set emptiness cannot be
+confirmed, keep the cleanup obligation, block reuse and destroy the whole
+sandbox. Whole-sandbox absence is confirmed only by the destroy path.
 
 ## 7. Normalized failure contract
 
@@ -846,9 +985,9 @@ success.
 | `IMAGE_UNAVAILABLE` | approved digest is not locally present or inspect fails | no implicit pull; provisioning is separate; cleanup partial create |
 | `IMAGE_POLICY_REJECTED` | mutable identity, root config, entrypoint/config or digest mismatch | no start; require approved image change |
 | `CREATE_FAILED` | runtime create error | partial resource may exist; discover and targeted cleanup before retry |
-| `START_FAILED` | container cannot start or effective config differs | stop/remove owned resource; no Worker execution result invented |
+| `START_FAILED` | sandbox/container cannot start or effective config differs | if no Worker process/resource creation is proved, retain no process lifetime fields; otherwise inspect/cleanup and keep unknown as required |
 | `COMMAND_NONZERO_EXIT` | command reaches EOF with exit code other than zero | terminal command result, normally not provider-retryable |
-| `COMMAND_START_FAILED` | argv/cwd executable cannot start after sandbox ready | terminal when confirmed; sandbox may remain reusable after inspection |
+| `COMMAND_START_FAILED` | argv/cwd executable cannot start after sandbox ready | exact no-process proof yields `CommandDisposition.START_FAILED`, `process_started=false`, zero/no-stream values and `state_known=true`; uncertain start occurrence yields `UNKNOWN`, not start-failed |
 | `TIMEOUT` | trusted wall deadline reached | initiate cancel; terminal only when termination/EOF confirmed, else unknown |
 | `CANCELLED` | requested termination is confirmed | terminal; retain actual signal/exit observations |
 | `MEMORY_LIMIT_REACHED` | cgroup/runtime evidence shows OOM/limit event | terminal or unknown if disconnect; collect evidence and inspect before reuse |
@@ -870,7 +1009,8 @@ Control Plane semantics without a reviewed contract version.
 ### 8.1 Workspace lifecycle
 
 ```text
-DECLARED -> STAGING -> LEASED -> ACTIVE -> QUIESCING -> QUIESCED
+DECLARED -> STAGING -> READY_UNLEASED
+READY_UNLEASED -> LEASED -> ACTIVE -> QUIESCING -> QUIESCED
 QUIESCED -> EXPORTING -> EXPORTED_UNTRUSTED -> RELEASED
 QUIESCED -> RELEASING -> RELEASED
 any allocation/export phase -> CLEANUP_REQUIRED -> RELEASED | CLEANUP_FAILED
@@ -879,6 +1019,16 @@ any allocation/export phase -> CLEANUP_REQUIRED -> RELEASED | CLEANUP_FAILED
 Workspace phase is provider metadata, not a domain state. `EXPORTED_UNTRUSTED`
 means only that bounded bytes were captured with a manifest. It grants no
 checkpoint, evidence, Outcome or recovery status.
+
+After successful staging, `READY_UNLEASED` has `lease_id=None`,
+`leased_sandbox_id=None` and lease version zero. `create_sandbox` atomically
+performs `READY_UNLEASED -> LEASED` and writes the first lease/sandbox binding,
+operation receipt and cleanup fence before external create. There is no hidden
+manual lease mutation. Confirmed pre-provider rejection leaves the state
+unchanged; confirmed no-resource failure after acquisition may return to
+`READY_UNLEASED` only through the versioned trusted-store transition described
+in section 5. Unknown/partial create remains `LEASED` plus cleanup-required and
+blocks a second binding.
 
 The proposed first strategy is:
 
@@ -893,7 +1043,8 @@ The proposed first strategy is:
    `/workspace` and verifies the imported manifest. The host repository, home,
    SQLite store and credential directories are never mounted.
 5. One sandbox owns the exclusive workspace lease. No second container mounts
-   or imports it concurrently.
+   or imports it concurrently. Exact replay may recover the same binding;
+   conflicting/concurrent `create_sandbox` cannot acquire another lease.
 6. On the normal artifact-preserving path, collection/export first freezes or
    quiesces the Worker while tmpfs still exists, performs the bounded validated
    export, durably commits its manifest/snapshot, and only then removes the
@@ -903,6 +1054,14 @@ The proposed first strategy is:
    5 recovery decision and required verification. A successor Run creates a new
    `WorkspaceId` owned by that `RunId` and records the source snapshot/reference;
    the original workspace ownership and old handle are never mutated or reused.
+
+Within a sandbox lifetime, the same bound sandbox may execute another allowed
+command after it returns to `READY` with confirmed Worker execution-set
+emptiness. Final destroy/release makes the original workspace metadata
+`RELEASED`, which is terminal and not eligible for a different sandbox in the
+same Run. Any later sandbox uses a new workspace identity/generation and, when
+applicable, an explicitly governed snapshot import. This preserves the initial
+one-sandbox/exclusive-workspace intent without concurrent or silent rebinding.
 
 Creation failure cleanup is journaled step-by-step: staging allocation, input
 copy, metadata record, container create and lease acquisition each register a
@@ -992,7 +1151,7 @@ compression ratio, count, depth and aggregate expanded bytes.
 
 | Environment | Candidate disposition |
 | --- | --- |
-| Native Linux host with co-located local Docker Engine and guardian/collector, compatible API, cgroup v2 and required namespaces/seccomp/tmpfs/openat2/pidfd/procfs features | M3 target; supported only after full preflight and M4 evidence |
+| Native Linux host with co-located local Docker Engine, guardian, protected service-manager timer/kill helper and collector, compatible API, cgroup v2 and required namespaces/seccomp/tmpfs/openat2/pidfd/procfs features | M3 target; supported only after full preflight and M4 evidence |
 | Rootless Docker on Linux | evaluation variant; not yet supported because resource/network/storage semantics need the same adverse matrix |
 | Docker Desktop Linux containers on Windows or macOS | development-only candidate; Linux VM behavior is not claimed equivalent to native host containers |
 | Native Windows containers or macOS processes | unsupported by sandbox-v1 |
@@ -1029,9 +1188,11 @@ properties are:
   trusted bounded one; and
 - deterministic ownership labels containing opaque IDs and schema version, with
   no secret values.
-- co-located host guardian deadline binding armed before Worker release, plus a
-  separately privileged co-located collector used only while the exact
-  container is frozen.
+- durable deadline binding plus protected service-manager timer/minimal kill
+  helper armed before Worker release; the guardian coordinates but is not the
+  sole executable enforcement path; and
+- a separately privileged co-located collector used only while the exact
+  container is quiesced/frozen.
 
 ### 9.3 Requirement-to-enforcement matrix
 
@@ -1045,7 +1206,7 @@ properties are:
 | SBX-R07 memory/swap | hard cgroup memory; swap total == memory | cgroup support reported | inspect cgroup and bounded OOM fixture | allocate slightly over fixture cap | `MEMORY_LIMIT_REACHED` without host harm | `EVD-DKR-MEM-*` |
 | SBX-R07 CPU | CFS quota, not shares | kernel scheduler/cgroup support | inspect quota and measured bounded load | CPU loop for fixed short duration | throttling telemetry; timeout remains separate | `EVD-DKR-CPU-*` |
 | SBX-R07 PIDs | PIDs cgroup limit | kernel PIDs controller | inspect and bounded fork fixture | create up to cap+small margin | `PID_LIMIT_REACHED` | `EVD-DKR-PID-*` |
-| SBX-R07 wall time | external guardian monotonic timer, TERM/grace, whole-container kill/remove | protected co-located service, local daemon API, cgroup containment | deadline binding, guardian health, process/container/cgroup inspect | adapter death, management loss, setsid/daemon descendant, stale identity, guardian interference | `TIMEOUT` only with cause/termination proof; otherwise `UNKNOWN` and destroy | `EVD-DKR-TIME-*` |
+| SBX-R07 wall time | durable binding; protected service-manager timer invokes exact-bound minimal kill helper independently of guardian; TERM/grace plus whole-sandbox kill/stop | protected co-located service manager/helper, local daemon API, container/PID containment | binding/unit state, guardian availability, helper action, Worker execution set and whole-resource inspect | guardian exit/unresponsive, adapter/management loss, setsid/daemon descendant, stale identity, service-manager/daemon failure | `TIMEOUT` only with actual cause/termination proof; action attempted may still reconcile as `UNKNOWN` | `EVD-DKR-TIME-*` |
 | SBX-R07 writable bytes/inodes | tmpfs `size`, `nr_blocks`/`nr_inodes`; memory cap | Linux tmpfs options supported | mount inspection and free/stat data | bounded writes and small-file fixture | `STORAGE_LIMIT_REACHED` | `EVD-DKR-STORE-*` |
 | SBX-R07 output/log growth | attach streams drained; separate retention caps; daemon log disabled/bounded | runtime streaming API | retained/observed counts and daemon log inspect | finite stdout/stderr flood | exact truncation; no unbounded log | `EVD-DKR-OUT-*` |
 | SBX-R08 network NONE | none network driver; no ports/proxies | none driver | inspect network plus route/interface view | loopback works; DNS/TCP external attempts | external denial; loopback retained | `EVD-DKR-NET-*` |
@@ -1094,7 +1255,7 @@ M3 evidence field):
 
 These are documented technical behaviors, not evidence that this machine or a
 future supported environment enforces them. Docker was not installed, configured
-or probed by Issues #77/#78. M3/M4 must record exact versions and actual
+or probed by Issues #77/#78/#81. M3/M4 must record exact versions and actual
 observations.
 
 ### 9.5 Bounded upstream sandbox/backend comparison
@@ -1179,7 +1340,8 @@ RuntimeObservation(
 )
 
 ObservationKind = CAPABILITY | LIFECYCLE | PROCESS | STREAM |
-                  RESOURCE_USAGE | ARTIFACT | CLEANUP | CONTROL_CHANNEL
+                  RESOURCE_USAGE | ARTIFACT | CLEANUP | CONTROL_CHANNEL |
+                  DEADLINE_ENFORCEMENT
 
 CapabilityPayload(
     capability_digest: Sha256Digest,
@@ -1195,7 +1357,9 @@ LifecyclePayload(
 )
 ProcessPayload(
     event: Literal["START_GATE_RELEASED", "STARTED", "NATURAL_EXIT",
-                   "TERM_SENT", "KILL_SENT", "CGROUP_EMPTY", "LOST"],
+                   "TERM_SENT", "KILL_SENT", "WORKER_EXECUTION_EMPTY",
+                   "SANDBOX_RESOURCE_ABSENT", "LOST"],
+    process_started: bool | None,
     signal: int | None,
     exit_code: int | None,
     process_started_at: UtcTimestamp | None,
@@ -1236,14 +1400,26 @@ CleanupPayload(
 )
 ControlChannelPayload(
     channel: Literal["ADAPTER_GUARDIAN", "ADAPTER_DAEMON",
-                     "GUARDIAN_DAEMON"],
+                     "GUARDIAN_DAEMON", "SERVICE_MANAGER",
+                     "DEADLINE_KILL_HELPER"],
     event: Literal["BOUND", "LOST", "RESTORED", "AUTH_REJECTED"],
     deadline_binding_digest: Sha256Digest | None,
+)
+DeadlineEnforcementPayload(
+    binding_digest: Sha256Digest,
+    unit_id: str,
+    binding_persisted: bool,
+    fail_safe_armed: bool,
+    guardian_available: bool | None,
+    disposition: DeadlineEnforcementDisposition,
+    stale_binding_rejected: bool,
+    resource_fingerprint: Sha256Digest,
 )
 
 ObservationPayload = CapabilityPayload | LifecyclePayload | ProcessPayload |
                      StreamPayload | ResourceUsagePayload | ArtifactPayload |
-                     CleanupPayload | ControlChannelPayload
+                     CleanupPayload | ControlChannelPayload |
+                     DeadlineEnforcementPayload
 ```
 
 Sequence gaps are explicit. Adapter receipt time is always present; provider
@@ -1295,6 +1471,10 @@ class SandboxMetadataStore(Protocol):
         scope: OperationScope, context: MutationContext,
         operation_kind: OperationKind, request_digest: Sha256Digest,
     ) -> OperationReceipt: ...
+    def acquire_first_lease_and_begin_create(
+        spec: SandboxSpec, context: MutationContext,
+        request_digest: Sha256Digest,
+    ) -> tuple[WorkspaceRecord, OperationReceipt]: ...
     def append_observation(observation: RuntimeObservation) -> None: ...
     def complete_operation(
         operation_id: OperationId, expected_version: int,
@@ -1322,6 +1502,14 @@ and no failure; `REJECTED`/`FAILED` have no result and one failure;
 monotonic in record history (`updated_at >= created_at`) and version starts at
 one and increases exactly once per successful compare-and-set.
 
+`acquire_first_lease_and_begin_create` is the only no-existing-lease mutation
+after workspace creation. In one compare-and-set it verifies the exact
+`READY_UNLEASED` generation/store version, allocates the trusted first lease,
+binds `spec.sandbox_id`, advances workspace metadata, and records the in-
+progress receipt plus cleanup fence. It returns the same tuple on exact replay,
+rejects conflicting/concurrent acquisition without provider access, and never
+silently clears the lease after an uncertain external create.
+
 M2 implements these provider-neutral value/port contracts and an in-memory
 store/Fake for deterministic semantic tests. Reconstructing a new Fake from an
 immutable exported test snapshot is **contract simulation**, not physical crash
@@ -1345,18 +1533,24 @@ transition or Evaluation request. The provider cannot call persistence
 2. Inspect the provider by immutable resource ID. A missing label, changed
    label or reused name never widens the target.
 3. If a command may be active, verify the guardian binding, request bounded
-   graceful termination, then whole-container kill if complete command-tree
-   termination is not confirmed; record the causal/race observations.
-4. Inspect until the command is terminal and owned cgroup empty, or the cleanup
-   deadline expires. Deadline expiry yields unknown, not success or reuse.
-5. On the normal preservation path, freeze/quiesce the exact live container,
-   collect/export, and commit the durable manifest/snapshot before removal.
-6. On emergency stop, guardian/control failure or unexpected whole-container
-   loss before export commit, record explicit artifact loss/unavailability and
-   proceed with safety cleanup; never synthesize an empty successful export.
+   graceful termination, and verify that the independently armed service-
+   manager unit remains bound; the fail-safe helper requests exact whole-
+   sandbox kill/stop if complete Worker execution-set termination is not
+   confirmed. Record causal/race observations.
+4. Inspect until the command is terminal and Worker execution set is empty, or
+   the cleanup deadline expires. Deadline expiry yields unknown, not success or
+   reuse. A live trusted PID 1 does not violate Worker-set emptiness.
+5. On the normal preservation path, freeze/quiesce the exact live container (or
+   use already confirmed Worker-set emptiness), collect/export, and commit the
+   durable manifest/snapshot before removal. This step does not require whole-
+   sandbox absence.
+6. On an independent fail-safe action, emergency whole-container stop or
+   unexpected whole-container loss before export commit, record explicit
+   artifact loss/unavailability and proceed with safety cleanup; never
+   synthesize an empty successful export.
 7. Remove exactly the owned container and provider-created ancillary resources.
-8. Independently inspect provider and owned cgroup absence. Only then mark
-   `DESTROYED`/`RELEASED`.
+8. Independently inspect whole provider resource/container absence. Only then
+   set `sandbox_resource_absent=true` and mark `DESTROYED`/`RELEASED`.
 9. Retain a bounded cleanup obligation on disconnect/failure for startup
    discovery and operator escalation.
 
@@ -1374,12 +1568,13 @@ executes only the approved targeted cleanup policy. This does not Resume a Run,
 trust the workspace or infer an external Effect outcome.
 
 Guardian failure or stale/mismatched deadline identity never transfers control
-to a Worker or an arbitrary container name. The reconciler rejects the stale
-binding, marks the affected resource unknown and uses only the independently
-verified current ownership record for whole-sandbox cleanup. If the trusted
-host/kernel itself is unavailable, no termination or collection observation is
-promised during the outage; recovery treats every possibly live resource as
-unknown until exact inspection succeeds.
+to a Worker or an arbitrary container name. Guardian exit or unresponsiveness
+leaves the protected service-manager unit armed. The helper/reconciler rejects
+the stale binding, marks the affected resource unknown and uses only the
+independently verified current ownership record for whole-sandbox cleanup. If
+the service manager, Docker daemon or trusted host/kernel is unavailable, no
+termination or collection observation is promised during the outage; recovery
+treats every possibly live resource as unknown until exact inspection succeeds.
 
 ## 12. Reference scenarios
 
@@ -1489,15 +1684,18 @@ decision. Retention does not accept content.
 
 ### SCN-13 adapter loss and escaped process group
 
-Input: after the host guardian arms the exact deadline and releases start, kill
-the adapter fixture with no immediate restart; the bounded Worker forks a child
-that changes session/process group. Variants drop the adapter-daemon channel,
-attempt to reach/signal/starve the guardian and replay a stale binding.
+Input: after the guardian coordinates persistence of the exact binding and the
+protected service-manager timer/helper is armed, release start and kill the
+adapter fixture with no immediate restart; the bounded Worker forks a child
+that changes session/process group. Variants make the guardian exit or become
+unresponsive, drop the adapter-daemon channel, attempt to reach/signal/starve
+the trusted enforcement components and replay a stale binding.
 
-Expected: the independent guardian still reaches the original deadline. TERM
-may be attempted, but any unproved tree emptiness escalates to exact whole-
-container kill/removal. A stale binding cannot target a new generation.
-Interference or lost confirmation yields `UNKNOWN`, blocks reuse and preserves
+Expected: the protected service-manager path still reaches the original
+deadline without a guardian restart. TERM may be attempted, but any unproved
+Worker-set emptiness escalates to the exact bound whole-sandbox kill/stop
+action. A stale binding cannot target a new generation. Interference or lost
+confirmation yields `UNKNOWN`, blocks reuse and preserves
 the cleanup obligation; trusted-host loss itself is not reported as observed
 termination.
 
@@ -1512,6 +1710,48 @@ Expected: continuous fencing aborts; partial trusted bytes and manifest are
 discarded. The result is rejected, unknown or explicitly `LOST` according to
 the observation, never a successful empty export. Safety cleanup proceeds and
 authoritative Stage 1 state remains available outside the sandbox.
+
+### 12.1 Cross-contract walkthrough A — empty store to final absence
+
+| Step | Public input/result | Authoritative runtime-metadata rule |
+| --- | --- | --- |
+| Empty store -> workspace | `create_workspace(WorkspaceSpec, MutationContext)` -> `WorkspaceRecord(READY_UNLEASED)` | `begin_operation` records the exact request; staging commit creates generation/version with `lease_id=None`, `leased_sandbox_id=None`, `lease_version=0` |
+| First lease/binding | `create_sandbox(SandboxSpec, MutationContext)` -> in-progress/`SandboxObservation(CREATED)` | `acquire_first_lease_and_begin_create` atomically fences generation/store version, allocates the lease, binds sandbox and stores receipt/cleanup fence before provider create |
+| Create/start | `start(SandboxHandle, MutationContext)` -> `SandboxObservation(READY)` | receipt advances exact sandbox generation; effective profile and no-Worker-before-gate observations are appended |
+| Execute gate | `execute(SandboxHandle, CommandRequest)` -> `CommandHandle` | request receipt and immutable `DeadlineBinding` persist; protected timer/helper is confirmed `ARMED`; only then is `START_GATE_RELEASED` appended |
+| Command finishes | `inspect_command` -> `TerminalResult` and `inspect` -> `SandboxObservation` | actual process/stream observations persist; `worker_execution_empty=true` is independently observed while trusted PID 1 remains alive; the exact deadline unit is safely reconciled |
+| Collect/export live workspace | `collect`/`export_workspace` -> manifest/snapshot result | Worker-set emptiness or exact freeze sets `collection_quiesced=true`; same-byte bounded export and manifest commit occur while `sandbox_resource_absent=false` |
+| Reuse or destroy | same sandbox may return to `READY`, or `destroy` -> `CleanupResult` | reuse requires confirmed Worker-set emptiness; destroy targets only the bound generation and retains the receipt on uncertainty |
+| Final absence | confirmed `CleanupResult(DESTROYED|ALREADY_ABSENT)` | exact inspection sets `sandbox_resource_absent=true`, cancels/removes the matching deadline unit if necessary, releases the lease and makes workspace metadata terminal `RELEASED` |
+
+Result: **representable using defined types/states/operations**. Worker-set
+emptiness, collection quiescence and whole-resource absence are never aliases.
+
+### 12.2 Cross-contract walkthrough B — guardian failure after Worker start
+
+| Step | Public input/result | Authoritative runtime-metadata rule |
+| --- | --- | --- |
+| Bind and arm | `execute` plus `DeadlineBinding`/`DeadlineEnforcementObservation(ARMED)` | exact binding, unit ID, action and resource fingerprint persist before start gate; unit ownership is protected from Worker/guardian mutation |
+| Worker starts | `CommandObservation(process_started=true, RUNNING)` | start observation appends without changing or extending the deadline |
+| Guardian exits/unresponsive | control-channel/guardian availability observations | loss is recorded separately; existing service-manager unit remains armed and the adapter cannot re-arm to a later expiry |
+| Deadline action | helper emits `DeadlineEnforcementObservation(ATTEMPTED|CONFIRMED|UNKNOWN)` | protected timer invokes helper independently; helper rejects stale identity or requests only the exact bound whole-sandbox action |
+| Reconcile result | `inspect_command`, `inspect`, then `destroy` as required | actual observations may produce confirmed `TIMED_OUT`/termination or honest `UNKNOWN`; no reuse/new command occurs while cleanup/reconciliation remains |
+
+Service-manager, daemon or trusted host/kernel failure is not mislabeled as
+guardian failure: it yields substrate failure and unknown possibly-live
+resources until exact-ownership reconciliation. Result: **representable
+without a hidden guardian restart assumption**.
+
+### 12.3 Cross-contract walkthrough C — no Worker process created
+
+| Step | Public input/result | Authoritative runtime-metadata rule |
+| --- | --- | --- |
+| Attempt accepted | `execute` -> `OperationInProgress`/receipt | command request, deadline binding and exact ownership scope persist; attempt timing remains operation metadata |
+| Provider proves no process | process observation has `process_started=false` and no process timestamps | proof also confirms Worker execution set empty and resource integrity |
+| Terminal no-start result | `TerminalResult(START_FAILED)` | `process_started=false`; start/end/duration/exit/ref fields `None`; observed/retained bytes `0`; truncation false; `termination_confirmed=false`; typed start failure `state_known=true` |
+| Retry or cleanup | sandbox observation returns exact allowed `READY` (command start failed) or `CREATED` (container start failed), or proceeds to `destroy` | exact receipt replay is stable; a new request uses normal idempotency, generation and lease fences; uncertain process creation would instead be `UNKNOWN` and block retry |
+
+Result: **representable without fabricating process lifetime or streams**.
 
 ## 13. Future test catalog
 
@@ -1532,6 +1772,10 @@ Evidence classes are deliberately separate:
 | T-U04 | UNIT | argv/cwd/env/stdin validation prohibits host-shell/path/env injection | M2 |
 | T-U05 | UNIT | failure mapping preserves unknown/retry/live-resource fields | M2 |
 | T-U06 | UNIT | artifact validator rejects each hostile path/type/limit independently | M2 |
+| T-U07 | UNIT | Worker-set emptiness, collection quiescence and whole-resource absence have distinct legal combinations; `DESTROYED` requires only the last to be true | M2 |
+| T-U08 | UNIT | deadline observation requires persisted binding plus independently armed fail-safe; attempted, confirmed, unknown and stale-rejected combinations are closed | M2 |
+| T-U09 | UNIT | `READY_UNLEASED` and first-lease acquisition/release require exact generation/store version and forbid hidden or conflicting binding | M2 |
+| T-U10 | UNIT | confirmed no-process `START_FAILED`, possibly-started `UNKNOWN`, started-process terminal results and all invalid time/exit/stream combinations are exact | M2 |
 | T-F01 | FAKE | full create/start/execute/collect/destroy success ordering | M2 |
 | T-F02 | FAKE | one-active-command rule and unknown-command reuse block | M2 |
 | T-F03 | FAKE | create/start disconnect requires inspect before retry | M2 |
@@ -1544,6 +1788,14 @@ Evidence classes are deliberately separate:
 | T-F10 | FAKE | stale deadline identity and STARTING/natural-exit/cancel races preserve actual causality or unknown | M2 |
 | T-F11 | FAKE | workspace disappearance, stale container identity, freeze failure and partial copy commit no manifest | M2 |
 | T-F12 | FAKE | unsafe metadata or emergency termination before preservation records rejection/loss, never empty success | M2 |
+| T-F13 | FAKE | PID 1 may remain alive while Worker execution set becomes empty; normal collection succeeds without whole-resource absence | M2 |
+| T-F14 | FAKE | false/unknown Worker-set emptiness blocks reuse and final destroyed success requires whole-resource absence | M2 |
+| T-F15 | FAKE | guardian exit and alive-but-unresponsive paths leave the independently armed exact deadline scheduled and grant no extra budget | M2 |
+| T-F16 | FAKE | exact-bound fail-safe action records attempted/confirmed/unknown honestly and stale binding cannot target a newer generation | M2 |
+| T-F17 | FAKE | empty store through `READY_UNLEASED` and two concurrent create attempts yields exactly one first lease/binding | M2 |
+| T-F18 | FAKE | exact replay after acquisition is stable; proven no-resource failure releases the lease only through a versioned trusted-store transition | M2 |
+| T-F19 | FAKE | lost/partial create retains lease/cleanup obligation; stale lease/version/generation touches no provider resource | M2 |
+| T-F20 | FAKE | no-process start failure, lost start response and process-started/attach-failed branches yield `START_FAILED` or `UNKNOWN` without fabricated fields | M2 |
 | T-D01 | DOCKER | command runs in container, cannot see host sentinel | M3/M4 |
 | T-D02 | DOCKER | non-root/cap-drop/no-privilege/no-device/default-seccomp profile enforced | M3/M4 |
 | T-D03 | DOCKER | host root/home/repository/database/socket mounts absent and requests denied | M3/M4 |
@@ -1567,11 +1819,19 @@ Evidence classes are deliberately separate:
 | T-D21 | DOCKER | stale deadline generation and timeout/cancel/natural-exit races never target/relabel another command | M3/M4 |
 | T-D22 | DOCKER | co-located collector continuously fences container/PID/mount/freeze identity and discards partial output | M3/M4 |
 | T-D23 | DOCKER | workspace disappearance, freeze/unfreeze failure, unsafe metadata and emergency stop report rejection/unknown/loss | M4 |
+| T-D24 | DOCKER | trusted PID 1 remains alive while Worker execution set becomes empty and live-workspace collection succeeds before whole-resource absence | M3/M4 |
+| T-D25 | DOCKER | session-changed/daemonized Worker descendants cannot survive Worker-set terminalization; false/unknown observation blocks reuse | M3/M4 |
+| T-D26 | DOCKER | guardian process exit after Worker start with no restart leaves protected deadline action executable for the exact sandbox | M3/M4 |
+| T-D27 | DOCKER | guardian alive but deliberately unresponsive cannot disarm, extend or retarget the protected deadline action | M4 |
+| T-D28 | DOCKER | stale timer/helper generation or fingerprint cannot terminate a replacement sandbox | M3/M4 |
+| T-D29 | DOCKER | unavailable protected service manager at preflight rejects Worker start | M3/M4 |
+| T-D30 | DOCKER | service-manager or daemon failure after start yields honest unknown/reconciliation instead of fabricated termination | M4 |
+| T-D31 | DOCKER | final `DESTROYED` is withheld until exact whole sandbox/container resource absence is confirmed | M3/M4 |
 
 Resource-abuse fixtures must be deterministic and small: cap+one-page memory,
 cap+small-margin PIDs, fixed-duration CPU, fixed stream lengths, and tmpfs
 cap+one-block/inode. Each runs in a disposable test environment with an outer
-test deadline and host safety headroom. Issues #77/#78 execute none of them.
+test deadline and host safety headroom. Issues #77/#78/#81 execute none of them.
 
 Non-Docker developer runs may skip explicitly marked Docker tests. Such a skip
 is a developer convenience only. Stage 2 acceptance requires all mandatory
@@ -1583,19 +1843,19 @@ isolation evidence.
 | Requirement | Design sections | Future tests | Owning milestone |
 | --- | --- | --- | --- |
 | SBX-R01 approved sandbox/no host | 3, 9.2-9.3 | T-F01, T-D01 | M2 contract; M3/M4 proof |
-| SBX-R02 provider replaceability | 4-5, 9.3, 9.5 | T-F01-T-F12, architecture import check | M2 |
-| SBX-R03 Run/workspace lifetime | 3, 4.3, 8 | T-U03, T-F06, T-F11-T-F12, T-D16, T-D22-T-D23 | M2/M3; Stage 5 owns reuse |
+| SBX-R02 provider replaceability | 4-5, 9.3, 9.5 | T-F01-T-F20, architecture import check | M2 |
+| SBX-R03 Run/workspace lifetime | 3, 4.3, 5, 8, 12.1 | T-U03, T-U07, T-U09, T-F06, T-F11-T-F14, T-F17-T-F19, T-D16, T-D22-T-D25, T-D31 | M2/M3; Stage 5 owns reuse |
 | SBX-R04 authority separation | 3, 11.1 | contract/import tests; no provider UoW dependency | M2 |
-| SBX-R05 capability preflight/normalization | 4.1, 7, 9.1 | T-U05, T-F03, T-D02-D12 | M2-M4 |
+| SBX-R05 capability preflight/normalization | 4.1, 4.4, 7, 9.1 | T-U05, T-U08, T-U10, T-F03, T-F15-T-F16, T-F20, T-D02-D12, T-D26-T-D30 | M2-M4 |
 | SBX-R06 privilege/mount/socket/writable boundary | 8, 9.2-9.3 | T-D02-D04 | M3/M4 |
-| SBX-R07 resource/time/output bounds | 4.2, 4.4, 6.2, 9.3 | T-F08-T-F10, T-D05-T-D10, T-D17-T-D21 | M2-M4 |
+| SBX-R07 resource/time/output bounds | 4.2, 4.4, 6.2, 9.3, 12.2-12.3 | T-U08, T-U10, T-F08-T-F10, T-F15-T-F16, T-F20, T-D05-T-D10, T-D17-T-D21, T-D26-T-D30 | M2-M4 |
 | SBX-R08 typed network/fail closed | 4.2, 9.3, 10 | T-U01, T-D11 | M2/M3/M4 |
 | SBX-R09 secret/env boundary | 9.2-9.3, 10 | T-U04, env adverse probe | M2/M3/M4 |
-| SBX-R10 artifact claims remain untrusted | 4.5, 8.2, 11.2, 12 | T-U06, T-F07, T-F11-T-F12, T-D13, T-D22-T-D23 | M2-M4; Stage 4 evaluates |
+| SBX-R10 artifact claims remain untrusted | 4.5, 8.2, 11.2, 12 | T-U06-T-U07, T-F07, T-F11-T-F14, T-D13, T-D22-T-D25 | M2-M4; Stage 4 evaluates |
 | SBX-R11 preserved work needs recovery authority | 8.1-8.2, SCN-12, SCN-14 | T-F11-T-F12, T-D16, T-D22-T-D23 | M2-M4; Stage 5 recovery |
 | SBX-R12 no Effect dispatch | 3, 11.1 | dependency/authority architecture test | M2; Stage 6 Effects |
-| SBX-R13 observable cleanup/unknown state | 6-7, 11.2 | T-F03-T-F12, T-D14-T-D23 | M2-M4 |
-| SBX-R14 dynamic isolation evidence | 9.3, 13 | T-D01-T-D23 | M4 and Stage 2 exit |
+| SBX-R13 observable cleanup/unknown state | 6-7, 11.2, 12.1-12.3 | T-U07-T-U10, T-F03-T-F20, T-D14-T-D31 | M2-M4 |
+| SBX-R14 dynamic isolation evidence | 9.3, 13 | T-D01-T-D31 | M4 and Stage 2 exit |
 | SBX-R15 Stage 3 blocked | candidate status, 16-17 | governance/status review | M1 review/Stage 2 exit |
 
 ## 15. M2-M4 coding map
@@ -1628,10 +1888,11 @@ tests/execution/sandbox/test_fake_provider.py
 tests/constitutional/test_sandbox_authority_boundary.py
 ```
 
-Success matrix: T-U01-U06 and T-F01-T-F12. Adverse cases cover wrong ownership,
+Success matrix: T-U01-U10 and T-F01-T-F20. Adverse cases cover wrong ownership,
 duplicate/conflicting idempotency, active-command conflict, unknown state,
-partial allocation, adapter/deadline failures, cancellation races, preservation
-loss and hostile artifacts. Likely commit
+partial allocation, first-lease races, guardian-independent deadline failures,
+Worker-set/quiescence/absence distinctions, no-process start failure,
+cancellation races, preservation loss and hostile artifacts. Likely commit
 boundaries: (1) contracts/failures, (2) workspace/artifact algorithms, (3) fake
 provider/conformance tests. Completion evidence is passing unit/fake/type/lint
 gates plus architecture proof that execution code cannot mutate domain state.
@@ -1669,8 +1930,8 @@ cover missing image, config mismatch, nonzero exit, each resource bound,
 network denial, output flood, artifact rejection and cleanup failure. Likely
 commit boundaries: (1) ownership/profile/create-start, (2) execute/streams/
 cancel, (3) artifact/export, (4) telemetry/targeted cleanup. Completion evidence
-includes exact Docker/kernel/cgroup/version records and T-D01-D13 plus
-T-D17-T-D19/T-D21-T-D22 results; it
+includes exact Docker/kernel/cgroup/service-manager/version records and
+T-D01-D13 plus T-D17-T-D19/T-D21-T-D22/T-D24-T-D29/T-D31 results; it
 does not yet close crash/reopen robustness.
 
 ### S2-M4 — adverse Docker, crash/cleanup and operations evidence
@@ -1689,10 +1950,10 @@ docs/operations/sandbox-diagnostics.md
 docs/operations/sandbox-cleanup.md
 ```
 
-The matrix repeats T-D01-D13 and T-D17-T-D22 independently and completes
-T-D14-T-D16/T-D20/T-D23, including adapter crash, daemon disconnect, deadline
-interference, artifact loss, leftover discovery, repeated cleanup and unrelated-
-resource preservation. Likely commit boundaries: (1) safe adverse
+The matrix repeats T-D01-D13, T-D17-T-D22 and T-D24-T-D29/T-D31 independently
+and completes T-D14-T-D16/T-D20/T-D23/T-D30, including adapter crash, daemon
+disconnect, deadline interference, artifact loss, leftover discovery, repeated
+cleanup and unrelated-resource preservation. Likely commit boundaries: (1) safe adverse
 fixtures, (2) crash/reopen/cleanup, (3) operator diagnostics and evidence
 reconciliation. Completion evidence is an environment-bound report with no
 mandatory skips, resource inventories before/after, exact normalized results,
@@ -1707,7 +1968,7 @@ accepted exit plus a new TaskSpec may activate Stage 3.
 | Are interface/default decisions acceptable? | no runtime coding | M1 independent review / Human approval; blocks M2 |
 | Which exact Engine/kernel/distribution versions are supported? | no support claim | M3 TaskSpec/preflight; blocks M3 execution evidence |
 | Do tmpfs `size`, block and inode options enforce correctly in the selected environment? | mark capability unsupported and do not start | M3 implementation, M4 adverse proof; blocks Stage 2 exit |
-| Can the selected Linux host provide protected guardian scheduling, local daemon control, cgroup-empty proof and the required pidfd/procfs/openat2 collector primitives? | capability unsupported; no Worker start | M3 preflight/implementation and M4 T-D17-T-D23; blocks supported profile |
+| Can the selected Linux host provide protected service-manager timer/helper scheduling independent of guardian lifetime, local daemon control, race-resistant Worker execution-set proof, final resource-absence proof and the required pidfd/procfs/openat2 collector primitives? | capability unsupported; no Worker start | M3 preflight/implementation and M4 T-D17-T-D31; blocks supported profile |
 | How is trusted snapshot/artifact storage quota and retention operated? | exports remain bounded per request; operator storage limit unclaimed | M3 storage implementation, M4 operations review; blocks supported profile |
 | Does rootless Docker satisfy every required control? | not supported | M4 environment variant review; non-blocking if native Linux profile passes |
 | Does Docker Desktop satisfy equivalent guarantees? | development-only/unverified | future evidence; non-blocking for native Linux supported profile |
@@ -1747,12 +2008,12 @@ Independent review should answer:
 5. Confirm M2-M4 paths, evidence classes and Stage 3 gate cover every parent
    requirement without importing later-stage authority.
 
-Candidate disposition after Issue #78's forward correction of the Issue #77
+Candidate disposition after Issues #78 and #81 forward-corrected the Issue #77
 candidate:
 
 ```text
 ADR-0008 = PROPOSED
-Sandbox design = CANDIDATE
+Sandbox design = corrected M1B CANDIDATE
 M1 independent review / Human approval = PENDING
 M2 / Issue #79 = BLOCKED; NOT STARTED
 Stage 2 runtime implementation authorized by this correction = NO
