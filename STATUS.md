@@ -8,14 +8,17 @@
   `987f927905cadcedd473f2ba3270f56908b7f6b9`; Human Exit acceptance is
   recorded by GitHub Issue #75 and its ordered governance commit stack.
 - **Human Stage 1 Exit Review:** ACCEPTED
-- **Current stage:** inter-stage planning / Stage 2 next
-- **Next implementation stage:** Stage 2 — Sandbox Execution
+- **Current stage:** Stage 2 — Sandbox Execution
+- **Stage 2 activity:** ACTIVE - M1 architecture/design
+- **Current parent plan:**
+  [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
+- **Current task:** GitHub Issue #77 / S2-M1 sandbox contract candidate
 - **Stage 2 code implementation:** NOT YET STARTED
-- **Stage 2 implementation authorized:** NO — it requires its own durable
-  Human-approved TaskSpec and activation of the Stage 2 parent plan.
-- **Current blocking Human gate:** approve a concrete Stage 2 TaskSpec before
-  any Stage 2 implementation mutation.
-- **Current active parent plan:** none; Stage 2 remains under `planned/`.
+- **Stage 2 runtime implementation authorized by Issue #77:** NO
+- **Current blocking Human gate:** independent review and Human approval of
+  the proposed sandbox ADR and candidate design before runtime implementation.
+- **Stage 2 complete:** NO
+- **Stage 3:** PLANNED — not activated
 - **Current roadmap source:** [ROADMAP.md](ROADMAP.md) and
   [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
 - **Current v1 product target:**

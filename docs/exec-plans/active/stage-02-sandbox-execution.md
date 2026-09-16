@@ -1,7 +1,25 @@
 # Stage 02 — Sandbox Execution
 
-**Status:** PLANNED — not implementation authorization
+**Status:** ACTIVE - M1 architecture/design
 **Constitutional baseline:** `constitution-v0.1`
+
+**Runtime implementation:** NOT YET STARTED
+
+**New sandbox ADR/design:** PROPOSED / pending independent review and Human approval
+
+**Stage 2 complete:** NO
+
+## Activation record
+
+Stage 2 design work was activated on 2026-09-16 by the durable TaskSpec in
+GitHub Issue #77, revision `r1 - stage-02-m1-design-start`, against repository
+baseline `60b647f825d2eed4dc56a4d3087f165545a1ea88`. The Issue was read directly
+from GitHub at observed `updatedAt` `2026-09-16T07:50:33Z` before mutation.
+
+This activation authorizes M1 architecture/design only. It does not accept the
+proposed ADR or candidate design, authorize runtime source or test changes, or
+open Stage 3. The next gate is independent review and Human approval of the
+sandbox ADR/design candidate.
 
 ## Objective and why this stage exists
 

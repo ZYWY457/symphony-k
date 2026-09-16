@@ -37,8 +37,8 @@ rewriting accepted history.
 - [Lifecycle rules](exec-plans/README.md)
 - [Planned parent plans](exec-plans/planned/) — future contracts, no execution
   authorization
-- `exec-plans/active/` — current authorized stage/task plans; the directory may
-  be absent when no plan is active
+- [Active Stage 2 plans](exec-plans/active/) — M1 architecture/design authority;
+  runtime implementation is not yet authorized
 - [Completed plans](exec-plans/completed/) — accepted historical plans
 
 The normal lifecycle is `planned -> active -> completed`, with durable Human

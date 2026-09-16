@@ -13,9 +13,9 @@ Read with:
 - [Development Path](docs/DEVELOPMENT_PATH.md) — complete stage entry,
   deliverable, evidence and exit contracts.
 
-`NEXT` and `PLANNED` describe sequence, not implementation authorization.
-Stage 2 implementation has not started and requires its own durable
-Human-approved TaskSpec plus parent-plan activation.
+`ACTIVE - M1 architecture/design` records authorized design work, not runtime
+implementation or acceptance. Stage 2 runtime implementation has not started
+and is not authorized by the current design TaskSpec.
 
 ## Delivery status
 
@@ -23,7 +23,7 @@ Human-approved TaskSpec plus parent-plan activation.
 | ---: | --- | --- |
 | 0 | Constitution and Repository Harness | COMPLETE |
 | 1 | Domain Kernel | COMPLETE — Human Exit ACCEPTED |
-| 2 | Sandbox Execution | NEXT |
+| 2 | Sandbox Execution | ACTIVE - M1 architecture/design |
 | 3 | First AgentDriver | PLANNED |
 | 4 | Verification Plane | PLANNED |
 | 5 | Failure and Recovery | PLANNED |
@@ -66,8 +66,8 @@ Human-approved TaskSpec plus parent-plan activation.
 
 ## Stage 2 — Sandbox Execution
 
-- **Status:** NEXT; code NOT YET STARTED; implementation NOT AUTHORIZED without
-  its own durable TaskSpec and activation.
+- **Status:** ACTIVE - M1 architecture/design; runtime code NOT YET STARTED;
+  runtime implementation NOT AUTHORIZED by Issue #77.
 - **Observable capability unlocked:** Symphony-K can run arbitrary bounded
   commands in temporary, enforceably constrained sandboxes without using the
   host as the Worker runtime.
@@ -76,7 +76,9 @@ Human-approved TaskSpec plus parent-plan activation.
   telemetry and normalized failures.
 - **Exit proof:** Isolation, privilege, mount/socket, resource, network,
   artifact and teardown behavior pass deterministic and adversarial checks.
-- **Detailed contract:** [Planned Stage 2 parent](docs/exec-plans/planned/stage-02-sandbox-execution.md).
+- **Detailed contract:** [Active Stage 2 parent](docs/exec-plans/active/stage-02-sandbox-execution.md).
+- **Current gate:** independent review and Human approval of the proposed
+  sandbox ADR and candidate design before a separate M2 implementation TaskSpec.
 
 ## Stage 3 — First AgentDriver
 

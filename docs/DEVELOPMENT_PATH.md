@@ -7,10 +7,11 @@ responsibilities, trust boundaries, required evidence and exit contracts while
 leaving future implementation choices to bounded Issues, accepted design work
 and ADRs.
 
-`NEXT` and `PLANNED` are sequencing facts, not execution authorization. A future
-stage may move to `active/` only after prerequisite exits and a durable
-Human-approved TaskSpec. Every stage becomes `COMPLETE` only after independent
-Human Exit acceptance and durable governance reconciliation.
+`ACTIVE - M1 architecture/design` is design authority only, not runtime
+implementation or acceptance. A future stage may move to `active/` only after
+prerequisite exits and a durable Human-approved TaskSpec. Every stage becomes
+`COMPLETE` only after independent Human Exit acceptance and durable governance
+reconciliation.
 
 ## End-to-end dependency graph
 
@@ -70,10 +71,10 @@ authoritative dependencies.
 
 ## Stage 2 — Sandbox Execution
 
-- **Status:** NEXT.
+- **Status:** ACTIVE - M1 architecture/design. Runtime implementation is NOT YET STARTED and is not authorized by Issue #77.
 - **Purpose:** Execute arbitrary bounded commands in disposable, policy-controlled isolation.
 - **Architectural owner / plane:** Execution Plane substrate.
-- **Entry criteria:** Stage 1 complete; Stage 2 parent plan activated; sandbox and network-policy ADRs/designs accepted where required; Docker/toolchain preflight passes.
+- **Entry criteria:** Stage 1 complete; Stage 2 parent plan activated for design by Issue #77. Runtime entry remains blocked until the sandbox and network-policy ADR/design are independently reviewed and Human approved and a separate implementation TaskSpec plus Docker/toolchain preflight exists.
 - **Required deliverables:** `SandboxProvider`, first `DockerSandbox`, `Workspace`, bounded command API, CPU/memory/process/time limits, safe-default network policy, artifact collection, teardown, telemetry and normalized failures.
 - **Explicit non-goals:** AgentDriver, model/vendor integration, routing, verification decisions, recovery orchestration and real Effect execution.
 - **Major dependencies:** Domain Run identity, execution-profile references, ADR-0002 and ADR-0006.

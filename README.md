@@ -11,8 +11,10 @@ history remain outside Worker control.
 ## Current status
 
 Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
-Stage 2 — Sandbox Execution is next, but its code implementation has not started
-and requires a separate durable Human-approved TaskSpec.
+Stage 2 — Sandbox Execution is active for M1 architecture/design under GitHub
+Issue #77. Runtime code has not started and is not authorized by that Issue;
+the next gate is independent review and Human approval of the sandbox ADR and
+design candidate. Stage 3 remains planned and is not activated.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
 
