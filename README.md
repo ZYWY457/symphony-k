@@ -47,9 +47,10 @@ Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 - R2 product-definition reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `2b54c2672c0c400aab1f35e0245c8c4e97a62321`.
 - R3 delivery-path reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `f467fd75071e5d0252719539cf7323fb71de587c`.
 - R4 workflow/cold-start reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `ecccbedd68f2f0e0eff949c20b627f250ddf189e`.
-- R5 final strategic disposition/release-boundary reconciliation is the current candidate under Issue #98 and still requires independent review plus explicit Human acceptance.
-- Issue #79 remains **BLOCKED / NOT RELEASED** during the R5 gate. Its old Stage 2 M2 authority is obsolete for the post-transition product and cannot be reused as G1 authority.
-- The first intended post-transition implementation slice is **G1 — Governance SDK / Facade Foundation**, but it is **NOT RELEASED** by the R5 candidate. A separate fresh TaskSpec may be released only after R5 acceptance and final reconciliation.
+- R5 final strategic disposition/release-boundary reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `1bb48657a85d746b8d0023ddd805c6cdc09703b0`, after independent review **ACCEPT** on Issue #98 comment `5712222234` and final Human acceptance on comment `5712330240`.
+- Repository-level strategic transition R1-R5 is complete.
+- Issue #79's old Stage 2 M2 authority is obsolete for the post-transition product and is being durably superseded; it must never become G1 authority.
+- The first post-transition implementation slice is **G1 — Governance SDK / Facade Foundation**. Durable TaskSpec identity is Issue #100; its current Issue body determines whether execution is released.
 - Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
@@ -73,7 +74,7 @@ External execution may be powerful, autonomous or provider-managed. It still can
 
 ## Project navigation
 
-- [Status](STATUS.md) — current accepted baseline, strategic gate and blocked/released work
+- [Status](STATUS.md) — current accepted baseline and released/blocked work
 - [Architecture](ARCHITECTURE.md) — governance kernel, integration and external execution boundaries
 - [v1 Product Contract](docs/V1_PRODUCT_CONTRACT.md) — observable v1 responsibilities and acceptance boundary
 - [Roadmap](ROADMAP.md) — accepted governance-centered v1 delivery map
