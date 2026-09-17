@@ -1,0 +1,48 @@
+{
+  "taskspec": {
+    "reference": "https://github.com/ZYWY457/symphony-k/issues/85",
+    "revision": "r1 - strategic-validation-governance-layer-thesis",
+    "access_mode": "direct-read",
+    "updated_at": "2026-09-17T01:29:56Z",
+    "precondition": "PASS",
+    "starting_sha": "8e7a86ad8ef2e94a5583ac1acb88fc86e56e02c7"
+  },
+  "measurements": {
+    "facade_primary_operations": 4,
+    "facade_nonblank_noncomment_loc": 234,
+    "baseline_nonblank_noncomment_loc": 183,
+    "accepted_stage1_semantic_changes": 0,
+    "production_source_changes": 0,
+    "direct_existing_api_types": 6
+  },
+  "adversarial": [
+    {"id": "G1", "expected": "worker claim cannot become authoritative success", "symphony_k": "SAFE: worker port rejected lifecycle authority", "baseline": "SAFE: producer cannot dispose candidate", "difference": "equal protection"},
+    {"id": "G2", "expected": "worker cannot self-accept Outcome", "symphony_k": "SAFE: forged/relabelled port rejected", "baseline": "SAFE: producer identity rejected", "difference": "equal protection"},
+    {"id": "G3", "expected": "stale evidence cannot authorize current candidate", "symphony_k": "SAFE: exact snapshot/version guard rejected", "baseline": "SAFE: candidate-version mismatch rejected", "difference": "equal protection"},
+    {"id": "G4", "expected": "cross-entity substitution rejected", "symphony_k": "SAFE: nominal identity and exact authority binding rejected", "baseline": "SAFE: string identity equality rejected", "difference": "structural type/binding advantage, same result"},
+    {"id": "G5", "expected": "old context rejected or exact idempotent replay", "symphony_k": "SAFE: exact event replay returned immutable original receipt without head mutation", "baseline": "SAFE: stale replay rejected", "difference": "structural durable replay advantage, both safe"},
+    {"id": "G6", "expected": "sensitive Effect cannot commit without Human authorization", "symphony_k": "SAFE: trusted gateway rejected missing HumanAuthorization before external mutation", "baseline": "SAFE: missing approval rejected", "difference": "equal protection; gateway is experiment glue"},
+    {"id": "G7", "expected": "confirmed occurrence cannot be erased", "symphony_k": "SAFE: SQLite append-only trigger rejected deletion and COMMITTED head remained", "baseline": "SAFE through service API; compensation retained occurred=true", "difference": "structural database enforcement advantage over API-only baseline"},
+    {"id": "G8", "expected": "at most one stale concurrent writer succeeds", "symphony_k": "SAFE: one update and one explicit conflict across SQLite connections", "baseline": "SAFE: lock plus CAS produced one update and one conflict", "difference": "equal result; Symphony-K is durable"}
+  ],
+  "legal": [
+    {"id": "H1", "result": "PASS", "actual": "external worker candidate recorded as PROPOSED through authoritative create"},
+    {"id": "H2", "result": "PASS", "actual": "independent exact-target Evaluation advanced PENDING to RUNNING to COMPLETED with durable result evidence"},
+    {"id": "H3", "result": "PASS", "actual": "current completed Evaluation supported ACCEPTED disposition"},
+    {"id": "H4", "result": "PASS", "actual": "exact Human authorization gated fake external commit; authorization, receipt and occurrence survived database reopen"},
+    {"id": "H5", "result": "PASS", "actual": "COMMITTED -> COMPENSATING -> COMPENSATED preserved original occurrence record"}
+  ],
+  "scores": {
+    "adversarial_safe": "8/8",
+    "legal_success": "5/5",
+    "A_external_integration": "PASS",
+    "B_enforcement": "PASS",
+    "C_differentiation": "PASS",
+    "D_audit_reconstruction": "PENDING INDEPENDENT BLIND REVIEW",
+    "E_integration_cost": "PASS"
+  },
+  "recommendation": "CONDITIONAL (NON-BINDING Worker recommendation): run independent blind review and address trusted gateway crash-consistency/ergonomics before product-scope change",
+  "issue_79": "BLOCKED / NOT RELEASED",
+  "stage_2_runtime": "NOT STARTED by this experiment",
+  "remote_mutation": "none"
+}

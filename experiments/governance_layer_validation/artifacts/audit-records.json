@@ -1,0 +1,86 @@
+[
+  {
+    "sequence": 1,
+    "kind": "candidate",
+    "identity": "outcome-A/v1",
+    "exact_binding": "run-17",
+    "fact": "Candidate A proposed."
+  },
+  {
+    "sequence": 2,
+    "kind": "evaluation",
+    "identity": "evaluation-E1/v3",
+    "exact_binding": "outcome-A/v1",
+    "fact": "E1 supported candidate A."
+  },
+  {
+    "sequence": 3,
+    "kind": "supersession",
+    "identity": "outcome-B/v1",
+    "exact_binding": "prior=outcome-A/v1",
+    "fact": "Candidate B superseded A; E1 remains historical but targets A only."
+  },
+  {
+    "sequence": 4,
+    "kind": "evaluation",
+    "identity": "evaluation-E2/v3",
+    "exact_binding": "outcome-B/v1",
+    "fact": "E2 supported candidate B with evidence evidence:B-support."
+  },
+  {
+    "sequence": 5,
+    "kind": "evaluation",
+    "identity": "evaluation-E3/v3",
+    "exact_binding": "outcome-B/v1",
+    "fact": "E3 conflicted with E2 using evidence evidence:B-conflict."
+  },
+  {
+    "sequence": 6,
+    "kind": "arbitration",
+    "identity": "arbitration-AB/v1",
+    "exact_binding": "E2/v3+E3/v3",
+    "fact": "An independent Human arbitration upheld E2 and reversed E3 for effective use."
+  },
+  {
+    "sequence": 7,
+    "kind": "disposition",
+    "identity": "outcome-B/v2",
+    "exact_binding": "arbitration-AB/v1",
+    "fact": "Outcome B accepted from the current arbitrated effective judgment."
+  },
+  {
+    "sequence": 8,
+    "kind": "effect_request",
+    "identity": "effect-42/v1",
+    "exact_binding": "outcome-B/v2",
+    "fact": "A consequential publish Effect was requested."
+  },
+  {
+    "sequence": 9,
+    "kind": "human_authorization",
+    "identity": "human-auth-42",
+    "exact_binding": "effect-42/v1+target+payload+correlation",
+    "fact": "Human operator human-7 authorized the exact prepared operation."
+  },
+  {
+    "sequence": 10,
+    "kind": "external_receipt",
+    "identity": "receipt-42",
+    "exact_binding": "effect-42/v1+operation-key-42",
+    "fact": "The independent external system returned a commit receipt."
+  },
+  {
+    "sequence": 11,
+    "kind": "occurrence",
+    "identity": "effect-42/v2",
+    "exact_binding": "receipt-42",
+    "fact": "Independent observation confirmed the external action occurred."
+  },
+  {
+    "sequence": 12,
+    "kind": "compensation",
+    "identity": "effect-42/v4",
+    "exact_binding": "original-occurrence=effect-42/v2",
+    "fact": "Compensation completed; original occurrence remains historical."
+  }
+]
