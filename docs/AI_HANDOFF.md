@@ -12,10 +12,10 @@ This workflow is model-, account- and vendor-neutral. No chat transcript, privat
 6. Read `ROADMAP.md` and `docs/DEVELOPMENT_PATH.md`.
 7. Read `docs/REFERENCE_WORKFLOWS.md`.
 8. Read relevant core beliefs, accepted ADRs and accepted designs.
-9. Read the current planned parent contract when planning a future stage, but do not treat it as execution authority.
+9. Read the current G2 parent plan `docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`.
 10. Perform the bounded current-task/review discovery below.
-11. Freshly read the concrete durable TaskSpec, if any work is released.
-12. Verify repository identity, baseline, readiness and remote authority independently before mutation.
+11. Freshly read the concrete durable TaskSpec Issue #105.
+12. Verify repository identity, exact launch baseline, readiness and remote authority independently before mutation.
 
 If a required source cannot be read or the baseline conflicts with the TaskSpec, stop before mutation.
 
@@ -33,14 +33,12 @@ If a required source cannot be read or the baseline conflicts with the TaskSpec,
 - Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority must not be reused or repurposed.
 - **G1/M1 is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
 - G1 accepted-truth reconciliation is `eaea5390a088a71fe4108c2b84812253032a287a`; Issues #100/#102/#103 are closed completed.
-- Issue #100 preserves the initial TaskSpec/candidate lineage; its original candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was NOT ACCEPTED.
-- Issue #102 contains the forward correction lineage and final independent acceptance review `5714651540`.
-- **G2 is PLANNED / NOT RELEASED.** Issue #104 is the current planning identity, not an implementation TaskSpec.
-- The current G2 parent plan is `docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`; its M0–M6 path is planning truth only and does not release source/test mutation.
+- G2 parent planning is accepted at `6434cecc2daae51d17182a7cf18184a9a8124a05`; Issue #104 is closed completed.
+- The current G2 parent plan is `docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`.
+- **Issue #105 is the current G2/M0 design-only TaskSpec.** Its body controls exact readiness, launch HEAD, allowed paths and remote authority.
+- G2/M1-M5 implementation is **NOT RELEASED**.
 
-## Current G2 planning path
-
-The planned sequence is:
+## Current G2 path
 
 ```text
 G2/M0 contract + threat-boundary freeze
@@ -52,41 +50,37 @@ G2/M0 contract + threat-boundary freeze
 -> G2/M6 stage acceptance + accepted-truth reconciliation
 ```
 
-Key cold-start interpretation:
+Current interpretation:
 
 - Stage 1 already owns Evaluation lifecycle, conflict/arbitration/invalidation, effective-use derivation and Outcome disposition semantics.
 - G1 already owns the public exact-ref / caller-DTO / injected-trusted-binder facade boundary.
-- G2 must integrate trusted evidence/evaluator provenance and authoritative history resolution without duplicating those semantics.
+- M0 freezes the trusted evidence/evaluator contract and threat boundary before implementation.
+- M0 is documentation/design only; it must not mutate `src/**` or `tests/**`.
 - Caller-supplied evidence, evaluator identity or history completeness is not trusted by construction.
 - Evaluation judgement remains distinct from Outcome disposition policy and required Human acceptance.
 - G2 does not authorize real Effect dispatch; that remains G3.
-
-Before implementing any G2 milestone, freshly read the planned parent plan and then require a separate milestone-specific TaskSpec. The parent plan cannot be used as a substitute for that TaskSpec.
 
 ## Current-task and review discovery
 
 After reading `STATUS.md`:
 
-1. identify the exact accepted baseline and current implementation/review/planning gate;
-2. identify the exact current candidate commit, if one exists;
-3. read the latest review for that exact candidate;
-4. distinguish a planned parent contract from an executable TaskSpec;
-5. read the concrete TaskSpec named as current work, if implementation is released;
-6. inspect only predecessor/correction/dependent Issues that materially determine readiness or authority;
-7. distinguish task discovery from execution authority;
-8. verify whether the TaskSpec is READY, BLOCKED, superseded or baseline-mismatched;
-9. verify remote mutation authority separately from local mutation authority;
-10. report contradictions rather than silently selecting a convenient source.
+1. identify exact accepted baseline and current gate;
+2. freshly read Issue #105;
+3. verify Issue #105 is `READY` before any mutation;
+4. verify its exact launch HEAD equals the repository starting HEAD used by the executor;
+5. verify only its listed documentation paths may change;
+6. verify no source/test mutation and no remote mutation are authorized for the executor;
+7. distinguish the parent plan from the executable M0 TaskSpec;
+8. report any architecture-stop discovery instead of expanding scope.
 
 Mandatory distinctions:
 
 ```text
 Task discovery != execution authority
 Planned Exec Plan != released TaskSpec
+Design TaskSpec != implementation authority
 Candidate != accepted truth
-Open/READY != known unclaimed work
 External execution success != authoritative completion
-Dispatch failure != Effect non-occurrence
 Historical accepted asset != current implementation authority
 Roadmap stage != released TaskSpec
 ```
@@ -96,12 +90,10 @@ For the current repository state:
 ```text
 Issue #79 = SUPERSEDED / NOT RELEASED / closed not planned
 G1/M1 = COMPLETE / ACCEPTED at 62133cdfc7abac6bf7d1ce4666b5953192ffc9d1
-Issue #100 = historical initial G1/M1 TaskSpec/candidate lineage / closed completed
-Issue #102 = accepted forward correction lineage / closed completed
-Issue #103 = accepted-truth reconciliation / closed completed
-Issue #104 = G2 planning identity only
+Issue #104 = accepted G2 planning identity / closed completed
 G2 parent plan = docs/exec-plans/planned/g2-trusted-evaluation-evidence.md
-G2 implementation = NOT RELEASED
+Issue #105 = current G2/M0 design-only TaskSpec
+G2/M1-M5 = NOT RELEASED
 ```
 
 ## Accepted G1/M1 facade boundary
@@ -110,38 +102,17 @@ The public facade exposes typed exact references for all six core entities, call
 
 It does not expose public Run completion or Outcome acceptance, does not permit callers to manufacture trusted Stage 1 authority by supplying context objects, and does not define G2 trust policy.
 
-## Governance boundary for external execution
+## G2/M0 stop conditions
 
-External execution may submit:
+If M0 concludes that trusted Evaluation/evidence requires a new Stage 1 lifecycle state, a seventh core entity, weakened exact-version/history semantics, a constitutional trust-model change, caller-controlled authority, real Effect dispatch, or a material change to the accepted product identity, stop and report an `ARCHITECTURE STOP`.
 
-- claims;
-- candidate Outcomes;
-- artifacts/evidence;
-- requested Effects;
-- retry/failover observations.
-
-Symphony-K must bind those submissions to exact authoritative identities and versions, apply independent Evaluation/evidence, govern consequential Effects and preserve causal audit history. External systems cannot self-accept, self-authorize, substitute stale evidence, rewrite history or bypass Effect governance.
+Do not convert that discovery into opportunistic domain or persistence implementation.
 
 ## TaskSpec precondition
 
-Before implementation mutation, establish a concrete, pre-existing durable TaskSpec identity and record either `direct-read` or `materialized-handoff` as defined in `AGENTS.md`.
+A title, draft, parent Exec Plan, roadmap row, placeholder identity or conversation-only instruction is insufficient. Issue #105 must explicitly say `READY` and name the exact launch HEAD before design mutation begins.
 
-A title, draft, future number, parent Exec Plan, roadmap row, placeholder identity or conversation-only instruction is insufficient. Post-hoc TaskSpec creation is not retroactive authorization.
-
-Do not use completed Issue #100, #102 or #103 as authorization for new work. Do not use Issue #104 or the planned G2 parent Exec Plan as implementation authorization. For G2, each implementation milestone needs a fresh G2/Mx TaskSpec that is explicitly released.
-
-## Architecture or product discoveries
-
-If work reveals a changed authority boundary, trust assumption, top-level concept, material v1 responsibility or constitutional conflict:
-
-1. stop at the discovery boundary;
-2. preserve evidence and candidate workspace;
-3. propose the required ADR/amendment/Product Contract reconciliation;
-4. resume only after the accepted decision and a new bounded TaskSpec.
-
-For G2 specifically, a discovered need for a new Stage 1 lifecycle state, seventh core entity or material constitutional trust change is an architecture stop, not permission to modify `src/symphony_k/domain/**` opportunistically.
-
-Implementation convenience must not silently redefine the accepted product.
+Issue #105's remote boundary controls the executor. Unless revised, the executor may create only a local candidate commit and must not push, update `main`, mutate Issues/PRs, or create tags/releases.
 
 ## Historical truth and corrections
 
@@ -168,7 +139,7 @@ planning Issue / parent plan
     -> independently reviewed planning truth
     -> fresh bounded milestone TaskSpec
     -> explicit READY release
-    -> Worker candidate
+    -> Worker/design candidate
     -> validation
     -> publication when authorized
     -> independent review
@@ -184,24 +155,21 @@ GitHub Issues are the current manual development-governance carrier, not a futur
 Given only repository read access, a fresh maintainer/AI must be able to report:
 
 - the accepted Constitution/ADR baseline;
-- the accepted product identity;
-- the accepted v1 delivery path and workflows;
-- that strategic transition R1-R5 is complete;
-- which Stage 2 assets remain accepted and what role they now have;
+- the accepted product identity and v1 delivery path;
 - that Issue #79 is superseded/closed and cannot be reused;
 - that G1/M1 is COMPLETE / ACCEPTED at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`;
-- that Issue #100's initial candidate was rejected and Issue #102 carries the accepted forward correction lineage;
-- that G1 reconciliation is complete at `eaea5390a088a71fe4108c2b84812253032a287a`;
-- that Issue #104 and the G2 parent plan define planning only;
-- the G2 M0–M6 planned path;
-- that no G2 implementation milestone is released without a fresh TaskSpec;
-- what work and remote actions are actually authorized.
+- that G2 planning is accepted at `6434cecc2daae51d17182a7cf18184a9a8124a05`;
+- the G2 M0-M6 path;
+- that Issue #105 is the only current G2 milestone TaskSpec;
+- whether Issue #105 is READY and its exact launch HEAD;
+- that M0 is design-only and M1-M5 remain unreleased;
+- what paths and remote actions are authorized.
 
 Pass means correct, source-backed discovery without private conversation context.
 
 ## Handoff evidence
 
-Every completed Worker report should identify:
+Every completed Worker/design report should identify:
 
 ```text
 TaskSpec reference

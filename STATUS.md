@@ -13,6 +13,7 @@
 - **Final strategic reconciliation commit:** `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently **ACCEPTED** on Issue #99 comment `5712355215`.
 - **Accepted G1/M1 governance facade implementation boundary:** `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`; Issue #102 independent acceptance review `5714651540`.
 - **G1 accepted-truth reconciliation:** `eaea5390a088a71fe4108c2b84812253032a287a`; Issues #100/#102/#103 are closed completed.
+- **Accepted G2 planning boundary:** `6434cecc2daae51d17182a7cf18184a9a8124a05`; Issue #104 planning review `5715084007`; Issue #104 is closed completed.
 - **Stage 2 M1/M1C technical design:** **HUMAN ACCEPTED** at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`; ADR-0008 remains **ACCEPTED**.
 - Stage 2 runtime code is **NOT STARTED** and runtime isolation evidence is **NOT ESTABLISHED**.
 
@@ -74,13 +75,15 @@ G1/M1 does not add new Stage 1 lifecycle semantics or G2 evidence-trust policy.
 
 ## Current delivery gate
 
-**G2 — Trusted Evaluation and Evidence Integration is PLANNED / NOT RELEASED.**
+**G2 — Trusted Evaluation and Evidence Integration remains PLANNED. G2/M0 design freeze is the only milestone being prepared for release.**
 
-Current planning authority: **Issue #104 — G2 Planning — Trusted Evaluation and Evidence Delivery Path**.
+Accepted G2 parent planning contract: [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md), accepted planning boundary `6434cecc2daae51d17182a7cf18184a9a8124a05`.
 
-Planned parent contract: [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md).
+Current concrete TaskSpec: **Issue #105 — G2 / M0 — Trusted Evaluation and Evidence Contract / Threat-Boundary Freeze**.
 
-The planned G2 path is:
+Issue #105 is design-only. It authorizes only the exact documentation paths and remote boundary stated in its body once the TaskSpec is revised to READY with an exact launch HEAD. It does not authorize `src/**`, `tests/**`, M1-M5 implementation, real Effect work, or Stage 1 semantic changes.
+
+The planned G2 path remains:
 
 ```text
 M0 contract / threat-boundary freeze
@@ -91,8 +94,6 @@ M0 contract / threat-boundary freeze
 -> M5 evidence-backed Outcome disposition bridge
 -> M6 stage acceptance + accepted-truth reconciliation
 ```
-
-Issue #104 and the planned Exec Plan are **planning artifacts only**. They do not authorize G2 source/test mutation. Before any G2 implementation, a fresh milestone-specific durable TaskSpec must explicitly release work from an exact starting HEAD with bounded paths, validation, adversarial tests and remote-mutation authority.
 
 ## Strategic lineage
 
@@ -109,11 +110,12 @@ Issue #104 and the planned Exec Plan are **planning artifacts only**. They do no
 - #101 — post-transition cold-start handoff reconciliation.
 - #102 — G1/M1A forward trust-boundary correction and final accepted implementation evidence; closed completed.
 - #103 — G1/M1 accepted-truth reconciliation; closed completed.
-- #104 — current G2 planning identity; planning only, implementation not released.
+- #104 — G2 parent planning identity; closed completed after accepted planning reconciliation.
+- #105 — current G2/M0 design-only TaskSpec.
 
 ## Next action
 
-Complete and independently review Issue #104 planning reconciliation. Do not release G2 implementation merely because the parent path is documented. If implementation is later authorized, begin with a fresh G2/M0 TaskSpec that freezes the contract/threat boundary before source mutation.
+Finalize the G2/M0 launch handoff, then revise Issue #105 to **READY** using that exact launch HEAD. The M0 executor may then produce only the design candidate defined by #105. M1-M5 remain NOT RELEASED.
 
 ## Navigation / cold-start reading order
 
@@ -126,8 +128,9 @@ Complete and independently review Issue #104 planning reconciliation. Do not rel
 7. [ROADMAP.md](ROADMAP.md)
 8. [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
 9. [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
-10. relevant core beliefs, accepted ADRs/designs
-11. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-12. the current concrete durable TaskSpec, if implementation or governance mutation is released
+10. [docs/exec-plans/planned/g2-trusted-evaluation-evidence.md](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md)
+11. relevant core beliefs, accepted ADRs/designs
+12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
+13. current concrete TaskSpec Issue #105
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.
