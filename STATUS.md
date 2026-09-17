@@ -17,6 +17,11 @@
   External Execution Boundary. It preserves accepted Stage 1 semantics while
   narrowing v1 ownership of planning, routing, Agent runtime and sandbox
   mechanisms.
+- **Accepted R2 product definition:** `VISION.md`, `ARCHITECTURE.md`,
+  `docs/V1_PRODUCT_CONTRACT.md` and root `README.md` at exact head
+  `2b54c2672c0c400aab1f35e0245c8c4e97a62321`, after independent review
+  **ACCEPT** on Issue #92 comment `5711134872` and explicit Human acceptance on
+  Issue #92 comment `5711951534`.
 - **Stage 2 M1 architecture/design:** **HUMAN ACCEPTED**. ADR-0008 remains
   **ACCEPTED** and technically unchanged. The current cumulative accepted
   sandbox design baseline is
@@ -54,22 +59,28 @@
 - **R1 architecture/constitution:** **COMPLETE AND HUMAN ACCEPTED** at exact head
   `9c842f18ffcdd51daef8f05d9367f571df677703`. ADR-0009 and Constitution v0.2
   are current accepted governance truth.
-- **Current governance work:** R2 product-definition reconciliation is the next
-  strategic step. `VISION.md`, `ARCHITECTURE.md`, `docs/V1_PRODUCT_CONTRACT.md`
-  and the root `README.md` still carry historical pre-transition accepted
-  wording until R2 is materialized, reviewed and accepted.
+- **R2 product definition:** **COMPLETE AND HUMAN ACCEPTED** at exact head
+  `2b54c2672c0c400aab1f35e0245c8c4e97a62321`. The accepted current product
+  identity is a framework-neutral governance/control-plane system for agentic
+  work; post-transition target capabilities are requirements, not implementation
+  claims.
+- **Current governance work:** R3 delivery-plan reconciliation is next.
+  `ROADMAP.md`, `docs/DEVELOPMENT_PATH.md` and the active Stage 2 delivery path
+  still encode historical pre-transition sequencing until R3 is materialized,
+  reviewed and accepted.
 - **Implementation hold:** Issue #79 remains **BLOCKED / NOT RELEASED**. Its old
   Stage 2 M2 scope must not be re-released during strategic reconciliation.
-  R1 acceptance does not authorize an implementation restart.
+  R1/R2 acceptance does not authorize an implementation restart.
 
 ## Current Stage 2 status
 
 - **Current stage:** Stage 2 — Sandbox Execution
-- **Stage 2 activity:** **ACTIVE** at the accepted M1 design boundary; runtime
-  implementation remains blocked pending completion of the strategic
-  reconciliation sequence.
+- **Stage 2 activity:** **ACTIVE** only as an accepted historical technical and
+  provider/conformance design asset; runtime implementation remains blocked
+  pending completion of strategic delivery-plan reconciliation.
 - **Current parent plan:**
   [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
+  remains historical delivery wording pending R3 disposition.
 - **Current Human Accepted Stage 2 technical design baseline:**
   `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
   (`docs(architecture): clarify unknown frozen salvage collection`)
@@ -102,8 +113,8 @@
 - **Current accepted corrected design:**
   `77acfbdaf2bed6f0536873fafc8eb7a12599da83`, parent
   `7ff155c29de83fbcc5487698c8b72b70b2dec075`. It permits one guarded read-only
-  frozen-salvage collect while retaining
-  UNKNOWN/cleanup and prohibiting reuse/export/rebinding before targeted destroy.
+  frozen-salvage collect while retaining UNKNOWN/cleanup and prohibiting
+  reuse/export/rebinding before targeted destroy.
 - **Runtime isolation evidence:** **NOT YET ESTABLISHED**.
 - **Stage 2 runtime code:** **NOT YET STARTED**
 - **Stage 2 complete:** **NO**
@@ -119,23 +130,28 @@
   **REQUEST CHANGES** comment `5707299068` -> Issue #86 bounded correction ->
   independent **ACCEPT** comment `5709520565`. The accepted review classifies
   gates A/B/C/D/E as PASS and reaches the registered GO gate for considering a
-  formal amendment; it does not approve that amendment.
+  formal amendment; it does not itself approve that amendment.
 - **R1 acceptance lineage:** Issue #87 Human strategic approval -> Issue #89 R1
   candidate -> independent REQUEST CHANGES comment `5710385425` -> Issue #90
   narrow R1C correction -> corrected head `9c842f18...` -> independent technical
   re-review **ACCEPT** comment `5711016301` -> explicit Human R1 acceptance
   comment `5711029647` -> Issue #91 acceptance reconciliation.
+- **R2 acceptance lineage:** Issue #92 candidate at `2b54c267...` -> independent
+  product-definition review **ACCEPT** comment `5711134872` -> explicit Human R2
+  acceptance comment `5711951534` -> Issue #93 acceptance reconciliation.
 - **Issue #79:** **BLOCKED / NOT RELEASED**, revision
   `r3 - stage-02-m2-blocked-after-unknown-collection-stop`. Its earlier r2 was
-  released but stopped before mutation; no M2 code or implementation commit
-  was produced. Do not reuse r2 execution authority or re-release its old M2
-  scope while the required strategic reconciliation remains unresolved.
-- **Next action:** execute and review R2 product-definition reconciliation for
-  `VISION.md`, `ARCHITECTURE.md`, `docs/V1_PRODUCT_CONTRACT.md` and root
-  `README.md`. R3 delivery-plan and R4 workflow/cold-start reconciliation remain
-  subsequent bounded work. Implementation cannot restart before the required
-  reconciliation and a fresh executable TaskSpec.
-- **Stage 3:** **PLANNED** — not activated.
+  released but stopped before mutation; no M2 code or implementation commit was
+  produced. Do not reuse r2 execution authority or re-release its old M2 scope.
+- **Next action:** execute R3 delivery-plan reconciliation. Replace the old
+  mandatory orchestrator Stage 2->10 critical path with the accepted v1 path
+  centered on governance facade, evidence integration, governed Effect gateway,
+  audit export, conformance, reference integrations and production hardening.
+  R4 workflow/cold-start reconciliation follows. Implementation cannot restart
+  before strategic reconciliation completes and a fresh executable TaskSpec is
+  released.
+- **Stage 3:** historical planned stage under the old roadmap; not activated and
+  subject to R3 disposition.
 
 An open or `READY` Issue does not prove that a Worker is executing it. Issue
 number order does not determine authority, readiness or the next task.
