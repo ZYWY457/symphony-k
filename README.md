@@ -23,8 +23,6 @@ The accepted v1 target is centered on:
 
 The deployment posture is **embedded-first and service-capable**. A Python SDK may be the first integration surface; a stable local service/API and CLI may expose the same governance kernel for cross-process or non-Python consumers.
 
-These are v1 requirements, not claims that the post-transition implementation already exists.
-
 ## What v1 no longer requires Symphony-K to own
 
 The following are not mandatory v1 release blockers:
@@ -48,12 +46,15 @@ Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 - R3 delivery-path reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `f467fd75071e5d0252719539cf7323fb71de587c`.
 - R4 workflow/cold-start reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `ecccbedd68f2f0e0eff949c20b627f250ddf189e`.
 - R5 final strategic disposition/release-boundary reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `1bb48657a85d746b8d0023ddd805c6cdc09703b0`.
-- Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, reviewed **ACCEPT** on Issue #99 comment `5712355215`.
+- Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, reviewed **ACCEPT** on Issue #99 comment `5712355215`.
 - Repository-level strategic transition R1-R5 is complete.
-- Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority is historical only and cannot be reused as G1 authority.
-- **G1 / M1 — Governance SDK / Facade Foundation is the current implementation slice.** Its durable TaskSpec identity is Issue #100; the current Issue #100 body is authoritative for revision, readiness, exact launch HEAD and scope.
-- G1 implementation has not started or completed merely because its TaskSpec is released.
+- Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority is historical only and cannot be reused as post-transition execution authority.
+- **G1 / M1 — Governance SDK / Facade Foundation is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`; Issue #102 independent acceptance review is comment `5714651540`.
+- The original Issue #100 candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` remains historical **NOT ACCEPTED** evidence; Issue #102 contains the forward correction lineage.
+- **G2 — Trusted Evaluation and Evidence Integration is PLANNED / NOT RELEASED.** It requires a fresh durable TaskSpec before implementation mutation.
 - Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
+
+The accepted G1 facade exposes typed exact entity/version references, caller-controlled submission DTOs separated from trusted authority/context construction, supported Run/Outcome/Evaluation mutations through an injected trusted binder, exact/current reads, caller-safe errors, replay/concurrency preservation and explicit unsupported real Effect dispatch. It does not add public Run completion or Outcome acceptance and does not define G2 trust policy.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
 

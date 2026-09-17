@@ -16,8 +16,8 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | ---: | --- | --- |
 | 0 | Constitution and Repository Harness | COMPLETE |
 | 1 | Domain Kernel | COMPLETE — Human Exit ACCEPTED |
-| G1 | Governance SDK / Facade | ACTIVE — M1 via Issue #100 |
-| G2 | Trusted Evaluation and Evidence Integration | PLANNED |
+| G1 | Governance SDK / Facade | COMPLETE / ACCEPTED — M1 at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` |
+| G2 | Trusted Evaluation and Evidence Integration | PLANNED / NOT RELEASED |
 | G3 | Governed Effect Gateway and Occurrence Reconciliation | PLANNED |
 | G4 | Audit Export and Causal Reconstruction | PLANNED |
 | G5 | Adversarial and Conformance Suite | PLANNED |
@@ -27,9 +27,9 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | G9 | Production Hardening and Release Engineering | PLANNED |
 | G10 | v1 Acceptance and Final Delivery | PLANNED |
 
-For G1/M1, **Issue #100's current body** is the sole authority for TaskSpec revision, readiness, exact launch HEAD, allowed paths and validation. Roadmap status does not release or override implementation authority.
+G1/M1 accepted implementation lineage is preserved through Issue #100 and Issue #102. The original Issue #100 candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was not accepted; Issue #102 carried the forward trusted-boundary and exact-version corrections; final candidate `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` was independently accepted on comment `5714651540`.
 
-Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is historical only. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not the implementation TaskSpec for G1 or any other post-transition stage.
+Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is historical only. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not an implementation TaskSpec for any current stage.
 
 ## Stage 0 — Constitution and Repository Harness
 
@@ -46,21 +46,22 @@ Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is histor
 
 ## G1 — Governance SDK / Facade
 
-- **Status:** ACTIVE — current M1 TaskSpec identity is Issue #100.
-- **Execution authority:** use the current Issue #100 body; do not infer revision or launch SHA from this roadmap.
-- **Goal:** expose a stable bounded public integration surface over accepted Stage 1 semantics without requiring callers to understand the full internal semantic graph.
-- **Required outcome:** external callers can submit claims/candidates/evidence, bind them to exact authoritative identities/versions and query governed results through one semantic authority model.
-- **Initial M1 product intent:** public Python-facing facade; typed claim/candidate/evidence submission; exact identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
-- **Non-goals for M1:** new lifecycle semantics, real external Effect dispatch, generic Planner/Router ownership, Agent runtime ownership or sandbox-runtime ownership.
-- **Deployment posture:** embedded-first; service/API and CLI surfaces may expose the same kernel later or in parallel without weaker semantics.
-- **Exit proof:** public-contract tests demonstrate that the facade cannot bypass transition authority, evidence binding, replay or history rules; independent review and durable reconciliation are still required.
+- **Status:** COMPLETE / ACCEPTED.
+- **Accepted implementation boundary:** `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
+- **Acceptance evidence:** Issue #102 independent acceptance review comment `5714651540`.
+- **Goal achieved:** a stable bounded public integration surface over accepted Stage 1 semantics without requiring callers to construct trusted internal authority/context objects.
+- **Accepted capabilities:** typed exact references for Objective/Task/Run/Outcome/Evaluation/Effect; caller-controlled claim/candidate/evidence DTOs; injected trusted binder for Stage 1 request/context construction; supported Run/Outcome/Evaluation mutation paths; exact/current reads; caller-safe errors; stale/superseded/cross-entity and exact-lineage rejection; replay/idempotency and optimistic-concurrency preservation; explicit unsupported real Effect dispatch.
+- **Preserved authority boundary:** no public Run completion or Outcome acceptance operation; no caller-supplied trusted Stage 1 context; no new lifecycle semantics.
+- **Historical correction lineage:** Issue #100 initial candidate remained NOT ACCEPTED; Issue #102 carried the accepted forward correction rather than rewriting history.
 
 ## G2 — Trusted Evaluation and Evidence Integration
 
-- **Status:** PLANNED.
+- **Status:** PLANNED / NOT RELEASED.
+- **Entry criteria:** accepted G1 facade plus a fresh durable G2 TaskSpec that explicitly releases implementation from an exact baseline.
 - **Goal:** make independent Evaluation/evidence a production integration boundary rather than an experimental harness.
 - **Required outcome:** exact candidate/entity/version/effective-use binding, stale/superseded/cross-entity rejection, independent evaluator identity/provenance and durable evidence references.
 - **Exit proof:** adversarial stale/substitution/tamper cases fail closed while legal evidence-backed disposition succeeds.
+- Roadmap order alone does not authorize G2 implementation.
 
 ## G3 — Governed Effect Gateway and Occurrence Reconciliation
 

@@ -4,9 +4,11 @@ Start with the root [project status](../STATUS.md), then follow the authority an
 
 The accepted current product identity is a framework-neutral governance/control-plane system for agentic work. Constitution v0.2 and ADR-0009 are accepted; R2 product definition, R3 delivery path, R4 workflows/cold-start truth and R5 final disposition are Human accepted. Repository-level strategic transition R1-R5 is complete.
 
-Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
+Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 
-Current G1/M1 implementation TaskSpec identity is **Issue #100**. The current Issue #100 body is authoritative for revision, readiness, exact launch HEAD, allowed paths and validation.
+**G1/M1 Governance SDK / Facade is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`. Issue #100 preserves the original TaskSpec and rejected initial candidate lineage; Issue #102 carries the forward correction lineage and final independent acceptance review `5714651540`.
+
+**G2 Trusted Evaluation and Evidence Integration is PLANNED / NOT RELEASED.** A fresh durable G2 TaskSpec is required before implementation mutation. Issue #103 is governance/documentation reconciliation only and does not release G2.
 
 ## Constitution and core beliefs
 
@@ -30,7 +32,7 @@ Current G1/M1 implementation TaskSpec identity is **Issue #100**. The current Is
 
 ADR-0008 and the Stage 2 design remain accepted execution-provider security/conformance assets and an optional/reference implementation path. They no longer define the mandatory v1 delivery sequence.
 
-Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned. Its old r2/r3 authority is historical only and must not be revived or reused as G1 authority.
+Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned. Its old r2/r3 authority is historical only and must not be revived or reused as current execution authority.
 
 ## Product and delivery truth
 
@@ -46,7 +48,9 @@ The accepted v1 critical path centers on governance facade, trusted evidence/Eva
 
 Generic Planner, Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 blockers.
 
-G1/M1 implementation authority is carried only by the current Issue #100 body. Broader G1/G2 work remains unreleased/planned until its own durable TaskSpec exists.
+G1/M1 accepted capabilities include typed exact references for all six core entities, caller-controlled DTOs separated from trusted Stage 1 authority/context construction, supported Run/Outcome/Evaluation mutation paths through an injected trusted binder, exact/current reads, caller-safe errors, replay/concurrency preservation and explicit unsupported real Effect dispatch. It does not add public Run completion or Outcome acceptance and does not define G2 trust policy.
+
+Broader G1/G2 work is not released by completion of G1/M1. New work requires its own durable TaskSpec and readiness gate.
 
 ## Exec Plans
 

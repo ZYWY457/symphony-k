@@ -30,12 +30,20 @@ Before mutation, read in this order unless the current TaskSpec narrows the scop
 - Constitution v0.2 and ADR-0009 are accepted.
 - R2 product definition, R3 delivery path, R4 workflows/cold-start truth and R5 final disposition are Human accepted.
 - Repository-level strategic transition R1-R5 is COMPLETE.
-- Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
+- Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 - ADR-0008 and the accepted Stage 2 sandbox design remain valid historical/provider-conformance assets and an optional/reference execution path.
 - Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned and must not be revived, repurposed or treated as post-transition execution authority.
-- Current G1/M1 implementation TaskSpec identity is **Issue #100**.
-- The **current Issue #100 body** is authoritative for TaskSpec revision, execution readiness, exact launch HEAD, allowed paths, validation and remote-mutation boundary.
-- G1 readiness does not imply implementation has started or that broader G1/G2 work is released.
+- **G1/M1 Governance SDK / Facade is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
+- Issue #100 preserves the original G1/M1 TaskSpec and initial candidate lineage; its candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was NOT ACCEPTED.
+- Issue #102 contains the forward M1A correction lineage and independent final acceptance review `5714651540`.
+- **G2 is PLANNED / NOT RELEASED.** A fresh durable G2 TaskSpec is required before implementation mutation.
+- Current governance-only reconciliation is Issue #103. It does not authorize G2 implementation.
+
+## Accepted G1/M1 boundary
+
+The public governance facade now provides typed exact references for all six core entities, caller-controlled DTOs separated from trusted Stage 1 authority/context construction, supported Run/Outcome/Evaluation mutations through an injected trusted binder, exact/current reads, caller-safe error translation, exact lineage binding, replay/idempotency and optimistic-concurrency preservation, and explicit unsupported real Effect dispatch.
+
+The accepted G1/M1 surface does **not** expose public Run completion or Outcome acceptance, does not permit callers to supply trusted Stage 1 contexts as authority, does not add new lifecycle semantics and does not define G2 trust policy.
 
 ## Core authority rules
 
@@ -65,7 +73,7 @@ Conversation-only instructions, draft titles, future Issue numbers and placehold
 
 A discovered TaskSpec is not executable when it is blocked, unreleased, baseline-mismatched, superseded, overlapping known active work or otherwise fails its stated preconditions.
 
-For current G1/M1 work, freshly read Issue #100 and obey its current body. Do not use a baseline or revision cached in another document as a substitute for the Issue.
+Do not infer G2 authority from the completed G1 stage or roadmap order. Freshly read the current concrete TaskSpec named by `STATUS.md` before mutation.
 
 Final Worker evidence must report:
 
@@ -85,13 +93,13 @@ No private chat, model memory, Worker report or account context is a source of t
 
 Candidate commits do not become accepted truth merely because they exist. Acceptance follows the review/Human gates defined by the current TaskSpec.
 
-Historical accepted artifacts must not be rewritten to imply the current strategy always existed. Corrections and supersession are forward, attributable records.
+Historical accepted artifacts and rejected candidates must not be rewritten to imply the current strategy or implementation always existed. Corrections and supersession are forward, attributable records.
 
 ## Remote repository mutation boundary
 
 Repository-local work and remote effects are separate authorities. Unless explicitly authorized by the current TaskSpec or Human instruction, a Worker MUST NOT push, mutate remote refs, create/merge/close PRs, publish releases, rewrite remote history or mutate Issues.
 
-Issue #100 releases only the implementation work stated in its current body; remote publication remains separately controlled.
+Completed Issue #100/#102 work does not authorize broader G1/G2 mutation. Issue #103 authorizes only bounded governance/documentation reconciliation and its stated Issue-state closure.
 
 If remote mutation occurs, report the exact action, repository/branch, affected object, authorization source and resulting reference.
 
@@ -126,6 +134,4 @@ python --version
 uv --version
 ```
 
-The exact expected starting HEAD for current G1/M1 work MUST be read freshly from Issue #100.
-
-If required execution or validation cannot run, report the gap and do not fabricate evidence or claim completion.
+The exact expected starting HEAD must be read freshly from the current TaskSpec. If required execution or validation cannot run, report the gap and do not fabricate evidence or claim completion.

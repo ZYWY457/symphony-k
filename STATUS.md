@@ -3,7 +3,7 @@
 ## Accepted baseline
 
 - **Project:** Symphony-K; **maturity:** pre-v1 development
-- **Completed implementation stages:** Stage 0, Stage 1
+- **Completed implementation stages:** Stage 0, Stage 1, G1/M1
 - **Stage 1:** **COMPLETE**; final accepted implementation/governance boundary `987f927905cadcedd473f2ba3270f56908b7f6b9`.
 - **Current accepted constitutional baseline:** Constitution v0.2 + ADR-0009, accepted at exact R1 head `9c842f18ffcdd51daef8f05d9367f571df677703`.
 - **Accepted R2 product definition:** exact head `2b54c2672c0c400aab1f35e0245c8c4e97a62321`; independent review **ACCEPT** `5711134872`; Human acceptance `5711951534`.
@@ -11,6 +11,7 @@
 - **Accepted R4 workflow/cold-start reconciliation:** exact head `ecccbedd68f2f0e0eff949c20b627f250ddf189e`; independent review **ACCEPT** `5712098419`; Human acceptance `5712165121`; R4A reconciliation `51137a3549388b61abfcbcbd5d70c6ec66101dae` reviewed **ACCEPT** on Issue #97 comment `5712179640`.
 - **Accepted R5 final strategic disposition / release boundary:** exact head `1bb48657a85d746b8d0023ddd805c6cdc09703b0`; independent review **ACCEPT** on Issue #98 comment `5712222234`; final Human acceptance on Issue #98 comment `5712330240`.
 - **Final strategic reconciliation commit:** `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently **ACCEPTED** on Issue #99 comment `5712355215`.
+- **Accepted G1/M1 governance facade implementation boundary:** `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`; Issue #102 independent acceptance review `5714651540`.
 - **Stage 2 M1/M1C technical design:** **HUMAN ACCEPTED** at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`; ADR-0008 remains **ACCEPTED**.
 - Stage 2 runtime code is **NOT STARTED** and runtime isolation evidence is **NOT ESTABLISHED**.
 
@@ -24,16 +25,16 @@ The accepted v1 critical path is:
 
 ```text
 Stage 1 governance kernel
--> governance SDK/facade
--> trusted Evaluation/evidence integration
--> governed Effect gateway + occurrence reconciliation
--> durable audit export/reconstruction
--> adversarial/conformance suite
--> external agent/orchestrator integration
--> reference execution/provider path
--> end-to-end governance safety/recovery
--> production hardening
--> v1 acceptance
+-> G1 governance SDK/facade
+-> G2 trusted Evaluation/evidence integration
+-> G3 governed Effect gateway + occurrence reconciliation
+-> G4 durable audit export/reconstruction
+-> G5 adversarial/conformance suite
+-> G6 external agent/orchestrator integration
+-> G7 reference execution/provider path
+-> G8 end-to-end governance safety/recovery
+-> G9 production hardening
+-> G10 v1 acceptance
 ```
 
 A generic Planner, generic Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 release blockers.
@@ -46,16 +47,37 @@ A generic Planner, generic Router, learned routing/reputation, multiple complete
 - Its old r2/r3 execution authority is historical only and MUST NOT be revived or repurposed as G1 authority.
 - Future reference-provider implementation may reuse ADR-0008/M1/M1C only through a fresh bounded TaskSpec.
 
-## Current implementation work
+## G1/M1 accepted implementation truth
 
-The first post-transition implementation slice is **G1 / M1 — Governance SDK / Facade Foundation**.
+**G1 / M1 — Governance SDK / Facade Foundation is COMPLETE / ACCEPTED.**
 
-- Current executable TaskSpec identity: **Issue #100**.
-- The **current Issue #100 body** is authoritative for its TaskSpec revision, execution readiness, exact launch HEAD, allowed paths, validation and remote-mutation boundary.
-- Repository roadmap/status text MUST NOT be used to infer or override a different Issue #100 launch SHA.
-- G1 implementation has **NOT STARTED OR COMPLETED merely because Issue #100 is released**.
+Accepted implementation boundary: `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
 
-The bounded G1/M1 product intent is a public Python-facing governance facade, typed external claim/candidate/evidence submission, exact entity/version binding, supported read/query surfaces, and deterministic authority/evidence/replay/concurrency tests. It adds no lifecycle semantics and performs no real external Effect dispatch.
+Historical implementation lineage is preserved:
+
+- Issue #100 produced original candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352`; independent review comment `5714146581` found a trust-boundary defect, so that candidate was **NOT ACCEPTED**.
+- Issue #102 carried the forward M1A correction. Candidate `d09681e7463aa567c576b7b40237d9097a53a572` corrected caller/trusted-context separation but required one exact-version lineage fix; review comment `5714460554` recorded that blocker.
+- Final forward correction `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` was independently **ACCEPTED** on Issue #102 comment `5714651540`.
+
+The accepted G1/M1 facade provides:
+
+- typed exact references for Objective, Task, Run, Outcome, Evaluation and Effect;
+- caller-controlled submission DTOs separated from trusted Stage 1 authority/context construction;
+- supported Run/Outcome/Evaluation mutation paths through an explicitly injected trusted binder;
+- exact identity/version binding including immediate lineage references;
+- exact/current reads and caller-safe normalized errors;
+- preserved replay/idempotency and optimistic-concurrency semantics; and
+- explicit unsupported real Effect dispatch, with no public Run-completion or Outcome-acceptance operation.
+
+G1/M1 does not add new Stage 1 lifecycle semantics or G2 evidence-trust policy.
+
+## Current delivery gate
+
+**G2 — Trusted Evaluation and Evidence Integration is PLANNED / NOT RELEASED.**
+
+No G2 implementation is authorized by roadmap order, Issue #100, Issue #102, or this status file. G2 requires a fresh durable TaskSpec with an exact starting baseline, scope, validation and remote-mutation boundary before implementation mutation.
+
+Current governance reconciliation TaskSpec: **Issue #103 — G1 / M1R Accepted-Truth Reconciliation and G2 Release Boundary**. It is documentation/governance-only and does not release G2 implementation.
 
 ## Strategic lineage
 
@@ -68,12 +90,14 @@ The bounded G1/M1 product intent is a public Python-facing governance facade, ty
 - #98 — R5 final disposition, independent ACCEPT and final Human Acceptance.
 - #99 — R5A final accepted-truth reconciliation, independent ACCEPT.
 - #79 — closed SUPERSEDED / NOT RELEASED, historical only.
-- #100 — current G1/M1 implementation TaskSpec identity; current body controls release details.
+- #100 — original G1/M1 TaskSpec and rejected initial implementation candidate lineage.
 - #101 — post-transition cold-start handoff reconciliation.
+- #102 — G1/M1A forward trust-boundary correction and final accepted implementation evidence.
+- #103 — current G1/M1 accepted-truth reconciliation; governance/documentation only.
 
 ## Next action
 
-Freshly read Issue #100 and execute only its current released revision from the exact launch HEAD stated in that Issue. After a candidate is produced, independently review it and reconcile acceptance before broader G1 or G2 work is released.
+Complete Issue #103 reconciliation and independently review its exact documentation candidate. After accepted reconciliation, close #100/#102/#103 as completed with their historical lineage preserved. Only then create and separately release a fresh bounded G2 TaskSpec if G2 work is to begin.
 
 ## Navigation / cold-start reading order
 
@@ -88,6 +112,6 @@ Freshly read Issue #100 and execute only its current released revision from the 
 9. [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
 10. relevant core beliefs, accepted ADRs/designs
 11. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-12. Issue #100, the current executable TaskSpec identity
+12. the current concrete durable TaskSpec, if implementation or governance mutation is released
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.

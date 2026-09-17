@@ -6,15 +6,15 @@ This document is the authoritative delivery contract from the accepted Stage 1 g
 
 The accepted Constitution v0.2, ADR-0009 and R2 Product Contract define the current product boundary: Symphony-K governs authoritative claims/state, trusted evidence and Evaluation, consequential Effects and reconstructable history while external agents, orchestrators and execution runtimes may determine how work is attempted.
 
-Strategic transition R1-R5 is COMPLETE AND HUMAN ACCEPTED. Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+Strategic transition R1-R5 is COMPLETE AND HUMAN ACCEPTED. Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
 
 ## Current dependency graph
 
 ```text
 Stage 0 repository/constitutional harness — COMPLETE
    -> Stage 1 governance Domain Kernel — COMPLETE
-      -> G1 governance SDK/facade — current M1 TaskSpec is Issue #100
-         -> G2 trusted Evaluation/evidence integration
+      -> G1 governance SDK/facade — COMPLETE / ACCEPTED
+         -> G2 trusted Evaluation/evidence integration — PLANNED / NOT RELEASED
             -> G3 governed Effect gateway + occurrence reconciliation
                -> G4 audit export / causal reconstruction
                   -> G5 adversarial + conformance suite
@@ -56,24 +56,25 @@ No stage may infer authority from roadmap order alone. The current TaskSpec body
 
 ## G1 — Governance SDK / Facade
 
-- **Status:** ACTIVE — current M1 TaskSpec identity is Issue #100.
-- **Execution authority:** the current Issue #100 body controls TaskSpec revision, readiness, exact launch HEAD, allowed paths and validation. Do not infer those values from this document.
-- **Purpose:** provide a bounded stable public integration surface over accepted governance semantics.
-- **Initial M1 product intent:** public Python-facing governance facade; typed external claim/candidate/evidence submission; exact Objective/Task/Run/Outcome/Evaluation/Effect identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
-- **Required deliverables:** caller-safe public facade operations over accepted Stage 1 semantics, versioning/compatibility rules and contract tests. Later G1 work may expand supported decision/Effect request surfaces without bypassing the same authority model.
-- **Non-goals:** new lifecycle semantics, real external Effect dispatch in the first slice, implementing a generic Planner/Router, adopting a specific agent framework, Agent runtime ownership or sandbox-runtime ownership.
-- **Minimum evidence:** legal integration flows plus self-authority, stale version/evidence, cross-entity substitution and replay/concurrency negatives through the public facade.
-- **Exit criterion:** an external caller can use governance without importing private internal services or bypassing accepted semantics; independent review and durable acceptance reconciliation are still required before broader work.
+- **Status:** COMPLETE / ACCEPTED.
+- **Accepted implementation boundary:** `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
+- **Acceptance evidence:** Issue #102 independent acceptance review comment `5714651540`.
+- **Historical lineage:** Issue #100 initial candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was NOT ACCEPTED; Issue #102 carried the forward trusted-boundary and exact-version corrections.
+- **Purpose achieved:** provide a bounded stable public integration surface over accepted governance semantics.
+- **Accepted deliverables:** typed exact refs for Objective/Task/Run/Outcome/Evaluation/Effect; caller-controlled external submission DTOs; injected trusted binder for Stage 1 request/context construction; supported Run/Outcome/Evaluation mutation paths; exact/current reads; caller-safe errors; exact identity/version and lineage binding; stale/superseded/cross-entity rejection; replay/idempotency and optimistic-concurrency preservation; explicit unsupported real Effect dispatch.
+- **Preserved non-goals:** no new lifecycle semantics, no public Run completion or Outcome acceptance, no real external Effect dispatch, no generic Planner/Router, no Agent runtime or sandbox-runtime ownership, and no G2 trust-policy semantics.
+- **Exit criterion:** satisfied by accepted implementation plus independent review; durable reconciliation is carried by Issue #103.
 
 ## G2 — Trusted Evaluation and Evidence Integration
 
-- **Status:** PLANNED.
-- **Entry criteria:** accepted G1 facade and a fresh released G2 TaskSpec.
+- **Status:** PLANNED / NOT RELEASED.
+- **Entry criteria:** accepted G1 facade and a fresh released G2 TaskSpec with exact baseline and bounded scope.
 - **Purpose:** bind external/independent verification to exact authoritative candidates and effective-use state.
 - **Required deliverables:** trusted evaluator/evidence identities; exact entity/candidate/version binding; evidence provenance; stale/superseded/invalidation handling; cross-entity substitution rejection; durable effective-use references.
 - **Non-goals:** universal semantic judge, Worker self-validation, provider-specific core semantics.
 - **Minimum evidence:** stale, superseded, tampered, unrelated and substituted evidence fail closed; legal current evidence supports disposition.
 - **Exit criterion:** authoritative decisions can depend on independent external evidence without weakening Stage 1 trust rules.
+- **Authority note:** G2 is not executable until its own fresh TaskSpec is explicitly released.
 
 ## G3 — Governed Effect Gateway and Occurrence Reconciliation
 
@@ -155,7 +156,7 @@ The historical Stage 2 parent and accepted technical design remain durable prove
 
 Their post-transition role is an execution-provider security/conformance contract, an optional/reference implementation path and a source of evidence/provenance requirements for G7.
 
-The old Stage 2 runtime implementation path is superseded for current v1 sequencing. Runtime code was not started. Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old r2/r3 execution authority is historical only and must never be re-released in place as G1 authority.
+The old Stage 2 runtime implementation path is superseded for current v1 sequencing. Runtime code was not started. Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old r2/r3 execution authority is historical only and must never be re-released in place as post-transition implementation authority.
 
 ## Historical pre-transition stages
 

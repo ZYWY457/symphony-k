@@ -13,7 +13,7 @@ This workflow is model-, account- and vendor-neutral. No chat transcript, privat
 7. Read `docs/REFERENCE_WORKFLOWS.md`.
 8. Read relevant core beliefs, accepted ADRs and accepted designs.
 9. Perform the bounded current-task/review discovery below.
-10. Freshly read the concrete durable TaskSpec.
+10. Freshly read the concrete durable TaskSpec, if any work is released.
 11. Verify repository identity, baseline, readiness and remote authority independently before mutation.
 
 If a required source cannot be read or the baseline conflicts with the TaskSpec, stop before mutation.
@@ -23,14 +23,18 @@ If a required source cannot be read or the baseline conflicts with the TaskSpec,
 - Constitution v0.2 and ADR-0009 are accepted.
 - R2 product definition, R3 delivery path, R4 workflows/cold-start truth and R5 final disposition are Human accepted.
 - Repository-level strategic transition R1-R5 is COMPLETE.
-- Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
+- Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 - Symphony-K is a framework-neutral governance/control-plane system for agentic work.
 - External agents/orchestrators/runtimes may decide how work is attempted; their claims do not become authoritative merely because they produced them.
 - The accepted v1 delivery path centers on governance facade, trusted Evaluation/evidence, governed Effect gateway and reconciliation, audit export, conformance, external integration, reference provider path, operational safety, hardening and v1 acceptance.
 - Generic Planner, Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 prerequisites.
 - ADR-0008 and the accepted Stage 2 M1/M1C design remain accepted provider/security/conformance assets and an optional/reference execution path.
 - Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority must not be reused or repurposed.
-- Current G1/M1 implementation TaskSpec identity is **Issue #100**. The current Issue #100 body controls revision, readiness, exact launch HEAD, allowed paths and validation.
+- **G1/M1 is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
+- Issue #100 preserves the initial TaskSpec/candidate lineage; its original candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was NOT ACCEPTED.
+- Issue #102 contains the forward correction lineage and final independent acceptance review `5714651540`.
+- **G2 is PLANNED / NOT RELEASED** and requires a fresh durable TaskSpec before implementation mutation.
+- Issue #103 is the current governance/documentation reconciliation and does not release G2.
 
 ## Current-task and review discovery
 
@@ -62,9 +66,18 @@ For the current repository state:
 
 ```text
 Issue #79 = SUPERSEDED / NOT RELEASED / closed not planned
-Issue #100 = current G1/M1 TaskSpec identity
-Issue #100 current body = sole authority for revision/readiness/launch HEAD
+G1/M1 = COMPLETE / ACCEPTED at 62133cdfc7abac6bf7d1ce4666b5953192ffc9d1
+Issue #100 = historical initial G1/M1 TaskSpec/candidate lineage
+Issue #102 = accepted forward correction lineage
+Issue #103 = governance/documentation reconciliation only
+G2 = PLANNED / NOT RELEASED
 ```
+
+## Accepted G1/M1 facade boundary
+
+The public facade exposes typed exact references for all six core entities, caller-controlled submissions separated from trusted Stage 1 authority/context construction, supported Run/Outcome/Evaluation mutations through an injected trusted binder, exact/current reads, caller-safe errors, stale/superseded/cross-entity and exact-lineage enforcement, replay/idempotency and optimistic-concurrency preservation, and explicit unsupported real Effect dispatch.
+
+It does not expose public Run completion or Outcome acceptance, does not permit callers to manufacture trusted Stage 1 authority by supplying context objects, and does not define G2 trust policy.
 
 ## Governance boundary for external execution
 
@@ -84,7 +97,7 @@ Before mutation, establish a concrete, pre-existing durable TaskSpec identity an
 
 A title, draft, future number, placeholder identity or conversation-only instruction is insufficient. Post-hoc Issue creation is not retroactive authorization.
 
-For current G1/M1 implementation, freshly read Issue #100. Do not use a cached revision or launch SHA from another repository document as a substitute for the current Issue body.
+Do not use completed Issue #100 or Issue #102 as authorization for new work. For G2, a fresh G2 TaskSpec must first be created and explicitly released.
 
 ## Architecture or product discoveries
 
@@ -101,7 +114,9 @@ Implementation convenience must not silently redefine the accepted product.
 
 Rejected candidates, prior accepted architectures and superseded delivery plans remain historical facts. Corrections are forward records. Do not rewrite accepted history to imply the current strategy always existed.
 
-The Stage 2 sandbox design remains accepted technical history and a reusable conformance/reference asset even though R3 superseded the old runtime-first v1 sequencing. Issue #79's old execution authority is now durably superseded.
+The Stage 2 sandbox design remains accepted technical history and a reusable conformance/reference asset even though R3 superseded the old runtime-first v1 sequencing. Issue #79's old execution authority is durably superseded.
+
+The G1/M1 implementation follows the same forward-correction rule: Issue #100's rejected initial candidate remains attributable, while Issue #102 records the accepted corrections leading to `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
 
 ## Exec Plan lifecycle
 
@@ -140,8 +155,9 @@ Given only repository read access, a fresh maintainer/AI must be able to report:
 - that strategic transition R1-R5 is complete;
 - which Stage 2 assets remain accepted and what role they now have;
 - that Issue #79 is superseded/closed and cannot be reused;
-- that Issue #100 is the current G1/M1 TaskSpec identity;
-- the current Issue #100 revision/readiness/exact launch HEAD from its body;
+- that G1/M1 is COMPLETE / ACCEPTED at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`;
+- that Issue #100's initial candidate was rejected and Issue #102 carries the accepted forward correction lineage;
+- that G2 is PLANNED / NOT RELEASED and requires a fresh TaskSpec;
 - what work and remote actions are actually authorized.
 
 Pass means correct, source-backed discovery without private conversation context.
