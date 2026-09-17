@@ -1,10 +1,20 @@
 # Project Constitution
 
-**Version:** 0.1
+**Version:** 0.2
+
+**Amendment status:** Candidate pending independent review and explicit Human
+acceptance of the exact amendment.
 
 ## 1. Purpose
 
-This constitution defines the highest-level architectural, trust, safety, governance, state-ownership, and evolution rules for the outcome-oriented AI work orchestrator.
+This constitution defines the highest-level architectural, trust, safety,
+governance, state-ownership, and evolution rules for Symphony-K as a
+framework-neutral governance/control-plane system around agentic work.
+
+Symphony-K governs trustworthy authority, evidence, consequential Effects and
+reconstructable audit history. External planners, orchestrators, Agent runtimes
+and execution providers may determine how work is attempted, but they do not
+become authoritative merely by producing claims or performing execution.
 
 Its purpose is to prevent implementation convenience, agent behavior, local prompts, or future feature pressure from silently changing the system's foundational guarantees.
 
@@ -37,9 +47,16 @@ If an implementation request conflicts with this hierarchy, the work MUST stop a
 
 ### 4.1 Manage Work, Not Agents
 
-The orchestrator manages Objectives, Tasks, Runs, Outcomes, Evaluations, Effects, evidence, policy, and execution profiles.
+Symphony-K governs authoritative Objectives, Tasks, Runs, Outcomes,
+Evaluations, Effects, evidence, policy and Human decisions. It governs what
+becomes authoritative work and how consequential Effects cross the trusted
+boundary; it does not govern Agent cognition.
 
-Agents, models, skills, tools, and sandboxes are replaceable execution resources.
+External planners, orchestrators and runtimes MAY determine how work is
+attempted. Their claims MUST NOT become authoritative merely because they
+produced them, and they MUST NOT bypass governed Effect authorization or
+commitment. Agents, models, skills, tools, orchestrators and execution providers
+remain replaceable resources or integrations.
 
 ### 4.2 Workers Are Untrusted
 
@@ -53,11 +70,14 @@ Authoritative work state MUST live outside worker processes and sandbox memory.
 
 Worker failure, sandbox destruction, provider outage, or reassignment MUST NOT erase authoritative Task state, checkpoints, evidence, audit history, or cost history.
 
-### 4.4 Execution Is Sandboxed
+### 4.4 Execution Is Isolated
 
-Worker Runs MUST execute inside an approved sandbox boundary.
+Untrusted Worker execution MUST occur inside an approved execution-isolation
+boundary appropriate to the integration.
 
-Host execution is not the default trusted path.
+The boundary MAY be supplied by an external provider or a Symphony-K reference
+provider. External execution does not make direct host execution trusted by
+default.
 
 ### 4.5 Least Privilege
 
@@ -100,25 +120,36 @@ Corrections and overrides are represented by new records referencing prior recor
 
 ### 4.11 Planning Does Not Equal Authority
 
-A Planner produces `TaskProposal` objects.
+Symphony-K v1 does not require a Symphony-K-owned Planner.
 
-A TaskProposal MUST pass governance before becoming executable work.
+When Symphony-K supplies planning, Planner output remains a non-executable
+`TaskProposal` and MUST pass governance before becoming a separate executable
+Task. External planning output likewise MUST NOT grant itself execution,
+permission, budget or lifecycle authority.
 
-### 4.12 Recovery Is a First-Class System Capability
+### 4.12 Governance Recovery Is a First-Class Capability
 
-The system MUST distinguish recoverable interruption from invalid execution paths and unsuitable execution profiles.
+External workflow or orchestrator systems MAY own mechanical execution
+recovery, including retries, workflow continuation, scheduling and provider
+failover.
 
-Recovery semantics include Resume, Rewind, and Reassign and must rely on trusted checkpoints and persisted evidence.
+Symphony-K MUST govern recovery wherever authoritative attempt lineage,
+evidence or checkpoint trust, Effect occurrence uncertainty, reconciliation,
+compensation, Human resolution or preservation of historical facts is involved.
+Recovery MUST NOT silently change attempt identity, trust an unverified
+checkpoint, or blindly replay a possibly occurring Effect.
 
 ### 4.13 External Effects Are First-Class Objects
 
 Important external side effects MUST be represented, governed, authorized, committed, verified, and audited as Effects rather than hidden inside worker tool calls.
 
-### 4.14 Learning Is Delayed and Governed
+### 4.14 Learning Is Optional, Delayed, and Governed
 
 Raw audit history MUST NOT directly mutate production policy.
 
-Learning must pass through delayed observation, verified experience, sufficient evidence, versioned policy candidates, and controlled rollout.
+Learning and reputation are optional for v1. If present, they MUST pass through
+delayed observation, verified experience, sufficient evidence, attributable
+and versioned policy candidates, and controlled rollout.
 
 Trust reduction may occur rapidly after strong negative evidence. Trust recovery SHOULD require repeated verified evidence.
 
@@ -147,7 +178,8 @@ At minimum:
 6. A committed irreversible Effect MUST NOT later be represented as if it never occurred.
 7. Compensation MUST NOT be mislabeled as true rollback when historical side effects remain real.
 8. Human overrides MUST be explicit and audited.
-9. Agent-specific runtime semantics MUST NOT become core orchestration semantics.
+9. Agent-, orchestrator-, provider- or runtime-specific semantics MUST NOT
+   become core governance semantics.
 10. Planner output MUST remain a proposal until governed.
 11. State transitions MUST go through authoritative transition logic and produce audit information.
 12. Important external effects MUST use the governed Effect path.
@@ -181,3 +213,29 @@ The constitution intentionally does not freeze replaceable implementation choice
 - a specific semantic judge.
 
 Those choices may evolve through ADRs as long as constitutional behavior remains intact.
+
+## 9. Constitution v0.2 Amendment Record
+
+Constitution v0.2 is the amendment candidate associated with
+[ADR-0009](docs/adr/0009-framework-neutral-agent-governance-kernel.md).
+
+The durable authority and evidence chain is:
+
+- [Human strategic approval on Issue #87, comment `5710053258`](https://github.com/ZYWY457/symphony-k/issues/87#issuecomment-5710053258);
+- strategic falsification and correction evidence in Issues #85 and #86; and
+- [independent ACCEPT of the corrected evidence on Issue #86, comment
+  `5709520565`](https://github.com/ZYWY457/symphony-k/issues/86#issuecomment-5709520565).
+
+This amendment changes Symphony-K's product responsibility and ownership
+boundary. It does not weaken the accepted trust model, reopen the six core
+entities or accepted lifecycle semantics, or make execution-system claims
+authoritative. In particular, Workers still cannot self-complete authoritative
+work, accept their own Outcomes, grant themselves authority, or bypass governed
+Effects; Evaluators still cannot commit the Effects they validate; and
+historical occurrence and evidence provenance remain append-only in meaning.
+
+The amendment is implemented first as a reviewable candidate. If independent
+review or later reconciliation identifies an inconsistency, work MUST stop and
+the correction or reversal MUST be made through an explicit forward ADR and
+constitutional amendment. Historical governance, evidence and occurrence facts
+MUST NOT be silently reverted or rewritten.
