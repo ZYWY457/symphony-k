@@ -1,1 +1,5 @@
-"""Outcome-oriented work orchestration package."""
+"""Framework-neutral governance and control plane for agentic work."""
+
+from .governance import GovernanceFacade
+
+__all__ = ["GovernanceFacade"]
