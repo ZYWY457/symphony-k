@@ -14,7 +14,7 @@ This workflow is model-, account- and vendor-neutral. No chat transcript, privat
 8. Read relevant core beliefs, accepted ADRs and accepted designs.
 9. Read the current G2 parent plan `docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`.
 10. Perform the bounded current-task/review discovery below.
-11. Read the accepted M0 design `docs/design-docs/g2-trusted-evaluation-evidence-boundary.md` and its independent acceptance on Issue #105 comment `5717950150` under #106, then freshly read the current concrete TaskSpec Issue #107.
+11. Read the accepted M0 design `docs/design-docs/g2-trusted-evaluation-evidence-boundary.md` and its independent acceptance on Issue #105 comment `5717950150` under #106, then freshly read the current concrete TaskSpec Issue #108.
 12. Verify repository identity, exact launch baseline, readiness and remote authority independently before mutation.
 
 If a required source cannot be read or the baseline conflicts with the TaskSpec, stop before mutation.
@@ -37,9 +37,9 @@ If a required source cannot be read or the baseline conflicts with the TaskSpec,
 - The current G2 parent plan is `docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`.
 - **G2/M0 is COMPLETE / ACCEPTED** at `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`; accepted contract: [`design-docs/g2-trusted-evaluation-evidence-boundary.md`](design-docs/g2-trusted-evaluation-evidence-boundary.md).
 - Independent acceptance: [Issue #105 comment `5717950150`](https://github.com/ZYWY457/symphony-k/issues/105#issuecomment-5717950150) under Issue #106 — **ACCEPT**, findings none. No separate Human acceptance is claimed; independent ACCEPT satisfies this M0 design gate.
-- Issues #105/#106 preserve M0 execution/review lineage. **Issue #107 is the current governance/documentation reconciliation TaskSpec**, starting at `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`; it does not authorize implementation.
-- **G2/M1 is PLANNED / NOT RELEASED** and requires a fresh bounded TaskSpec before source/test mutation.
-- G2/M1-M5 implementation is **NOT RELEASED**.
+- Issues #105/#106 preserve M0 execution/review lineage; #107 completed accepted-truth reconciliation at `6cbd6a91b27f969461cad5e22b0d7663b3a9bb7a`.
+- **Issue #108 is the current G2/M1 implementation TaskSpec** for durable evidence provenance intake only.
+- **G2/M1 is RELEASED FOR IMPLEMENTATION only within #108.** G2/M2-M6 and G3 remain NOT RELEASED.
 
 ## Current G2 path
 
@@ -58,8 +58,8 @@ Current interpretation:
 - Stage 1 already owns Evaluation lifecycle, conflict/arbitration/invalidation, effective-use derivation and Outcome disposition semantics.
 - G1 already owns the public exact-ref / caller-DTO / injected-trusted-binder facade boundary.
 - Accepted M0 freezes the trusted evidence/evaluator contract and threat boundary before implementation.
-- M0 acceptance is documentation/design only and establishes no G2 implementation. #107 must not mutate `src/**`, `tests/**`, schemas, APIs or runtime code, or alter the accepted contract semantics.
-- M1 planning starts with durable evidence provenance intake under that contract. A future M1 TaskSpec must define its exact baseline, paths and validation without silently implementing M2-M5.
+- M0 acceptance is documentation/design only; #107 reconciled that truth without implementing G2.
+- #108 releases M1 durable evidence provenance intake only. It must preserve caller-claim versus trusted-provenance separation, append-only exact replay/collision rules, and supporting-record status outside the six lifecycle entities. It must not silently implement M2-M5.
 - Caller-supplied evidence, evaluator identity or history completeness is not trusted by construction.
 - Evaluation judgement remains distinct from Outcome disposition policy and required Human acceptance.
 - G2 does not authorize real Effect dispatch; that remains G3.
@@ -70,11 +70,11 @@ After reading `STATUS.md`:
 
 1. identify exact accepted baseline and current gate;
 2. read the accepted M0 design and independent review on #105 comment `5717950150` under #106;
-3. freshly read Issue #107 and verify readiness before reconciliation mutation;
-4. verify its exact starting HEAD `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2` matches the executor baseline;
-5. restrict reconciliation to the design document, parent G2 plan, `STATUS.md` and this handoff;
-6. distinguish the local candidate handoff from maintainer publication authority; #107's execution handoff requires a local candidate and separate authorization for Issue closure;
-7. distinguish accepted M0 design and #107 reconciliation from a fresh M1 implementation TaskSpec; M1 remains NOT RELEASED;
+3. freshly read Issue #108 and verify it is READY before implementation mutation;
+4. verify its exact launch HEAD equals the executor starting HEAD;
+5. restrict implementation to #108's explicit source/test allowlist;
+6. verify the Worker may create only a local candidate and may not perform remote mutation;
+7. distinguish M1 evidence provenance from M2 evaluator assignment, M3 Evaluation intake, M4 effective-use resolution, M5 Outcome disposition and G3 Effect behavior;
 8. report any architecture-stop discovery instead of expanding scope.
 
 Mandatory distinctions:
@@ -99,9 +99,10 @@ G2 parent plan = docs/exec-plans/planned/g2-trusted-evaluation-evidence.md
 G2/M0 = COMPLETE / ACCEPTED at 9c36fbcfac3854271af8eb15dca08f6a9ec2eca2
 Issue #105 = historical M0 design execution and durable acceptance comment 5717950150
 Issue #106 = independent M0 review authority
-Issue #107 = current bounded accepted-truth reconciliation
-G2/M1 = PLANNED / NOT RELEASED; fresh bounded TaskSpec required
-G2/M1-M5 = NOT RELEASED
+Issue #107 = completed M0 accepted-truth reconciliation at 6cbd6a91b27f969461cad5e22b0d7663b3a9bb7a
+Issue #108 = current G2/M1 durable evidence provenance implementation TaskSpec
+G2/M1 = RELEASED only within #108 exact scope
+G2/M2-M6 and G3 = NOT RELEASED
 ```
 
 ## Accepted G1/M1 facade boundary
@@ -118,9 +119,9 @@ Do not convert that discovery into opportunistic domain or persistence implement
 
 ## TaskSpec precondition
 
-A title, draft, parent Exec Plan, roadmap row, placeholder identity or conversation-only instruction is insufficient. Issue #107 authorizes only bounded reconciliation from its exact starting HEAD; M0 acceptance does not release M1. Before implementation mutation, a fresh bounded M1 TaskSpec must explicitly release durable evidence provenance intake with an exact baseline, allowed paths and validation.
+A title, draft, parent Exec Plan, roadmap row, placeholder identity or conversation-only instruction is insufficient. Issue #108 must explicitly be READY and name the exact launch HEAD before M1 source/test mutation begins.
 
-The #107 execution handoff calls for one local reconciliation candidate. Its maintainer publication authority is limited to a fast-forward from the exact starting HEAD; Issue closure follows successful publication and requires the executor's separate authorization. Do not infer publication or Issue closure from a local candidate, attribute prior publication to the independent reviewer, create tags/releases, or release M1.
+Issue #108 controls M1 scope and remote authority. The Worker may create only a local candidate commit and must not push, update `main`, mutate Issues/PRs, or create tags/releases. Publication and independent review remain separate Effects. Do not infer M2-M6 or G3 authority from M1 release.
 
 ## Historical truth and corrections
 
@@ -171,9 +172,10 @@ Given only repository read access, a fresh maintainer/AI must be able to report:
 - that G2 planning is accepted at `6434cecc2daae51d17182a7cf18184a9a8124a05`;
 - the G2 M0-M6 path;
 - that M0 is COMPLETE / ACCEPTED at `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`, based on independent review #105 comment `5717950150` under #106;
-- that #105/#106 preserve historical execution/review and #107 is the current reconciliation TaskSpec with that exact starting HEAD;
-- that M0 acceptance is design only, M1 is PLANNED / NOT RELEASED, and M1-M5 remain unreleased;
-- that M1 requires a fresh bounded TaskSpec for durable evidence provenance intake and cannot silently implement M2-M5;
+- that #105/#106 preserve historical execution/review and #107 completed accepted-truth reconciliation;
+- that Issue #108 is the current M1 implementation TaskSpec and must name the exact launch HEAD;
+- that M1 is released only for durable evidence provenance intake within #108, while M2-M6 and G3 remain unreleased;
+- that M1 cannot silently implement evaluator assignment, Evaluation intake, effective-use resolution or Outcome disposition;
 - what paths and remote actions are authorized.
 
 Pass means correct, source-backed discovery without private conversation context.

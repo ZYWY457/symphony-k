@@ -76,15 +76,15 @@ G1/M1 does not add new Stage 1 lifecycle semantics or G2 evidence-trust policy.
 
 ## Current delivery gate
 
-**G2/M0 is COMPLETE / ACCEPTED. G2/M1 is PLANNED / NOT RELEASED.** G2 implementation remains unreleased; M0 acceptance is design only.
+**G2/M0 is COMPLETE / ACCEPTED. G2/M1 is RELEASED FOR IMPLEMENTATION under Issue #108.** M1 is limited to durable evidence provenance intake; M2-M6 and G3 remain NOT RELEASED.
 
 Accepted G2 parent planning contract: [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md), accepted planning boundary `6434cecc2daae51d17182a7cf18184a9a8124a05`.
 
 Accepted M0 contract: [`docs/design-docs/g2-trusted-evaluation-evidence-boundary.md`](docs/design-docs/g2-trusted-evaluation-evidence-boundary.md), exact design boundary `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`. Independent review under Issue #106: Issue #105 comment `5717950150` — **ACCEPT**, findings none.
 
-Current concrete TaskSpec: **Issue #107 — G2 / M0R — Accepted-Truth Reconciliation and M1 Planning Boundary**. It authorizes bounded governance/documentation reconciliation from `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`, not `src/**`, `tests/**`, schema/API/runtime work or a change to M0 contract semantics.
+Current concrete TaskSpec: **Issue #108 — G2 / M1 — Durable Evidence Provenance Intake**. It is the only current G2 implementation authority and is limited to the exact paths, tests, trust boundary and remote-mutation rules stated in that Issue.
 
-M1 requires a fresh bounded TaskSpec with an exact launch baseline before source/test mutation. Its scope starts with durable evidence provenance intake under the accepted M0 contract; it must not silently implement M2-M5. Issues #105/#106 preserve the design execution/review lineage and are not active implementation authority.
+M1 may implement caller evidence claims, trusted collector/verifier binding, immutable trusted evidence records/references, append-only trust findings, typed evidence query/read surfaces and bounded SQLite persistence. It must not silently implement M2 evaluator assignment, M3 Evaluation intake, M4 effective-use resolution, M5 Outcome disposition, or G3 Effect behavior.
 
 The planned G2 path remains:
 
@@ -116,11 +116,12 @@ M0 contract / threat-boundary freeze — COMPLETE / ACCEPTED
 - #104 — G2 parent planning identity; closed completed after accepted planning reconciliation.
 - #105 — historical G2/M0 design execution TaskSpec; produced accepted design `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
 - #106 — independent M0 review; ACCEPT recorded on #105 comment `5717950150`.
-- #107 — current bounded M0 accepted-truth reconciliation; no M1 implementation release.
+- #107 — M0 accepted-truth reconciliation; closed completed.
+- #108 — current G2/M1 durable evidence provenance implementation TaskSpec.
 
 ## Next action
 
-Complete the bounded #107 reconciliation/publication handoff, then prepare a fresh M1 TaskSpec for durable evidence provenance intake from the accepted M0 contract. M1-M5 remain NOT RELEASED. Issue closure follows successful publication and the authority in #107; a local reconciliation candidate does not establish publication or closure.
+Execute Issue #108 from its exact launch HEAD. Produce a local M1 candidate only, with no remote mutation by the Worker. After candidate validation, perform separate independent review before publication. M2-M6 and G3 remain NOT RELEASED.
 
 ## Navigation / cold-start reading order
 
@@ -136,6 +137,6 @@ Complete the bounded #107 reconciliation/publication handoff, then prepare a fre
 10. [docs/exec-plans/planned/g2-trusted-evaluation-evidence.md](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md)
 11. relevant core beliefs, accepted ADRs/designs
 12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-13. current concrete TaskSpec Issue #107; #105/#106 as historical design/review evidence
+13. current concrete TaskSpec Issue #108; #105/#106/#107 as historical M0 design/review/reconciliation evidence
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.
