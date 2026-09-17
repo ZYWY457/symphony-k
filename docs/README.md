@@ -3,6 +3,12 @@
 Start with the root [project status](../STATUS.md), then follow the authority and
 reading order in [AGENTS.md](../AGENTS.md).
 
+The current governance work is the strategic-transition Human decision gate in
+Issue #87, not a Stage 2 implementation release. The accepted Stage 2 M1 design
+remains a historical technical asset, while the current product-identity
+documents retain their accepted historical wording until explicit Human
+approval and the required hierarchy reconciliation.
+
 ## Constitution and core beliefs
 
 - [Constitution](../CONSTITUTION.md)
@@ -19,8 +25,8 @@ reading order in [AGENTS.md](../AGENTS.md).
 - [Architecture](../ARCHITECTURE.md)
 - [Architecture Decision Records](adr/README.md)
 - [Design documents](design-docs/)
-- [Proposed ADR-0008 sandbox boundary](adr/0008-stage-2-sandbox-execution-boundary.md)
-- [Candidate sandbox execution design](design-docs/sandbox-execution-v1.md)
+- [Accepted ADR-0008 sandbox boundary](adr/0008-stage-2-sandbox-execution-boundary.md)
+- [Accepted Stage 2 M1 sandbox execution design](design-docs/sandbox-execution-v1.md)
 
 Accepted ADRs and designs remain subordinate to the Constitution and core
 beliefs. Material architecture changes use a new ADR rather than silently
@@ -39,8 +45,8 @@ rewriting accepted history.
 - [Lifecycle rules](exec-plans/README.md)
 - [Planned parent plans](exec-plans/planned/) — future contracts, no execution
   authorization
-- [Active Stage 2 plans](exec-plans/active/) — M1 architecture/design authority;
-  runtime implementation is not yet authorized
+- [Active Stage 2 plans](exec-plans/active/) — accepted M1 technical history;
+  the old M2 release path remains blocked during strategic reconciliation
 - [Completed plans](exec-plans/completed/) — accepted historical plans
 
 The normal lifecycle is `planned -> active -> completed`, with durable Human

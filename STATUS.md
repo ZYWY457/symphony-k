@@ -27,10 +27,31 @@
 - Stage 2 runtime isolation evidence is **NOT YET ESTABLISHED** and runtime
   implementation is **NOT YET STARTED**.
 
+## Current governance status
+
+- **Completed strategic-validation cycle:** Issue #85 produced the initial
+  falsification experiment and received
+  [independent **REQUEST CHANGES**](https://github.com/ZYWY457/symphony-k/issues/85#issuecomment-5707299068).
+  Issue #86 produced the bounded evidence correction, and its exact published
+  chain received
+  [independent **ACCEPT**](https://github.com/ZYWY457/symphony-k/issues/86#issuecomment-5709520565).
+- **Strategic evidence result:** gates A/B/C/D/E passed under the registered
+  experiment. The resulting GO gate supports consideration of a formal Product
+  Contract / Roadmap amendment only. It is **NOT** Human strategic product
+  approval and changes no accepted product identity by itself.
+- **Current governance decision:** Issue #87 is the **HUMAN DECISION GATE** for
+  the proposed strategic transition. Until an explicit Human decision and the
+  required reconciliation occur, the current Product Contract and Roadmap
+  remain the accepted historical product/delivery wording.
+- **Implementation hold:** Issue #79 remains **BLOCKED / NOT RELEASED**. Its old
+  Stage 2 M2 scope must not be re-released while Issue #87 and any resulting
+  product-intent reconciliation remain unresolved.
+
 ## Current Stage 2 status
 
 - **Current stage:** Stage 2 — Sandbox Execution
-- **Stage 2 activity:** **ACTIVE**
+- **Stage 2 activity:** **ACTIVE** at the accepted M1 design boundary; runtime
+  implementation remains blocked pending the current strategic decision.
 - **Current parent plan:**
   [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
 - **Current Human Accepted Stage 2 technical design baseline:**
@@ -60,7 +81,7 @@
 - **Issue #82 independent governance review:** **ACCEPT** against
   `7ff155c29de83fbcc5487698c8b72b70b2dec075`, recorded on Issue #82. This is
   historical approval lineage, not approval of the M1C correction.
-- **Current correction plan:**
+- **Historical accepted correction plan:**
   [M1C UNKNOWN frozen salvage](docs/exec-plans/active/stage-02-correction-m1c-unknown-frozen-salvage-v1.md).
 - **Current accepted corrected design:**
   `77acfbdaf2bed6f0536873fafc8eb7a12599da83`, parent
@@ -73,21 +94,28 @@
 
 ## Dispatch / review queue
 
-- **Current governance work:** Issue #84 reconciles the independent M1C
-  technical review **ACCEPT** and Human erratum approval **APPROVED**. Its
-  governance commit records acceptance/status/history only and does not replace
-  or modify the accepted technical baseline `77acfbdaf2bed6f0536873fafc8eb7a12599da83`.
-- **Issue #78:** candidate history/correction source; not itself proof of
-  acceptance.
+- **Historical Stage 2 governance reconciliation:** Issue #84 reconciled the
+  independent M1C technical review **ACCEPT** and Human erratum approval
+  **APPROVED**. Its governance commit records acceptance/status/history only and
+  does not replace or modify the accepted technical baseline
+  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`.
+- **Strategic-validation lineage:** Issue #85 initial experiment -> independent
+  **REQUEST CHANGES** comment `5707299068` -> Issue #86 bounded correction ->
+  independent **ACCEPT** comment `5709520565`. The accepted review classifies
+  gates A/B/C/D/E as PASS and reaches the registered GO gate for considering a
+  formal amendment; it does not approve that amendment.
+- **Current governance work:** Issue #87 is the **HUMAN DECISION GATE**. The
+  proposed framework-neutral governance/control-plane identity remains a
+  proposal, not accepted product truth.
 - **Issue #79:** **BLOCKED / NOT RELEASED**, revision
   `r3 - stage-02-m2-blocked-after-unknown-collection-stop`. Its earlier r2 was
   released but stopped before mutation; no M2 code or implementation commit
-  was produced. Do not reuse r2 execution authority.
-- **Next action:** after separate Human publication and independent verification
-  of the Issue #84 reconciliation commit, a trusted planning boundary may revise
-  #79 to a new explicit READY revision against that exact post-reconciliation
-  HEAD and the accepted design SHA `77acfbdaf2bed6f0536873fafc8eb7a12599da83`.
-  This reconciliation does not release M2.
+  was produced. Do not reuse r2 execution authority or re-release its old M2
+  scope while Issue #87 and the required reconciliation are unresolved.
+- **Next action:** obtain the explicit Human strategic decision in Issue #87.
+  Any approved product-intent change must then reconcile the applicable
+  Constitution/ADR/Product Contract/Architecture/Roadmap hierarchy before
+  implementation restarts. This status update does not release M2.
 - **Stage 3:** **PLANNED** — not activated.
 
 An open or `READY` Issue does not prove that a Worker is executing it. Issue

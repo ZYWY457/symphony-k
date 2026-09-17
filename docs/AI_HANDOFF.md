@@ -126,6 +126,15 @@ around the implementation. Obtain the required Human decision and ADR/design or
 Product Contract reconciliation before resuming. Low-level choices that do not
 change those boundaries remain owned by their future bounded stages.
 
+During the current strategic transition, begin with `STATUS.md` and follow its
+pointer to Issue #87, the Human decision gate. The Issue #86 GO-gate evidence
+supports consideration of a formal amendment; it is not Human strategic product
+approval. Issue #79 remains BLOCKED / NOT RELEASED and its old Stage 2 M2 scope
+must not be re-released while the decision and resulting reconciliation remain
+unresolved. If the product-intent change is approved, reconcile the applicable
+Constitution and ADR decisions, Architecture, Product Contract and Roadmap
+hierarchy before restarting implementation.
+
 ## Corrections and historical truth
 
 Rejected or failed candidates remain historical facts. A correction uses a new

@@ -11,10 +11,14 @@ history remain outside Worker control.
 ## Current status
 
 Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
-Stage 2 — Sandbox Execution is active for M1 architecture/design under GitHub
-Issue #77. Runtime code has not started and is not authorized by that Issue;
-the next gate is independent review and Human approval of the sandbox ADR and
-design candidate. Stage 3 remains planned and is not activated.
+The Stage 2 M1 design remains a Human Accepted historical technical asset at
+`77acfbdaf2bed6f0536873fafc8eb7a12599da83`; runtime isolation evidence is not
+yet established and runtime code has not started. Issues #85 and #86 completed
+the strategic-validation evidence cycle, but the resulting GO gate supports
+considering a formal product/roadmap amendment and is not Human product
+approval. Issue #87 is the current Human decision gate, and Issue #79 remains
+BLOCKED / NOT RELEASED. The product identity above remains the accepted
+historical wording pending an explicit Human decision and reconciliation.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
 
