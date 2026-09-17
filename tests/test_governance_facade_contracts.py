@@ -13,69 +13,50 @@ from symphony_k.domain import (
 )
 from symphony_k.governance import (
     ConflictError,
-    EvaluationSubmission,
-    EvaluationTransitionSubmission,
-    GovernanceFacade,
     InvalidRequestError,
-    OutcomeCandidateSubmission,
     OutcomeRef,
-    reference_of,
 )
-from symphony_k.persistence.service import LifecycleService
 from symphony_k.persistence.sqlite import SQLiteStore
 from tests import test_creation_run_outcome_evaluation as creation_fx
 from tests import test_evaluation_semantic_transitions as evaluation_fx
 from tests.persistence_fixtures import advance_fixture, seed_related, seed_snapshot
-
-
-def facade_for(store: SQLiteStore) -> GovernanceFacade:
-    return GovernanceFacade(
-        unit_of_work=LifecycleService(store),
-        objectives=store.objectives,
-        tasks=store.tasks,
-        runs=store.runs,
-        outcomes=store.outcomes,
-        evaluations=store.evaluations,
-        effects=store.effects,
-    )
-
-
-def evaluation_target_ref() -> OutcomeRef:
-    assert isinstance(evaluation_fx.TARGET.reference, OutcomeId)
-    assert isinstance(evaluation_fx.TARGET.version, EntityVersion)
-    return OutcomeRef(evaluation_fx.TARGET.reference, evaluation_fx.TARGET.version)
+from tests.test_governance_facade import (
+    TrustedFixtureBinder,
+    evaluation_submission,
+    evaluation_target_ref,
+    facade_for,
+    outcome_submission,
+    transition_submission,
+)
 
 
 def test_stale_run_version_cannot_back_new_outcome() -> None:
     store = SQLiteStore()
-    facade = facade_for(store)
+    binder = TrustedFixtureBinder(creation_fx.WORKER)
+    facade = facade_for(store, binder)
     request = creation_fx.outcome_request()
     seed_related(store, request)
+    binder.register_creation(request, creation_fx.context(request))
     advance_fixture(store, creation_fx.RUN.run_id)
 
     with pytest.raises(ConflictError, match="differs from durable head"):
-        facade.submit_outcome_candidate(
-            OutcomeCandidateSubmission(
-                request,
-                creation_fx.context(request),
-                reference_of(creation_fx.RUN),
-            )
-        )
+        facade.submit_outcome_candidate(outcome_submission(request))
     store.close()
 
 
 def test_cross_entity_evaluation_target_substitution_fails() -> None:
     store = SQLiteStore()
-    facade = facade_for(store)
+    binder = TrustedFixtureBinder(creation_fx.WORKER)
+    facade = facade_for(store, binder)
     request = creation_fx.evaluation_request("outcome")
     seed_related(store, request)
+    binder.register_creation(request, creation_fx.context(request))
 
-    with pytest.raises(InvalidRequestError, match="exact target"):
+    with pytest.raises(InvalidRequestError, match="changed caller-controlled"):
         facade.submit_evaluation(
-            EvaluationSubmission(
-                request,
-                creation_fx.context(request),
-                OutcomeRef(OutcomeId.new(), creation_fx.OUTCOME.version),
+            replace(
+                evaluation_submission(request),
+                target=OutcomeRef(OutcomeId.new(), creation_fx.OUTCOME.version),
             )
         )
     store.close()
@@ -83,7 +64,8 @@ def test_cross_entity_evaluation_target_substitution_fails() -> None:
 
 def test_superseded_candidate_is_not_eligible_as_current_submission_target() -> None:
     store = SQLiteStore()
-    facade = facade_for(store)
+    binder = TrustedFixtureBinder(creation_fx.WORKER)
+    facade = facade_for(store, binder)
     request = creation_fx.evaluation_request("outcome")
     scope = request.semantic_input.validation
     assert scope is not None and scope.target_observation is not None
@@ -101,38 +83,27 @@ def test_superseded_candidate_is_not_eligible_as_current_submission_target() -> 
     changed_scope = replace(
         scope,
         spec=changed_spec,
-        target_observation=replace(
-            scope.target_observation,
-            snapshot=superseded,
-        ),
+        target_observation=replace(scope.target_observation, snapshot=superseded),
     )
     changed = creation_fx.with_evaluation_scope(
-        replace(request, entity_spec=changed_spec),
-        changed_scope,
+        replace(request, entity_spec=changed_spec), changed_scope
     )
     seed_related(store, changed)
+    binder.register_creation(changed, creation_fx.context(changed))
 
     with pytest.raises(ConflictError, match="Superseded"):
-        facade.submit_evaluation(
-            EvaluationSubmission(
-                changed,
-                creation_fx.context(changed),
-                reference_of(superseded),
-            )
-        )
+        facade.submit_evaluation(evaluation_submission(changed))
     store.close()
 
 
 def test_identical_creation_replay_survives_related_head_advancement() -> None:
     store = SQLiteStore()
-    facade = facade_for(store)
+    binder = TrustedFixtureBinder(creation_fx.WORKER)
+    facade = facade_for(store, binder)
     request = creation_fx.outcome_request()
     seed_related(store, request)
-    submission = OutcomeCandidateSubmission(
-        request,
-        creation_fx.context(request),
-        reference_of(creation_fx.RUN),
-    )
+    binder.register_creation(request, creation_fx.context(request))
+    submission = outcome_submission(request)
 
     first = facade.submit_outcome_candidate(submission)
     advance_fixture(store, creation_fx.RUN.run_id)
@@ -145,36 +116,27 @@ def test_identical_creation_replay_survives_related_head_advancement() -> None:
 
 def test_evaluation_replay_and_optimistic_concurrency_are_preserved() -> None:
     store = SQLiteStore()
-    facade = facade_for(store)
+    binder = TrustedFixtureBinder(evaluation_fx.EVALUATOR)
+    facade = facade_for(store, binder)
     pending = evaluation_fx.evaluation(verifier=evaluation_fx.EVALUATOR)
     seed_snapshot(store, pending)
     transition = evaluation_fx.request(pending, EvaluationState.RUNNING)
-    submission = EvaluationTransitionSubmission(
-        reference_of(pending),
-        evaluation_target_ref(),
-        transition,
-        evaluation_fx.context(
-            pending,
-            transition,
-            evaluation_fx.start_semantics(pending),
-        ),
+    context = evaluation_fx.context(
+        pending, transition, evaluation_fx.start_semantics(pending)
     )
+    binder.register_transition(transition, context)
+    submission = transition_submission(pending, evaluation_target_ref(), transition)
 
     first = facade.advance_evaluation(submission)
     replay = facade.advance_evaluation(submission)
     assert replay == first
 
     conflict_request = replace(transition, event_id=EventId.new())
-    conflict = EvaluationTransitionSubmission(
-        reference_of(pending),
-        submission.target,
-        conflict_request,
-        evaluation_fx.context(
-            pending,
-            conflict_request,
-            evaluation_fx.start_semantics(pending),
-        ),
+    conflict_context = evaluation_fx.context(
+        pending, conflict_request, evaluation_fx.start_semantics(pending)
     )
+    binder.register_transition(conflict_request, conflict_context)
+    conflict = transition_submission(pending, evaluation_target_ref(), conflict_request)
     with pytest.raises(ConflictError, match="Stored version"):
         facade.advance_evaluation(conflict)
     assert store.evaluations.load(pending.evaluation_id).version == EntityVersion(8)
@@ -183,23 +145,54 @@ def test_evaluation_replay_and_optimistic_concurrency_are_preserved() -> None:
 
 def test_evaluation_transition_rejects_target_substitution() -> None:
     store = SQLiteStore()
-    facade = facade_for(store)
+    binder = TrustedFixtureBinder(evaluation_fx.EVALUATOR)
+    facade = facade_for(store, binder)
     pending = evaluation_fx.evaluation(verifier=evaluation_fx.EVALUATOR)
     seed_snapshot(store, pending)
     transition = evaluation_fx.request(pending, EvaluationState.RUNNING)
+    binder.register_transition(
+        transition,
+        evaluation_fx.context(
+            pending, transition, evaluation_fx.start_semantics(pending)
+        ),
+    )
     assert isinstance(evaluation_fx.TARGET.version, EntityVersion)
 
     with pytest.raises(InvalidRequestError, match="persisted Evaluation"):
         facade.advance_evaluation(
-            EvaluationTransitionSubmission(
-                reference_of(pending),
+            transition_submission(
+                pending,
                 OutcomeRef(OutcomeId.new(), evaluation_fx.TARGET.version),
                 transition,
-                evaluation_fx.context(
-                    pending,
-                    transition,
-                    evaluation_fx.start_semantics(pending),
-                ),
             )
         )
+    store.close()
+
+
+def test_evaluation_completion_cannot_replace_caller_result_claim() -> None:
+    store = SQLiteStore()
+    binder = TrustedFixtureBinder(evaluation_fx.EVALUATOR)
+    facade = facade_for(store, binder)
+    running = evaluation_fx.evaluation(
+        EvaluationState.RUNNING, verifier=evaluation_fx.EVALUATOR
+    )
+    seed_snapshot(store, running)
+    transition = evaluation_fx.request(running, EvaluationState.COMPLETED)
+    binder.register_transition(
+        transition,
+        evaluation_fx.context(
+            running, transition, evaluation_fx.completion_semantics(running)
+        ),
+    )
+
+    with pytest.raises(InvalidRequestError, match="result claim"):
+        facade.advance_evaluation(
+            transition_submission(
+                running,
+                evaluation_target_ref(),
+                transition,
+                result_claim=evaluation_fx.different_result(),
+            )
+        )
+    assert store.evaluations.load(running.evaluation_id) == running
     store.close()

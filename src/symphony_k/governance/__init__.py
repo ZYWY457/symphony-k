@@ -1,5 +1,12 @@
 """Stable public Python governance facade foundation."""
 
+from .binding import (
+    TrustedEvaluationBinding,
+    TrustedEvaluationTransitionBinding,
+    TrustedGovernanceBinder,
+    TrustedOutcomeBinding,
+    TrustedRunBinding,
+)
 from .errors import (
     AuthorityDeniedError,
     ConflictError,
@@ -52,6 +59,11 @@ __all__ = [
     "RunCandidateSubmission",
     "RunRef",
     "TaskRef",
+    "TrustedEvaluationBinding",
+    "TrustedEvaluationTransitionBinding",
+    "TrustedGovernanceBinder",
+    "TrustedOutcomeBinding",
+    "TrustedRunBinding",
     "UnsupportedOperationError",
     "reference_of",
 ]

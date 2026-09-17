@@ -1,30 +1,35 @@
-"""Typed public references and submissions for the governance facade."""
+"""Caller-controlled DTOs and exact references for the governance facade."""
 
 from dataclasses import dataclass
 from typing import overload
 
 from symphony_k.domain import (
-    CreationContext,
+    ActorIdentity,
+    ArtifactRef,
+    CausationId,
+    CorrelationId,
     DomainEvent,
     Effect,
     EffectId,
     EntityVersion,
     Evaluation,
     EvaluationId,
-    EvaluationPendingCreationRequest,
+    EvaluationMethodRef,
+    EvaluationResult,
     EvaluationState,
+    EventId,
+    EvidenceRef,
+    ExecutionProfileRef,
     Objective,
     ObjectiveId,
     Outcome,
     OutcomeId,
-    OutcomeProposedCreationRequest,
     Run,
     RunId,
-    RunPendingCreationRequest,
     Task,
     TaskId,
-    TransitionContext,
-    TransitionRequest,
+    Timestamp,
+    TransitionReason,
 )
 
 from .errors import InvalidRequestError
@@ -159,92 +164,85 @@ class MutationResult[EntityT: GovernanceEntity, RefT: EntityReference]:
 
 @dataclass(frozen=True, slots=True)
 class RunCandidateSubmission:
-    """A legal Stage 1 Run registration with exact parent observations."""
+    """Caller claims for one attempt; no field grants creation authority."""
 
-    request: RunPendingCreationRequest
-    context: CreationContext
+    event_id: EventId
+    run_id: RunId
+    caller_identity_claim: ActorIdentity
+    reason: TransitionReason
+    timestamp: Timestamp
+    correlation_id: CorrelationId
+    causation_id: CausationId
     task: TaskRef
     primary_objective: ObjectiveRef
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.request, RunPendingCreationRequest):
-            raise InvalidRequestError(
-                "Run submission requires RunPendingCreationRequest"
-            )
-        if not isinstance(self.context, CreationContext):
-            raise InvalidRequestError("Run submission requires CreationContext")
-        if not isinstance(self.task, TaskRef) or not isinstance(
-            self.primary_objective, ObjectiveRef
-        ):
-            raise InvalidRequestError("Run submission requires exact parent references")
+    execution_profile_ref: ExecutionProfileRef
+    predecessor: RunRef | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class OutcomeCandidateSubmission:
-    """An untrusted Outcome proposal bound to one exact originating Run."""
+    """Caller-controlled Outcome proposal bound to an exact Run."""
 
-    request: OutcomeProposedCreationRequest
-    context: CreationContext
+    event_id: EventId
+    outcome_id: OutcomeId
+    caller_identity_claim: ActorIdentity
+    reason: TransitionReason
+    timestamp: Timestamp
+    correlation_id: CorrelationId
+    causation_id: CausationId
     run: RunRef
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.request, OutcomeProposedCreationRequest):
-            raise InvalidRequestError(
-                "Outcome submission requires OutcomeProposedCreationRequest"
-            )
-        if not isinstance(self.context, CreationContext):
-            raise InvalidRequestError("Outcome submission requires CreationContext")
-        if not isinstance(self.run, RunRef):
-            raise InvalidRequestError("Outcome submission requires an exact RunRef")
+    producer_identity_claim: ActorIdentity
+    artifact_refs: frozenset[ArtifactRef]
+    evidence_refs: frozenset[EvidenceRef] = frozenset()
+    valid_until: Timestamp | None = None
+    prior_outcome: OutcomeRef | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class EvaluationSubmission:
-    """An Evaluation request bound to one exact Run, Outcome, or Effect."""
+    """Evaluation/evidence claims; assignment and authority remain trusted."""
 
-    request: EvaluationPendingCreationRequest
-    context: CreationContext
+    event_id: EventId
+    evaluation_id: EvaluationId
+    caller_identity_claim: ActorIdentity
+    reason: TransitionReason
+    timestamp: Timestamp
+    correlation_id: CorrelationId
+    causation_id: CausationId
     target: EvaluationTargetReference
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.request, EvaluationPendingCreationRequest):
-            raise InvalidRequestError(
-                "Evaluation submission requires EvaluationPendingCreationRequest"
-            )
-        if not isinstance(self.context, CreationContext):
-            raise InvalidRequestError("Evaluation submission requires CreationContext")
-        if not isinstance(self.target, (RunRef, OutcomeRef, EffectRef)):
-            raise InvalidRequestError(
-                "Evaluation submission requires an exact versioned target"
-            )
+    method: EvaluationMethodRef
+    artifact_refs: frozenset[ArtifactRef]
+    evidence_refs: frozenset[EvidenceRef]
+    producing_identity_claims: tuple[ActorIdentity, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class EvaluationTransitionSubmission:
-    """A narrow legal Evaluation start/result operation; never candidate authority."""
+    """A caller request to start or complete an exact Evaluation."""
 
     evaluation: EvaluationRef
     target: EvaluationTargetReference
-    request: TransitionRequest[EvaluationState]
-    context: TransitionContext
+    target_state: EvaluationState
+    event_id: EventId
+    caller_identity_claim: ActorIdentity
+    reason: TransitionReason
+    timestamp: Timestamp
+    correlation_id: CorrelationId
+    causation_id: CausationId | None = None
+    result_claim: EvaluationResult | None = None
 
     def __post_init__(self) -> None:
-        if not isinstance(self.evaluation, EvaluationRef):
-            raise InvalidRequestError("Evaluation transition requires EvaluationRef")
-        if not isinstance(self.target, (RunRef, OutcomeRef, EffectRef)):
-            raise InvalidRequestError("Evaluation transition requires exact target")
-        if not isinstance(self.request, TransitionRequest):
-            raise InvalidRequestError(
-                "Evaluation transition requires TransitionRequest"
-            )
-        if self.request.target_state not in {
+        if self.target_state not in {
             EvaluationState.RUNNING,
             EvaluationState.COMPLETED,
         }:
             raise InvalidRequestError(
                 "Facade supports only Evaluation start and result submission"
             )
-        if not isinstance(self.context, TransitionContext):
-            raise InvalidRequestError(
-                "Evaluation transition requires TransitionContext"
-            )
+        if (
+            self.target_state is EvaluationState.RUNNING
+            and self.result_claim is not None
+        ):
+            raise InvalidRequestError("Evaluation start cannot carry a result claim")
+        if self.target_state is EvaluationState.COMPLETED and self.result_claim is None:
+            raise InvalidRequestError("Evaluation completion requires a result claim")

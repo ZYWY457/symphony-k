@@ -3,18 +3,25 @@
 from typing import Never
 
 from symphony_k.domain import (
+    CreationContext,
     DomainError,
     EffectId,
     Evaluation,
     EvaluationId,
+    EvaluationPendingCreationRequest,
+    EvaluationState,
     EvaluationTargetRef,
     ObjectiveId,
     Outcome,
     OutcomeId,
+    OutcomeProposedCreationRequest,
     OutcomeState,
     Run,
     RunId,
+    RunPendingCreationRequest,
     TaskId,
+    TransitionContext,
+    TransitionRequest,
 )
 from symphony_k.domain.transition_engine import LifecycleEntityId
 from symphony_k.persistence.ports import (
@@ -27,6 +34,13 @@ from symphony_k.persistence.ports import (
     UnitOfWork,
 )
 
+from .binding import (
+    TrustedEvaluationBinding,
+    TrustedEvaluationTransitionBinding,
+    TrustedGovernanceBinder,
+    TrustedOutcomeBinding,
+    TrustedRunBinding,
+)
 from .errors import (
     ConflictError,
     GovernanceInvariantError,
@@ -67,6 +81,7 @@ class GovernanceFacade:
         outcomes: OutcomeRepository,
         evaluations: EvaluationRepository,
         effects: EffectRepository,
+        trusted_binder: TrustedGovernanceBinder | None = None,
     ) -> None:
         self._unit_of_work = unit_of_work
         self._objectives = objectives
@@ -75,6 +90,7 @@ class GovernanceFacade:
         self._outcomes = outcomes
         self._evaluations = evaluations
         self._effects = effects
+        self._trusted_binder = trusted_binder
 
     def submit_run_candidate(
         self, submission: RunCandidateSubmission
@@ -82,17 +98,48 @@ class GovernanceFacade:
         """Register one PENDING attempt through canonical Stage 1 creation."""
         if not isinstance(submission, RunCandidateSubmission):
             raise InvalidRequestError("Expected RunCandidateSubmission")
-        scope = submission.request.semantic_input.registration
+        binder = self._require_binder()
+        try:
+            binding = binder.bind_run_candidate(submission)
+        except DomainError as error:
+            self._raise(error)
+        if not isinstance(binding, TrustedRunBinding):
+            raise GovernanceInvariantError(
+                "Trusted binder returned an invalid Run binding"
+            )
+        request = binding.request
+        context = binding.context
+        self._require_creation_binding(request, context, RunPendingCreationRequest)
+        if not (
+            request.event_id == submission.event_id
+            and request.entity_id == submission.run_id
+            and request.requested_by == submission.caller_identity_claim
+            and request.reason == submission.reason
+            and request.timestamp == submission.timestamp
+            and request.correlation_id == submission.correlation_id
+            and request.causation_id == submission.causation_id
+            and request.entity_spec.task_id == submission.task.task_id
+            and request.entity_spec.execution_profile_ref
+            == submission.execution_profile_ref
+            and request.entity_spec.predecessor_run_id
+            == (
+                submission.predecessor.run_id
+                if submission.predecessor is not None
+                else None
+            )
+        ):
+            raise InvalidRequestError(
+                "Trusted Run binding changed caller-controlled input"
+            )
+        scope = request.semantic_input.registration
         if scope is None:
-            raise InvalidRequestError("Run submission lacks canonical registration")
+            raise GovernanceInvariantError("Trusted Run binding lacks registration")
         self._require_observation(scope.task.snapshot, submission.task)
         self._require_observation(
             scope.primary_objective.snapshot, submission.primary_objective
         )
-        if submission.request.entity_spec.task_id != submission.task.task_id:
-            raise InvalidRequestError("Run request does not match its exact TaskRef")
         try:
-            result = self._unit_of_work.create(submission.request, submission.context)
+            result = self._unit_of_work.create(request, context)
         except DomainError as error:
             self._raise(error)
         entity = result.entity
@@ -108,14 +155,48 @@ class GovernanceFacade:
         """Persist one PROPOSED candidate without accepting or completing it."""
         if not isinstance(submission, OutcomeCandidateSubmission):
             raise InvalidRequestError("Expected OutcomeCandidateSubmission")
-        scope = submission.request.semantic_input.proposal
-        if scope is None:
-            raise InvalidRequestError("Outcome submission lacks canonical proposal")
-        self._require_observation(scope.originating_run.snapshot, submission.run)
-        if submission.request.entity_spec.run_id != submission.run.run_id:
-            raise InvalidRequestError("Outcome request does not match its exact RunRef")
+        binder = self._require_binder()
         try:
-            result = self._unit_of_work.create(submission.request, submission.context)
+            binding = binder.bind_outcome_candidate(submission)
+        except DomainError as error:
+            self._raise(error)
+        if not isinstance(binding, TrustedOutcomeBinding):
+            raise GovernanceInvariantError(
+                "Trusted binder returned an invalid Outcome binding"
+            )
+        request = binding.request
+        context = binding.context
+        self._require_creation_binding(request, context, OutcomeProposedCreationRequest)
+        spec = request.entity_spec
+        if not (
+            request.event_id == submission.event_id
+            and request.entity_id == submission.outcome_id
+            and request.requested_by == submission.caller_identity_claim
+            and request.reason == submission.reason
+            and request.timestamp == submission.timestamp
+            and request.correlation_id == submission.correlation_id
+            and request.causation_id == submission.causation_id
+            and spec.run_id == submission.run.run_id
+            and spec.producer == submission.producer_identity_claim
+            and spec.artifact_refs == submission.artifact_refs
+            and spec.evidence_refs == submission.evidence_refs
+            and spec.valid_until == submission.valid_until
+            and spec.prior_outcome_id
+            == (
+                submission.prior_outcome.outcome_id
+                if submission.prior_outcome is not None
+                else None
+            )
+        ):
+            raise InvalidRequestError(
+                "Trusted Outcome binding changed caller-controlled input"
+            )
+        scope = request.semantic_input.proposal
+        if scope is None:
+            raise GovernanceInvariantError("Trusted Outcome binding lacks proposal")
+        self._require_observation(scope.originating_run.snapshot, submission.run)
+        try:
+            result = self._unit_of_work.create(request, context)
         except DomainError as error:
             self._raise(error)
         entity = result.entity
@@ -131,15 +212,42 @@ class GovernanceFacade:
         """Create a PENDING independently scoped Evaluation request."""
         if not isinstance(submission, EvaluationSubmission):
             raise InvalidRequestError("Expected EvaluationSubmission")
-        scope = submission.request.semantic_input.validation
+        binder = self._require_binder()
+        try:
+            binding = binder.bind_evaluation(submission)
+        except DomainError as error:
+            self._raise(error)
+        if not isinstance(binding, TrustedEvaluationBinding):
+            raise GovernanceInvariantError(
+                "Trusted binder returned an invalid Evaluation binding"
+            )
+        request = binding.request
+        context = binding.context
+        self._require_creation_binding(
+            request, context, EvaluationPendingCreationRequest
+        )
+        scope = request.semantic_input.validation
         if scope is None or scope.target_observation is None:
-            raise InvalidRequestError(
-                "Facade Evaluation submission requires an entity target observation"
+            raise GovernanceInvariantError(
+                "Trusted Evaluation binding requires an entity target observation"
             )
         expected_target = self._evaluation_target(submission.target)
-        if submission.request.entity_spec.target != expected_target:
+        if not (
+            request.event_id == submission.event_id
+            and request.entity_id == submission.evaluation_id
+            and request.requested_by == submission.caller_identity_claim
+            and request.reason == submission.reason
+            and request.timestamp == submission.timestamp
+            and request.correlation_id == submission.correlation_id
+            and request.causation_id == submission.causation_id
+            and request.entity_spec.target == expected_target
+            and request.entity_spec.method == submission.method
+            and scope.artifact_refs == submission.artifact_refs
+            and scope.evidence_refs == submission.evidence_refs
+            and scope.producing_principals == submission.producing_identity_claims
+        ):
             raise InvalidRequestError(
-                "Evaluation request does not match its exact target reference"
+                "Trusted Evaluation binding changed caller-controlled input"
             )
         self._require_observation(scope.target_observation.snapshot, submission.target)
         observed = scope.target_observation.snapshot
@@ -151,7 +259,7 @@ class GovernanceFacade:
                 "Superseded or expired Outcome is not a current candidate"
             )
         try:
-            result = self._unit_of_work.create(submission.request, submission.context)
+            result = self._unit_of_work.create(request, context)
         except DomainError as error:
             self._raise(error)
         entity = result.entity
@@ -167,10 +275,45 @@ class GovernanceFacade:
         """Start or complete an Evaluation through canonical authority and guards."""
         if not isinstance(submission, EvaluationTransitionSubmission):
             raise InvalidRequestError("Expected EvaluationTransitionSubmission")
-        if submission.request.expected_version != submission.evaluation.version:
-            raise InvalidRequestError(
-                "Evaluation request expected_version must match EvaluationRef"
+        binder = self._require_binder()
+        try:
+            binding = binder.bind_evaluation_transition(submission)
+        except DomainError as error:
+            self._raise(error)
+        if not isinstance(binding, TrustedEvaluationTransitionBinding):
+            raise GovernanceInvariantError(
+                "Trusted binder returned an invalid Evaluation transition binding"
             )
+        request = binding.request
+        context = binding.context
+        self._require_transition_binding(request, context)
+        if not (
+            request.event_id == submission.event_id
+            and request.target_state is submission.target_state
+            and request.actor == submission.caller_identity_claim
+            and request.reason == submission.reason
+            and request.expected_version == submission.evaluation.version
+            and request.timestamp == submission.timestamp
+            and request.correlation_id == submission.correlation_id
+            and request.causation_id == submission.causation_id
+        ):
+            raise InvalidRequestError(
+                "Trusted Evaluation transition changed caller-controlled input"
+            )
+        guard = context.evaluation_semantic_guard
+        if submission.target_state is EvaluationState.COMPLETED:
+            if guard is None:
+                raise GovernanceInvariantError(
+                    "Trusted Evaluation completion binding lacks a semantic guard"
+                )
+            try:
+                bound_result = guard.validated_completion_result()
+            except DomainError as error:
+                self._raise(error)
+            if bound_result != submission.result_claim:
+                raise InvalidRequestError(
+                    "Trusted Evaluation binding changed the submitted result claim"
+                )
         try:
             historical = self._evaluations.load_version(
                 submission.evaluation.evaluation_id,
@@ -182,8 +325,8 @@ class GovernanceFacade:
                 )
             result = self._unit_of_work.transition(
                 submission.evaluation.evaluation_id,
-                submission.request,
-                submission.context,
+                request,
+                context,
             )
         except DomainError as error:
             self._raise(error)
@@ -226,6 +369,33 @@ class GovernanceFacade:
         raise UnsupportedOperationError(
             "Real Effect dispatch is not available in the G1/M1 facade"
         )
+
+    def _require_binder(self) -> TrustedGovernanceBinder:
+        if self._trusted_binder is None:
+            raise UnsupportedOperationError(
+                "Mutation requires an injected trusted governance binder"
+            )
+        return self._trusted_binder
+
+    @staticmethod
+    def _require_creation_binding(
+        request: object, context: object, request_type: type
+    ) -> None:
+        if not isinstance(request, request_type) or not isinstance(
+            context, CreationContext
+        ):
+            raise GovernanceInvariantError(
+                "Trusted binder returned an invalid creation binding"
+            )
+
+    @staticmethod
+    def _require_transition_binding(request: object, context: object) -> None:
+        if not isinstance(request, TransitionRequest) or not isinstance(
+            context, TransitionContext
+        ):
+            raise GovernanceInvariantError(
+                "Trusted binder returned an invalid transition binding"
+            )
 
     def _load_current(self, entity_id: LifecycleEntityId) -> GovernanceEntity:
         if isinstance(entity_id, ObjectiveId):
