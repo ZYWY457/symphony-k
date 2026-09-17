@@ -26,6 +26,7 @@ from tests.test_governance_facade import (
     evaluation_target_ref,
     facade_for,
     outcome_submission,
+    run_submission,
     transition_submission,
 )
 
@@ -41,6 +42,76 @@ def test_stale_run_version_cannot_back_new_outcome() -> None:
 
     with pytest.raises(ConflictError, match="differs from durable head"):
         facade.submit_outcome_candidate(outcome_submission(request))
+    store.close()
+
+
+def test_same_predecessor_run_id_with_different_version_is_rejected() -> None:
+    store = SQLiteStore()
+    binder = TrustedFixtureBinder(creation_fx.WORKER)
+    facade = facade_for(store, binder)
+    request = creation_fx.run_request(predecessor=True)
+    seed_related(store, request)
+    binder.register_creation(request, creation_fx.context(request))
+    submission = run_submission(request)
+    assert submission.predecessor is not None
+
+    with pytest.raises(InvalidRequestError, match="exact public reference"):
+        facade.submit_run_candidate(
+            replace(
+                submission,
+                predecessor=replace(
+                    submission.predecessor,
+                    version=EntityVersion(submission.predecessor.version.value - 1),
+                ),
+            )
+        )
+    store.close()
+
+
+def test_same_prior_outcome_id_with_different_version_is_rejected() -> None:
+    store = SQLiteStore()
+    binder = TrustedFixtureBinder(creation_fx.WORKER)
+    facade = facade_for(store, binder)
+    request = creation_fx.outcome_request(prior=True)
+    seed_related(store, request)
+    binder.register_creation(request, creation_fx.context(request))
+    submission = outcome_submission(request)
+    assert submission.prior_outcome is not None
+
+    with pytest.raises(InvalidRequestError, match="exact public reference"):
+        facade.submit_outcome_candidate(
+            replace(
+                submission,
+                prior_outcome=replace(
+                    submission.prior_outcome,
+                    version=EntityVersion(submission.prior_outcome.version.value - 1),
+                ),
+            )
+        )
+    store.close()
+
+
+def test_exact_bound_run_and_outcome_lineage_still_succeeds() -> None:
+    store = SQLiteStore()
+    binder = TrustedFixtureBinder(creation_fx.WORKER)
+    facade = facade_for(store, binder)
+    run_request = creation_fx.run_request(predecessor=True)
+    outcome_request = creation_fx.outcome_request(prior=True)
+    seed_related(store, run_request)
+    seed_related(store, outcome_request)
+    binder.register_creation(run_request, creation_fx.context(run_request))
+    binder.register_creation(outcome_request, creation_fx.context(outcome_request))
+
+    run_result = facade.submit_run_candidate(run_submission(run_request))
+    outcome_result = facade.submit_outcome_candidate(
+        outcome_submission(outcome_request)
+    )
+
+    assert run_result.snapshot.entity.predecessor_run_id == creation_fx.RUN.run_id
+    assert (
+        outcome_result.snapshot.entity.prior_outcome_id
+        == creation_fx.OUTCOME.outcome_id
+    )
     store.close()
 
 

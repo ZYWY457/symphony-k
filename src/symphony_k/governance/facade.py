@@ -138,6 +138,15 @@ class GovernanceFacade:
         self._require_observation(
             scope.primary_objective.snapshot, submission.primary_objective
         )
+        if submission.predecessor is not None:
+            if not scope.predecessor_lineage:
+                raise InvalidRequestError(
+                    "Trusted Run binding lacks the immediate predecessor observation"
+                )
+            self._require_observation(
+                scope.predecessor_lineage[0].snapshot,
+                submission.predecessor,
+            )
         try:
             result = self._unit_of_work.create(request, context)
         except DomainError as error:
@@ -195,6 +204,15 @@ class GovernanceFacade:
         if scope is None:
             raise GovernanceInvariantError("Trusted Outcome binding lacks proposal")
         self._require_observation(scope.originating_run.snapshot, submission.run)
+        if submission.prior_outcome is not None:
+            if not scope.prior_lineage:
+                raise InvalidRequestError(
+                    "Trusted Outcome binding lacks the immediate prior observation"
+                )
+            self._require_observation(
+                scope.prior_lineage[0].snapshot,
+                submission.prior_outcome,
+            )
         try:
             result = self._unit_of_work.create(request, context)
         except DomainError as error:
