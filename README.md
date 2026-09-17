@@ -46,10 +46,11 @@ Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 - Constitution v0.2 and ADR-0009 are accepted.
 - R2 product-definition reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `2b54c2672c0c400aab1f35e0245c8c4e97a62321`.
 - R3 delivery-path reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `f467fd75071e5d0252719539cf7323fb71de587c`.
-- R4 workflow/cold-start reconciliation is the current bounded documentation/governance work under Issue #96.
+- R4 workflow/cold-start reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `ecccbedd68f2f0e0eff949c20b627f250ddf189e`, after independent review **ACCEPT** on Issue #96 comment `5712098419` and explicit Human acceptance on comment `5712165121`.
+- R5 final strategic disposition/release-boundary reconciliation is next.
 - Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
-- Issue #79 remains **BLOCKED / NOT RELEASED** and cannot be reused as post-transition implementation authority.
-- No production implementation restart is authorized until R4 is accepted and R5 explicitly establishes the post-transition implementation release boundary.
+- Issue #79 remains **BLOCKED / NOT RELEASED** pending R5 final disposition and cannot be reused as post-transition implementation authority.
+- No production implementation restart is authorized until R5 explicitly establishes a fresh post-transition implementation release boundary.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
 
