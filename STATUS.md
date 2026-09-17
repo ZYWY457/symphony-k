@@ -12,6 +12,7 @@
 - **Accepted R5 final strategic disposition / release boundary:** exact head `1bb48657a85d746b8d0023ddd805c6cdc09703b0`; independent review **ACCEPT** on Issue #98 comment `5712222234`; final Human acceptance on Issue #98 comment `5712330240`.
 - **Final strategic reconciliation commit:** `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently **ACCEPTED** on Issue #99 comment `5712355215`.
 - **Accepted G1/M1 governance facade implementation boundary:** `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`; Issue #102 independent acceptance review `5714651540`.
+- **G1 accepted-truth reconciliation:** `eaea5390a088a71fe4108c2b84812253032a287a`; Issues #100/#102/#103 are closed completed.
 - **Stage 2 M1/M1C technical design:** **HUMAN ACCEPTED** at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`; ADR-0008 remains **ACCEPTED**.
 - Stage 2 runtime code is **NOT STARTED** and runtime isolation evidence is **NOT ESTABLISHED**.
 
@@ -75,9 +76,23 @@ G1/M1 does not add new Stage 1 lifecycle semantics or G2 evidence-trust policy.
 
 **G2 — Trusted Evaluation and Evidence Integration is PLANNED / NOT RELEASED.**
 
-No G2 implementation is authorized by roadmap order, Issue #100, Issue #102, or this status file. G2 requires a fresh durable TaskSpec with an exact starting baseline, scope, validation and remote-mutation boundary before implementation mutation.
+Current planning authority: **Issue #104 — G2 Planning — Trusted Evaluation and Evidence Delivery Path**.
 
-Current governance reconciliation TaskSpec: **Issue #103 — G1 / M1R Accepted-Truth Reconciliation and G2 Release Boundary**. It is documentation/governance-only and does not release G2 implementation.
+Planned parent contract: [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md).
+
+The planned G2 path is:
+
+```text
+M0 contract / threat-boundary freeze
+-> M1 durable evidence provenance intake
+-> M2 trusted evaluator identity + assignment binding
+-> M3 trusted Evaluation execution/result intake
+-> M4 durable authoritative effective-use resolver/query
+-> M5 evidence-backed Outcome disposition bridge
+-> M6 stage acceptance + accepted-truth reconciliation
+```
+
+Issue #104 and the planned Exec Plan are **planning artifacts only**. They do not authorize G2 source/test mutation. Before any G2 implementation, a fresh milestone-specific durable TaskSpec must explicitly release work from an exact starting HEAD with bounded paths, validation, adversarial tests and remote-mutation authority.
 
 ## Strategic lineage
 
@@ -90,14 +105,15 @@ Current governance reconciliation TaskSpec: **Issue #103 — G1 / M1R Accepted-T
 - #98 — R5 final disposition, independent ACCEPT and final Human Acceptance.
 - #99 — R5A final accepted-truth reconciliation, independent ACCEPT.
 - #79 — closed SUPERSEDED / NOT RELEASED, historical only.
-- #100 — original G1/M1 TaskSpec and rejected initial implementation candidate lineage.
+- #100 — original G1/M1 TaskSpec and rejected initial implementation candidate lineage; closed completed after accepted correction/reconciliation.
 - #101 — post-transition cold-start handoff reconciliation.
-- #102 — G1/M1A forward trust-boundary correction and final accepted implementation evidence.
-- #103 — current G1/M1 accepted-truth reconciliation; governance/documentation only.
+- #102 — G1/M1A forward trust-boundary correction and final accepted implementation evidence; closed completed.
+- #103 — G1/M1 accepted-truth reconciliation; closed completed.
+- #104 — current G2 planning identity; planning only, implementation not released.
 
 ## Next action
 
-Complete Issue #103 reconciliation and independently review its exact documentation candidate. After accepted reconciliation, close #100/#102/#103 as completed with their historical lineage preserved. Only then create and separately release a fresh bounded G2 TaskSpec if G2 work is to begin.
+Complete and independently review Issue #104 planning reconciliation. Do not release G2 implementation merely because the parent path is documented. If implementation is later authorized, begin with a fresh G2/M0 TaskSpec that freezes the contract/threat boundary before source mutation.
 
 ## Navigation / cold-start reading order
 

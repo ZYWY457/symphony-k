@@ -6,7 +6,7 @@ This document is the authoritative delivery contract from the accepted Stage 1 g
 
 The accepted Constitution v0.2, ADR-0009 and R2 Product Contract define the current product boundary: Symphony-K governs authoritative claims/state, trusted evidence and Evaluation, consequential Effects and reconstructable history while external agents, orchestrators and execution runtimes may determine how work is attempted.
 
-Strategic transition R1-R5 is COMPLETE AND HUMAN ACCEPTED. Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+Strategic transition R1-R5 is COMPLETE AND HUMAN ACCEPTED. Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`. G1/M1 accepted-truth reconciliation is `eaea5390a088a71fe4108c2b84812253032a287a`.
 
 ## Current dependency graph
 
@@ -38,7 +38,7 @@ Every new stage requires:
 5. reproducible evidence for stated guarantees; and
 6. durable status reconciliation before dependent work is released.
 
-No stage may infer authority from roadmap order alone. The current TaskSpec body controls readiness and exact launch baseline.
+No stage may infer authority from roadmap order alone. A planned parent Exec Plan is not an executable TaskSpec. The current TaskSpec body controls readiness and exact launch baseline.
 
 ## Stage 0 — Constitution and Repository Harness
 
@@ -63,18 +63,55 @@ No stage may infer authority from roadmap order alone. The current TaskSpec body
 - **Purpose achieved:** provide a bounded stable public integration surface over accepted governance semantics.
 - **Accepted deliverables:** typed exact refs for Objective/Task/Run/Outcome/Evaluation/Effect; caller-controlled external submission DTOs; injected trusted binder for Stage 1 request/context construction; supported Run/Outcome/Evaluation mutation paths; exact/current reads; caller-safe errors; exact identity/version and lineage binding; stale/superseded/cross-entity rejection; replay/idempotency and optimistic-concurrency preservation; explicit unsupported real Effect dispatch.
 - **Preserved non-goals:** no new lifecycle semantics, no public Run completion or Outcome acceptance, no real external Effect dispatch, no generic Planner/Router, no Agent runtime or sandbox-runtime ownership, and no G2 trust-policy semantics.
-- **Exit criterion:** satisfied by accepted implementation plus independent review; durable reconciliation is carried by Issue #103.
+- **Exit criterion:** satisfied by accepted implementation plus independent review and accepted-truth reconciliation.
 
 ## G2 — Trusted Evaluation and Evidence Integration
 
 - **Status:** PLANNED / NOT RELEASED.
-- **Entry criteria:** accepted G1 facade and a fresh released G2 TaskSpec with exact baseline and bounded scope.
-- **Purpose:** bind external/independent verification to exact authoritative candidates and effective-use state.
-- **Required deliverables:** trusted evaluator/evidence identities; exact entity/candidate/version binding; evidence provenance; stale/superseded/invalidation handling; cross-entity substitution rejection; durable effective-use references.
-- **Non-goals:** universal semantic judge, Worker self-validation, provider-specific core semantics.
-- **Minimum evidence:** stale, superseded, tampered, unrelated and substituted evidence fail closed; legal current evidence supports disposition.
-- **Exit criterion:** authoritative decisions can depend on independent external evidence without weakening Stage 1 trust rules.
-- **Authority note:** G2 is not executable until its own fresh TaskSpec is explicitly released.
+- **Planning authority:** Issue #104.
+- **Parent plan:** [`exec-plans/planned/g2-trusted-evaluation-evidence.md`](exec-plans/planned/g2-trusted-evaluation-evidence.md).
+- **Implementation entry criteria:** accepted G1 facade plus a fresh milestone-specific released G2 TaskSpec with exact baseline, bounded paths, validation/adversarial evidence and remote-mutation boundary. The parent plan and Issue #104 do not release implementation.
+- **Purpose:** make external/independent evidence and Evaluation a supported trusted governance boundary, then connect authoritative effective-use state to existing Outcome disposition semantics without allowing callers to manufacture trust or history completeness.
+
+### G2 delivery contracts
+
+| Order | Milestone | Deliverable contract | Minimum exit evidence |
+| ---: | --- | --- | --- |
+| M0 | Contract and threat-boundary freeze | trusted evidence/evaluator data-flow, provenance/integrity rules, exact binding rules, unsupported cases | reviewed trust boundary + adversarial matrix; no new core entity/lifecycle |
+| M1 | Durable evidence provenance intake | stable evidence identity, integrity anchor where available, source/collector/time/method provenance and exact target/version scope | persistence/readback plus tamper, stale-target and cross-target substitution negatives |
+| M2 | Trusted evaluator identity and assignment binding | boundary-produced evaluator principal, method/version, assignment and attributable independence facts | fabricated evaluator/self-assignment/stale assignment/replay negatives |
+| M3 | Trusted Evaluation execution/result intake | G1 Evaluation create/start/complete bound to exact trusted evidence, evaluator, target and method/version | legal result flow plus stale Evaluation, target/evidence/method/principal substitution negatives |
+| M4 | Durable effective-use resolver/query | authoritative current Evaluation + conflict/arbitration/invalidation history resolved through existing Stage 1 derivation | omitted/stale history cannot manufacture eligibility; ambiguity/invalidation/concurrency fail closed |
+| M5 | Evidence-backed Outcome disposition bridge | exact validation lineage + authoritative effective-use + policy decision + required Human acceptance into existing Stage 1 disposition | legal ACCEPTED/REJECTED plus stale/superseded/cross-entity/policy/Human-authority negatives |
+| M6 | Stage acceptance and reconciliation | integrated legal/adversarial G2 evidence and durable accepted-truth update | independent review, Human exit where required, reconciliation before G3 |
+
+### G2 architectural constraints
+
+- Caller evidence claims are not trusted merely because they carry `EvidenceRef` or provenance fields.
+- Evidence integrity/source status must come from a trusted collector/provider or independently verifiable durable record; immutable/content-addressed anchors are preferred where practical, not universally required.
+- Evaluator identity/assignment and independence facts are produced inside the trusted boundary rather than granted by caller-selected `ActorIdentity`.
+- Exact candidate/entity/version and relevant method/policy versions must remain bound throughout evidence intake, Evaluation result, effective-use resolution and Outcome disposition.
+- The existing Stage 1 pure effective-use derivation must be supplied with authoritative durable current history by a supported resolver; external callers must not be responsible for proving completeness of conflict/arbitration/invalidation history.
+- Evaluation judgment and Outcome disposition policy remain distinct; a favorable verdict cannot directly self-accept an Outcome.
+- Stage 1 remains lifecycle semantic authority. Any discovered need for a new Stage 1 lifecycle state/core entity or material constitutional trust change stops implementation and requires a separate architecture/governance decision.
+- G2 does not dispatch Effects; real authorization/dispatch/occurrence/reconciliation is G3.
+
+### G2 non-goals
+
+- universal judge, evidence schema or verdict taxonomy;
+- full login/session/JWT/RBAC identity product;
+- generic Planner/Router/Agent runtime;
+- sandbox/provider runtime;
+- real Effect dispatch or occurrence reconciliation;
+- G4 audit export/reconstruction productization;
+- G5 general cross-stage conformance framework;
+- new Stage 1 lifecycle states or a seventh core domain entity.
+
+### G2 stage exit criterion
+
+G2 exits only when a supported integration can register/resolve independently attributable evidence for an exact target/version, establish trusted evaluator assignment, complete an exact evidence-backed Evaluation, query authoritative effective-use without supplying private history slices, demonstrate conflict/arbitration/invalidation effects, and disposition an Outcome only through exact effective-use + policy + required Human authority, with stale/superseded/cross-entity/tampered/replayed substitutions failing closed.
+
+G2/M0 through M6 remain individually **NOT RELEASED** until their own TaskSpecs are explicitly released.
 
 ## G3 — Governed Effect Gateway and Occurrence Reconciliation
 

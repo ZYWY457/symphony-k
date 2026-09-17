@@ -5,7 +5,8 @@ This is the canonical high-level delivery map for Symphony-K v1 after the accept
 Read with:
 
 - [v1 Product Contract](docs/V1_PRODUCT_CONTRACT.md) — observable v1 scope and final acceptance expectations;
-- [Development Path](docs/DEVELOPMENT_PATH.md) — entry, evidence and exit contracts for the current delivery sequence; and
+- [Development Path](docs/DEVELOPMENT_PATH.md) — entry, evidence and exit contracts for the current delivery sequence;
+- [G2 planned parent plan](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md) — current planning-only decomposition of trusted Evaluation/evidence integration; and
 - [Reference Workflows](docs/REFERENCE_WORKFLOWS.md) — canonical accepted governance-boundary scenarios.
 
 The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neutral governance/control-plane product for agentic work. External agents, orchestrators and execution runtimes may determine how work is attempted; Symphony-K governs authoritative state, evidence, decisions, consequential Effects and reconstructable history.
@@ -17,7 +18,7 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | 0 | Constitution and Repository Harness | COMPLETE |
 | 1 | Domain Kernel | COMPLETE — Human Exit ACCEPTED |
 | G1 | Governance SDK / Facade | COMPLETE / ACCEPTED — M1 at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` |
-| G2 | Trusted Evaluation and Evidence Integration | PLANNED / NOT RELEASED |
+| G2 | Trusted Evaluation and Evidence Integration | PLANNED / NOT RELEASED — path planning via Issue #104 |
 | G3 | Governed Effect Gateway and Occurrence Reconciliation | PLANNED |
 | G4 | Audit Export and Causal Reconstruction | PLANNED |
 | G5 | Adversarial and Conformance Suite | PLANNED |
@@ -27,7 +28,7 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | G9 | Production Hardening and Release Engineering | PLANNED |
 | G10 | v1 Acceptance and Final Delivery | PLANNED |
 
-G1/M1 accepted implementation lineage is preserved through Issue #100 and Issue #102. The original Issue #100 candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was not accepted; Issue #102 carried the forward trusted-boundary and exact-version corrections; final candidate `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` was independently accepted on comment `5714651540`.
+G1/M1 accepted implementation lineage is preserved through Issue #100 and Issue #102. The original Issue #100 candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was not accepted; Issue #102 carried the forward trusted-boundary and exact-version corrections; final candidate `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` was independently accepted on comment `5714651540`. Accepted-truth reconciliation is `eaea5390a088a71fe4108c2b84812253032a287a`.
 
 Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is historical only. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not an implementation TaskSpec for any current stage.
 
@@ -57,11 +58,27 @@ Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is histor
 ## G2 — Trusted Evaluation and Evidence Integration
 
 - **Status:** PLANNED / NOT RELEASED.
-- **Entry criteria:** accepted G1 facade plus a fresh durable G2 TaskSpec that explicitly releases implementation from an exact baseline.
-- **Goal:** make independent Evaluation/evidence a production integration boundary rather than an experimental harness.
-- **Required outcome:** exact candidate/entity/version/effective-use binding, stale/superseded/cross-entity rejection, independent evaluator identity/provenance and durable evidence references.
-- **Exit proof:** adversarial stale/substitution/tamper cases fail closed while legal evidence-backed disposition succeeds.
-- Roadmap order alone does not authorize G2 implementation.
+- **Planning authority:** Issue #104; parent path at [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md).
+- **Entry criteria for implementation:** accepted G1 facade plus a fresh milestone-specific durable TaskSpec that explicitly releases implementation from an exact baseline. Issue #104 and the parent plan do not release code mutation.
+- **Goal:** make independent Evaluation/evidence a supported trusted integration boundary rather than a caller-supplied assertion or private-history exercise.
+- **Core sequence:** evidence provenance -> trusted evaluator assignment -> exact Evaluation result intake -> authoritative effective-use resolution -> evidence-backed Outcome disposition -> stage acceptance/reconciliation.
+- **Required outcome:** exact candidate/entity/version/method/policy binding; durable evidence provenance; evaluator identity/assignment provenance; stale/superseded/cross-entity/tamper rejection; authoritative conflict/arbitration/invalidation-aware effective-use resolution; policy-separated Outcome disposition.
+- **Exit proof:** legal evidence-backed disposition succeeds while fabricated evaluator, stale/tampered/substituted evidence, omitted history, stale effective-use, policy substitution and replayed authority fail closed.
+- **Non-goals:** universal judge/evidence taxonomy, full authentication product, new Stage 1 lifecycle/core entity, real Effect dispatch, provider/sandbox runtime, G4 audit export or G5 cross-stage conformance framework.
+
+### G2 planned milestone path
+
+| Milestone | Name | Exit focus | Release state |
+| --- | --- | --- | --- |
+| M0 | Contract and threat-boundary freeze | reviewed trust/data-flow contract + adversarial matrix | PLANNED / NOT RELEASED |
+| M1 | Durable evidence provenance intake | immutable/stable provenance, exact scope and tamper/substitution negatives | PLANNED / NOT RELEASED |
+| M2 | Trusted evaluator identity and assignment binding | no caller-fabricated evaluator/independence/assignment authority | PLANNED / NOT RELEASED |
+| M3 | Trusted Evaluation execution/result intake | exact target/method/evidence/principal binding through Stage 1 lifecycle authority | PLANNED / NOT RELEASED |
+| M4 | Durable effective-use resolver/query | authoritative complete current history, conflict/arbitration/invalidation aware | PLANNED / NOT RELEASED |
+| M5 | Evidence-backed Outcome disposition bridge | effective use + policy + required Human input -> existing Stage 1 disposition | PLANNED / NOT RELEASED |
+| M6 | Stage acceptance and reconciliation | adversarial review + durable accepted-truth reconciliation | PLANNED / NOT RELEASED |
+
+Roadmap order, Issue #104, and the existence of this plan do not authorize any G2 implementation milestone.
 
 ## G3 — Governed Effect Gateway and Occurrence Reconciliation
 
