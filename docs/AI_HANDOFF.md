@@ -21,20 +21,22 @@ If a required source cannot be read or the baseline conflicts with the TaskSpec,
 ## Current accepted product and delivery truth
 
 - Constitution v0.2 and ADR-0009 are accepted.
-- R2 product definition, R3 delivery path and R4 workflows/cold-start truth are Human accepted.
+- R2 product definition, R3 delivery path, R4 workflows/cold-start truth and R5 final disposition are Human accepted.
+- Repository-level strategic transition R1-R5 is COMPLETE.
+- Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 - Symphony-K is a framework-neutral governance/control-plane system for agentic work.
 - External agents/orchestrators/runtimes may decide how work is attempted; their claims do not become authoritative merely because they produced them.
 - The accepted v1 delivery path centers on governance facade, trusted Evaluation/evidence, governed Effect gateway and reconciliation, audit export, conformance, external integration, reference provider path, operational safety, hardening and v1 acceptance.
 - Generic Planner, Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 prerequisites.
 - ADR-0008 and the accepted Stage 2 M1/M1C design remain accepted provider/security/conformance assets and an optional/reference execution path.
-- R5 is the final strategic disposition/release-boundary gate. Issue #79 remains **BLOCKED / NOT RELEASED** during R5; its old Stage 2 M2 authority must not be reused or repurposed.
-- The first intended post-transition implementation slice is **G1 — Governance SDK / Facade Foundation**, but it remains **NOT RELEASED** until exact R5 Human Acceptance, final reconciliation and a new explicit TaskSpec.
+- Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority must not be reused or repurposed.
+- Current executable implementation TaskSpec is Issue #100 r1, **READY — RELEASED FOR WORKER EXECUTION**, from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
 
 ## Current-task and review discovery
 
 After reading `STATUS.md`:
 
-1. identify the exact accepted baseline and current reconciliation/implementation gate;
+1. identify the exact accepted baseline and current implementation/review gate;
 2. identify the exact current candidate commit, if one exists;
 3. read the latest review for that exact candidate;
 4. read the concrete TaskSpec named as current work;
@@ -53,7 +55,15 @@ Open/READY != known unclaimed work
 External execution success != authoritative completion
 Dispatch failure != Effect non-occurrence
 Historical accepted asset != current implementation authority
-NEXT on roadmap != released implementation TaskSpec
+Roadmap stage != released TaskSpec
+```
+
+For the current repository state:
+
+```text
+Issue #79 = SUPERSEDED / NOT RELEASED / closed not planned
+Issue #100 r1 = READY implementation authority for G1/M1 only
+required starting HEAD = b5ee78f7febae1346c771fa6060fcb3e18ea56f3
 ```
 
 ## Governance boundary for external execution
@@ -74,7 +84,7 @@ Before mutation, establish a concrete, pre-existing durable TaskSpec identity an
 
 A title, draft, future number, placeholder identity or conversation-only instruction is insufficient. Post-hoc Issue creation is not retroactive authorization.
 
-For the transition boundary specifically, neither Issue #79 nor Issue #98 authorizes G1 implementation. #98 authorizes R5 governance/documentation reconciliation only. G1 requires a new implementation TaskSpec created after accepted R5 final reconciliation.
+For current G1/M1 implementation, use Issue #100 revision `r1 - g1-m1-governance-facade-foundation`. It authorizes only its exact source/test paths and does not authorize remote publication, G2, real Effect dispatch or changes to Stage 1 domain/persistence semantics.
 
 ## Architecture or product discoveries
 
@@ -91,7 +101,7 @@ Implementation convenience must not silently redefine the accepted product.
 
 Rejected candidates, prior accepted architectures and superseded delivery plans remain historical facts. Corrections are forward records. Do not rewrite accepted history to imply the current strategy always existed.
 
-The Stage 2 sandbox design is a concrete example: it remains accepted technical history and a reusable conformance/reference asset even though R3 superseded the old runtime-first v1 sequencing. Its old #79 execution authority is obsolete for the post-transition product.
+The Stage 2 sandbox design remains accepted technical history and a reusable conformance/reference asset even though R3 superseded the old runtime-first v1 sequencing. Issue #79's old execution authority is now durably superseded.
 
 ## Exec Plan lifecycle
 
@@ -108,6 +118,7 @@ File location alone is not authority. `STATUS.md` plus the current TaskSpec dete
 ```text
 DRAFT TASKSPEC
     -> durable Issue exists
+    -> explicit READY release
     -> Worker candidate
     -> validation
     -> publication when authorized
@@ -126,12 +137,12 @@ Given only repository read access, a fresh maintainer/AI must be able to report:
 - the accepted Constitution/ADR baseline;
 - the accepted product identity;
 - the accepted v1 delivery path and workflows;
-- the current R5 strategic gate or later implementation gate;
+- that strategic transition R1-R5 is complete;
 - which Stage 2 assets remain accepted and what role they now have;
-- that Issue #79 is blocked/obsolete as post-transition implementation authority;
-- the exact current candidate/review/Human acceptance state, when applicable;
-- whether G1 is merely NEXT or actually released through a fresh TaskSpec;
-- what remote actions are and are not authorized.
+- that Issue #79 is superseded/closed and cannot be reused;
+- that Issue #100 r1 is the current READY G1/M1 TaskSpec;
+- exact starting baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`;
+- what work and remote actions are actually authorized.
 
 Pass means correct, source-backed discovery without private conversation context.
 

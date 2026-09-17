@@ -47,10 +47,12 @@ Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 - R2 product-definition reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `2b54c2672c0c400aab1f35e0245c8c4e97a62321`.
 - R3 delivery-path reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `f467fd75071e5d0252719539cf7323fb71de587c`.
 - R4 workflow/cold-start reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `ecccbedd68f2f0e0eff949c20b627f250ddf189e`.
-- R5 final strategic disposition/release-boundary reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `1bb48657a85d746b8d0023ddd805c6cdc09703b0`, after independent review **ACCEPT** on Issue #98 comment `5712222234` and final Human acceptance on comment `5712330240`.
+- R5 final strategic disposition/release-boundary reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `1bb48657a85d746b8d0023ddd805c6cdc09703b0`.
+- Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, reviewed **ACCEPT** on Issue #99 comment `5712355215`.
 - Repository-level strategic transition R1-R5 is complete.
-- Issue #79's old Stage 2 M2 authority is obsolete for the post-transition product and is being durably superseded; it must never become G1 authority.
-- The first post-transition implementation slice is **G1 — Governance SDK / Facade Foundation**. Durable TaskSpec identity is Issue #100; its current Issue body determines whether execution is released.
+- Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority is historical only and cannot be reused as G1 authority.
+- **G1 / M1 — Governance SDK / Facade Foundation is now READY** through Issue #100 revision `r1 - g1-m1-governance-facade-foundation`, from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+- G1 implementation has not started or completed merely because its TaskSpec is READY.
 - Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.

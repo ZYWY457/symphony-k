@@ -2,7 +2,11 @@
 
 Start with the root [project status](../STATUS.md), then follow the authority and reading order in [AGENTS.md](../AGENTS.md).
 
-The accepted current product identity is a framework-neutral governance/control-plane system for agentic work. Constitution v0.2 and ADR-0009 are accepted; R2 product definition, R3 delivery path and R4 workflows/cold-start truth are Human accepted. R5 is the final strategic disposition/release-boundary candidate. Issue #79 remains BLOCKED / NOT RELEASED during that gate.
+The accepted current product identity is a framework-neutral governance/control-plane system for agentic work. Constitution v0.2 and ADR-0009 are accepted; R2 product definition, R3 delivery path, R4 workflows/cold-start truth and R5 final disposition are Human accepted. Repository-level strategic transition R1-R5 is complete.
+
+Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
+
+Current executable implementation work is **G1 / M1 — Governance SDK / Facade Foundation**, Issue #100 revision `r1 - g1-m1-governance-facade-foundation`, READY from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
 
 ## Constitution and core beliefs
 
@@ -26,6 +30,8 @@ The accepted current product identity is a framework-neutral governance/control-
 
 ADR-0008 and the Stage 2 design remain accepted execution-provider security/conformance assets and an optional/reference implementation path. They no longer define the mandatory v1 delivery sequence.
 
+Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned. Its old r2/r3 authority is historical only and must not be revived or reused as G1 authority.
+
 ## Product and delivery truth
 
 - [Current status](../STATUS.md)
@@ -40,7 +46,7 @@ The accepted v1 critical path centers on governance facade, trusted evidence/Eva
 
 Generic Planner, Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 blockers.
 
-The first intended post-transition implementation slice is **G1 — Governance SDK / Facade Foundation**. It remains `NEXT — NOT YET RELEASED` during R5. A fresh implementation TaskSpec may be created/released only after exact R5 Human Acceptance and final strategic reconciliation.
+G1/M1 is now released only through Issue #100 r1. Broader G1/G2 work remains unreleased/planned until its own durable TaskSpec exists.
 
 ## Exec Plans
 
@@ -49,7 +55,7 @@ The first intended post-transition implementation slice is **G1 — Governance S
 - [Active plans](exec-plans/active/) — may contain historically accepted technical assets; current authority must be confirmed through `STATUS.md` and the current TaskSpec
 - [Completed plans](exec-plans/completed/) — accepted historical plans
 
-The historical Stage 2 active plan preserves accepted M1/M1C provenance but the old runtime-first implementation sequence is superseded for v1 delivery. Issue #79 must not be revived or repurposed as G1 authority. After accepted R5 final reconciliation it may be marked SUPERSEDED / NOT RELEASED or closed as not planned.
+The historical Stage 2 active plan preserves accepted M1/M1C provenance but the old runtime-first implementation sequence is superseded for v1 delivery. Issue #79 is historical only; future sandbox/provider reuse requires a fresh TaskSpec, normally under G7.
 
 ## Handoff and governance templates
 

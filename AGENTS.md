@@ -25,16 +25,17 @@ Before mutation, read in this order unless the current TaskSpec narrows the scop
 
 `STATUS.md` is the compact current-truth entry point. Historical plans and accepted technical assets remain evidence, but they do not automatically define current execution authority.
 
-## Current strategic truth
+## Current strategic and execution truth
 
 - Constitution v0.2 and ADR-0009 are accepted.
-- R2 product definition is accepted: Symphony-K is a governance/control-plane product, not a mandatory full-orchestrator stack.
-- R3 delivery path is accepted: the v1 critical path centers on governance SDK/facade, trusted Evaluation/evidence, governed Effects, audit reconstruction, conformance, integrations, operational safety and hardening.
-- R4 workflows/cold-start truth are accepted and operate across the external-execution/governance boundary.
-- R5 is the final strategic disposition/release-boundary gate. Until exact R5 acceptance and final reconciliation, production implementation remains unreleased.
+- R2 product definition, R3 delivery path, R4 workflows/cold-start truth and R5 final disposition are Human accepted.
+- Repository-level strategic transition R1-R5 is COMPLETE.
+- Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 - ADR-0008 and the accepted Stage 2 sandbox design remain valid historical/provider-conformance assets and an optional/reference execution path.
-- Issue #79 is **BLOCKED / NOT RELEASED** during R5 and must not be revived, repurposed or treated as post-transition execution authority.
-- The first intended post-transition implementation slice is **G1 — Governance SDK / Facade Foundation**, but a Worker may execute it only from a separate fresh TaskSpec released after R5 acceptance/final reconciliation.
+- Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned and must not be revived, repurposed or treated as post-transition execution authority.
+- Current executable work is **Issue #100**, G1/M1 Governance SDK / Facade Foundation, revision `r1 - g1-m1-governance-facade-foundation`.
+- Issue #100 is **READY — RELEASED FOR WORKER EXECUTION** from exact starting HEAD `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+- G1 readiness does not imply implementation has started or that broader G1/G2 work is released.
 
 ## Core authority rules
 
@@ -64,6 +65,8 @@ Conversation-only instructions, draft titles, future Issue numbers and placehold
 
 A discovered TaskSpec is not executable when it is blocked, unreleased, baseline-mismatched, superseded, overlapping known active work or otherwise fails its stated preconditions.
 
+For current G1/M1 work, the only released implementation TaskSpec is Issue #100 r1. Its exact allowed paths, baseline and validation rules control execution.
+
 Final Worker evidence must report:
 
 ```text
@@ -87,6 +90,8 @@ Historical accepted artifacts must not be rewritten to imply the current strateg
 ## Remote repository mutation boundary
 
 Repository-local work and remote effects are separate authorities. Unless explicitly authorized by the current TaskSpec or Human instruction, a Worker MUST NOT push, mutate remote refs, create/merge/close PRs, publish releases, rewrite remote history or mutate Issues.
+
+Issue #100 releases implementation work but explicitly does not release arbitrary remote publication.
 
 If remote mutation occurs, report the exact action, repository/branch, affected object, authorization source and resulting reference.
 
@@ -116,8 +121,15 @@ Implementation work must verify the required repository/toolchain substrate befo
 ```text
 git status --short
 git rev-parse --show-toplevel
+git rev-parse HEAD
 python --version
 uv --version
+```
+
+For Issue #100 r1 the exact expected starting HEAD is:
+
+```text
+b5ee78f7febae1346c771fa6060fcb3e18ea56f3
 ```
 
 If required execution or validation cannot run, report the gap and do not fabricate evidence or claim completion.

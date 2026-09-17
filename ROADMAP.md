@@ -16,7 +16,7 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | ---: | --- | --- |
 | 0 | Constitution and Repository Harness | COMPLETE |
 | 1 | Domain Kernel | COMPLETE — Human Exit ACCEPTED |
-| G1 | Governance SDK / Facade | NEXT — NOT YET RELEASED |
+| G1 | Governance SDK / Facade | ACTIVE — M1 READY via Issue #100 |
 | G2 | Trusted Evaluation and Evidence Integration | PLANNED |
 | G3 | Governed Effect Gateway and Occurrence Reconciliation | PLANNED |
 | G4 | Audit Export and Causal Reconstruction | PLANNED |
@@ -27,15 +27,15 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | G9 | Production Hardening and Release Engineering | PLANNED |
 | G10 | v1 Acceptance and Final Delivery | PLANNED |
 
-`NEXT — NOT YET RELEASED` is planning status only. It does not authorize implementation. G1 may be released only through a fresh durable implementation TaskSpec after exact R5 Human Acceptance and final strategic reconciliation.
+`ACTIVE — M1 READY` means only Issue #100 revision `r1 - g1-m1-governance-facade-foundation` is released for implementation from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`. It does not imply G1 completion or authorize broader G1/G2 work.
 
-Issue #79 remains **BLOCKED / NOT RELEASED** during the R5 gate. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not the implementation TaskSpec for G1 or any other post-transition stage.
+Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is historical only. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not the implementation TaskSpec for G1 or any other post-transition stage.
 
 ## Stage 0 — Constitution and Repository Harness
 
 - **Status:** COMPLETE.
 - **Historical capability:** repository authority hierarchy, constitutional invariants, ADR/Exec Plan process and repeatable repository workflow.
-- **Current relevance:** Constitution v0.2 and accepted ADR-0009 now govern the post-transition product direction.
+- **Current relevance:** Constitution v0.2 and accepted ADR-0009 govern the post-transition product direction.
 
 ## Stage 1 — Domain Kernel
 
@@ -46,13 +46,15 @@ Issue #79 remains **BLOCKED / NOT RELEASED** during the R5 gate. Its old Stage 2
 
 ## G1 — Governance SDK / Facade
 
-- **Status:** NEXT — NOT YET RELEASED.
+- **Status:** ACTIVE — M1 READY via Issue #100; implementation not yet accepted merely by release.
+- **Current TaskSpec:** Issue #100 revision `r1 - g1-m1-governance-facade-foundation`.
+- **Exact M1 starting baseline:** `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
 - **Goal:** expose a stable bounded public integration surface over accepted Stage 1 semantics without requiring callers to understand the full internal semantic graph.
 - **Required outcome:** external callers can submit claims/candidates/evidence, bind them to exact authoritative identities/versions and query governed results through one semantic authority model.
-- **Initial implementation slice after R5:** public Python-facing facade; typed claim/candidate/evidence submission; exact identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
-- **Non-goals for the first slice:** new lifecycle semantics, real external Effect dispatch, generic Planner/Router ownership, Agent runtime ownership or sandbox-runtime ownership.
+- **Initial M1 slice:** public Python-facing facade; typed claim/candidate/evidence submission; exact identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
+- **Non-goals for M1:** new lifecycle semantics, real external Effect dispatch, generic Planner/Router ownership, Agent runtime ownership or sandbox-runtime ownership.
 - **Deployment posture:** embedded-first; service/API and CLI surfaces may expose the same kernel later or in parallel without weaker semantics.
-- **Exit proof:** public-contract tests demonstrate that the facade cannot bypass transition authority, evidence binding, replay or history rules.
+- **Exit proof:** public-contract tests demonstrate that the facade cannot bypass transition authority, evidence binding, replay or history rules; independent review and durable reconciliation are still required.
 
 ## G2 — Trusted Evaluation and Evidence Integration
 
@@ -143,7 +145,7 @@ Their historical Exec Plans, ADRs, accepted designs and Git history remain attri
 
 ADR-0008 and the Human Accepted Stage 2 M1/M1C technical design remain valid. Their current role is an execution-provider security/conformance contract, an evidence/provenance boundary and an optional/reference implementation path.
 
-The historical Stage 2 runtime implementation path is superseded for current delivery sequencing. Runtime code was never started. Issue #79 remains BLOCKED / NOT RELEASED during R5 and cannot be reused or silently revised into the first post-transition implementation task. After accepted R5 final reconciliation it may be marked SUPERSEDED / NOT RELEASED or closed as not planned; future reuse of the technical design requires a new TaskSpec.
+The historical Stage 2 runtime implementation path is superseded for current delivery sequencing. Runtime code was never started. Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned and cannot be reused or silently revised into a post-transition implementation task. Future reuse of the technical design requires a fresh TaskSpec, normally under G7 reference execution/provider work.
 
 ## Post-v1 / optional backlog
 

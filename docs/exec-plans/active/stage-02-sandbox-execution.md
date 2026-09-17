@@ -10,11 +10,11 @@
 
 **Accepted sandbox ADR/design:** `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
 
-**Issue #79:** BLOCKED / NOT RELEASED during R5; old r2/r3 execution authority obsolete for the post-transition product
+**Issue #79:** SUPERSEDED / NOT RELEASED; closed as not planned; historical only
 
 ## Current disposition
 
-This parent plan remains a durable historical record of the pre-transition Stage 2 delivery path. It is no longer the active v1 implementation sequence after accepted ADR-0009 and the accepted R2-R4 strategic reconciliation.
+This parent plan remains a durable historical record of the pre-transition Stage 2 delivery path. It is no longer the active v1 implementation sequence after accepted ADR-0009 and the accepted R2-R5 strategic reconciliation.
 
 The accepted Stage 2 architecture is not rejected or weakened. Its post-transition role is:
 
@@ -25,9 +25,9 @@ The accepted Stage 2 architecture is not rejected or weakened. Its post-transiti
 
 Owning a production sandbox runtime is no longer a mandatory v1 product prerequisite.
 
-The old M2 runtime implementation path must not be resumed or re-released from Issue #79. During R5, #79 remains BLOCKED / NOT RELEASED. After exact R5 Human Acceptance and final reconciliation, the trusted governance boundary may mark #79 SUPERSEDED / NOT RELEASED or close it as not planned; it must not be converted to READY or reused as G1 authority.
+Issue #79 was durably superseded after final R5 acceptance and is closed as not planned. Its old r2/r3 authority MUST NOT be reopened, revised to READY or reused as G1 authority.
 
-Any future implementation of this accepted design requires a fresh bounded TaskSpec under the current post-transition roadmap, most likely when G7 reference execution/provider work is reached.
+Any future implementation of this accepted design requires a fresh bounded TaskSpec under the current post-transition roadmap, normally when G7 reference execution/provider work is reached.
 
 ## Accepted historical baseline
 
@@ -72,6 +72,9 @@ Issue #77 M1 design activation
 -> independent M1C ACCEPT
 -> explicit Human erratum APPROVED
 -> Issue #84 acceptance reconciliation
+-> strategic transition R1-R5
+-> Issue #79 final supersession comment `5712361531`
+-> Issue #79 closed SUPERSEDED / NOT RELEASED as not planned
 ```
 
 Runtime isolation evidence was never established and Stage 2 runtime source code was never started.
@@ -104,7 +107,7 @@ The accepted M1C UNKNOWN frozen-salvage semantics and their exact design/test ob
 The original delivery plan proposed:
 
 1. M1 architecture/design acceptance — **completed and Human accepted**;
-2. M2 portable sandbox contracts/fake provider — **stopped before mutation and BLOCKED / NOT RELEASED**;
+2. M2 portable sandbox contracts/fake provider — **stopped before mutation; now SUPERSEDED / NOT RELEASED**;
 3. M3 Docker lifecycle and enforced constraints — **never started**;
 4. M4 adversarial real-runtime evidence — **never started**; and
 5. Stage 2 Exit followed by Stage 3 AgentDriver activation — **superseded as the mandatory v1 sequence**.
@@ -113,7 +116,7 @@ These milestones remain provenance; they no longer confer current implementation
 
 ## Relationship to current roadmap
 
-The current roadmap's reference execution/provider stage may reuse ADR-0008 and the accepted sandbox design in whole or in part. It may also validate an external provider against the same security/conformance boundary.
+The current roadmap's G7 reference execution/provider stage may reuse ADR-0008 and the accepted sandbox design in whole or in part. It may also validate an external provider against the same security/conformance boundary.
 
 Any such work must explicitly state:
 
