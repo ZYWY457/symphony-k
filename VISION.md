@@ -2,140 +2,132 @@
 
 ## Mission
 
-Build an outcome-oriented AI work orchestrator that converts bounded human or system objectives into governed, auditable, resource-aware execution across interchangeable agents, models, skills, tools, programs, and eventually human operators.
+Build a framework-neutral governance/control-plane system for agentic work that preserves trustworthy authority, evidence, consequential Effect control and reconstructable history even when the agents, orchestrators and execution runtimes performing the work are replaceable or untrusted.
 
-The system is not primarily a multi-agent chat framework and is not limited to software development. Its long-term role is to coordinate computer-mediated work while preserving human authority over consequential outcomes.
+Symphony-K is not primarily a multi-agent chat framework, a generic Planner, a Router, or a sandbox runtime. Its durable role is to govern what becomes authoritative, which evidence may justify a decision, which consequential external actions may proceed, and how the resulting history remains attributable and reconstructable.
 
 ## Core Thesis
 
-The orchestrator manages **work**, not agents.
+**Claims are not facts, execution is not authority, authorization is not occurrence, and compensation is not erasure.**
 
-Agents, models, skills, sandboxes, and tools are execution resources. They may improve, disappear, become cheaper, become more expensive, or be replaced entirely. The orchestration layer should become stronger as the ecosystem improves rather than being locked to one vendor, model, or agent runtime.
+Agents, models, orchestrators, workflow engines, skills, tools, sandboxes and execution providers may determine how work is attempted. They do not gain authority merely by executing work or producing a result.
+
+The governance layer should remain useful as those external systems improve, disappear or are replaced. Provider-, framework-, model- and runtime-specific details therefore remain outside core governance semantics.
 
 ## Desired Interaction Model
 
-A requester should eventually be able to specify:
+An external agent/orchestrator or Human may provide:
 
-- the desired objective,
-- success criteria,
-- budget constraints,
-- risk boundaries,
-- time constraints,
-- acceptable permissions,
-- and required human approval points.
+- a bounded Objective or Task context;
+- a candidate Run/Outcome claim;
+- evidence and observations;
+- requested consequential Effects;
+- applicable policy, budget, risk and permission context; and
+- required Human decision points.
 
-The system should then:
+Symphony-K should then provide a bounded governance path that can:
 
-1. propose bounded work,
-2. assess value, risk, budget, confidence, and verifiability,
-3. route work to appropriate execution resources,
-4. isolate execution,
-5. collect evidence,
-6. verify results independently,
-7. recover from failure,
-8. control external side effects,
-9. present evidence-backed candidate outcomes,
-10. preserve human authority for final acceptance where required,
-11. learn cautiously from verified history.
+1. record authoritative work identity and state separately from executor claims;
+2. bind evidence and Evaluations to the exact candidate/entity/version they concern;
+3. reject stale, superseded, cross-entity or otherwise invalid authority/evidence use;
+4. support independent Evaluation and explicit authoritative disposition;
+5. govern consequential Effects through preparation, authorization, dispatch/commit, receipt, occurrence, uncertainty, reconciliation and remediation;
+6. preserve optimistic-concurrency, idempotency and exact-replay semantics;
+7. keep historical meaning append-only;
+8. expose enough durable causal history for an uninvolved reviewer to reconstruct why an important decision or external action occurred; and
+9. preserve Human authority where the Constitution requires it.
 
-## Value Model
+## v1 Product Thesis
 
-The system should optimize expected utility rather than raw model capability.
+For v1, the product core is the accepted Stage 1 authority/evidence/history model plus production-quality integration and Effect/audit boundaries around it.
 
-A future routing decision may consider:
+At minimum, v1 is expected to provide:
 
-- expected success probability,
-- task value,
-- financial cost,
-- compute cost,
-- latency,
-- human attention cost,
-- security and operational risk,
-- reversibility,
-- verification difficulty,
-- historical reliability,
-- available permissions,
-- available skills and tools.
+- a stable governance integration SDK/facade;
+- trusted independent Evaluation/evidence binding;
+- exact authority and stale/superseded/cross-entity enforcement;
+- a governed Effect gateway with uncertainty and reconciliation semantics;
+- durable audit reconstruction without private database/source inspection;
+- adversarial/conformance evidence for authority, evidence, history, replay, concurrency and Effects;
+- at least one external agent/orchestrator integration; and
+- at least one reference execution/provider path proving the boundaries end to end.
 
-The strongest model is not automatically the correct worker. The correct worker is the execution profile with the best expected value under current constraints.
+These are product targets unless and until their implementation stages are completed and accepted.
+
+## Deployment Direction
+
+The intended posture is **embedded-first and service-capable**.
+
+A Python SDK/facade may be the simplest first integration surface. The same governance kernel may also be exposed through a stable local service/API and CLI for cross-process or non-Python consumers.
+
+All surfaces must preserve one semantic authority model. The Vision does not select HTTP, gRPC, an application framework, a CLI library, a vendor, a persistence engine or a deployment topology.
 
 ## Human Role
 
-The system exists to reduce unnecessary coordination work and complete the final operational miles of bounded tasks. It is not designed to erase human authority.
-
 Humans remain the ultimate authority for:
 
-- accepting high-level objectives when human acceptance is required,
-- authorizing irreversible or constitutionally sensitive effects,
-- resolving escalated ambiguity and conflicts,
-- changing constitutional policy,
-- exercising tightly controlled break-glass authority.
+- constitutional changes;
+- irreversible Effects under the current Constitution;
+- policy/judgment overrides within scope;
+- escalated ambiguity and conflicts where Human resolution is required; and
+- tightly controlled break-glass decisions.
+
+Human authority does not include rewriting historical facts, deleting evidence provenance or pretending a confirmed Effect never occurred.
 
 ## Security Philosophy
 
-Every worker is treated as potentially fallible, compromised, misconfigured, prompt-injected, or intentionally untrusted.
+Every Worker and external execution system is treated as potentially fallible, compromised, misconfigured, prompt-injected or intentionally untrusted.
 
-Safety is therefore based on capability boundaries, sandboxing, scoped credentials, independent verification, auditability, and controlled effects—not on assumptions that a model is obedient, honest, or sufficiently intelligent.
+Safety therefore depends on:
+
+- exact authority boundaries;
+- independent evidence and Evaluation;
+- least privilege;
+- approved execution isolation where untrusted code runs;
+- governed Effects;
+- durable provenance;
+- concurrency and replay discipline; and
+- append-only historical meaning.
+
+An external execution provider is not trusted merely because execution is external to Symphony-K.
 
 ## Verification Philosophy
 
 Worker output is a claim until independently supported.
 
-The system uses a value-driven, evidence-based dynamic verification pipeline that may combine:
-
-- precondition checks,
-- intermediate assertions,
-- static validation,
-- dynamic validation,
-- environment and tool diversity,
-- semantic and logical validation,
-- confidence gating,
-- anomaly detection,
-- weighted evidence aggregation,
-- arbitration and human escalation.
+Evidence must be attributable and bound to the exact candidate and version it supports. Stale or superseded Evaluation evidence cannot authorize a later state simply because it was once valid. Conflicts, arbitration, invalidation and Human decisions remain historically attributable rather than rewriting earlier records.
 
 ## Recovery Philosophy
 
-Workers are temporary. Runs may fail. Hosts may restart. Providers may disappear.
+Execution recovery and governance recovery are distinct.
 
-Work must survive workers.
+External systems may own mechanical retries, workflow continuation, scheduling and provider failover. Symphony-K governs recovery when authoritative attempt identity, trusted evidence/checkpoint lineage, uncertain Effect occurrence, reconciliation, compensation, Human resolution or preservation of history is involved.
 
-The authoritative system state therefore lives outside the worker and supports checkpointing, takeover, replay, rewind, reassignment, and audit.
+A retry cannot silently reuse authority, assume non-occurrence of an uncertain Effect, or erase a failed attempt.
 
 ## Learning Philosophy
 
-Raw history does not directly become policy.
+Learning and reputation are optional for v1.
 
-Learning must be delayed, evidence-backed, versioned, auditable, and resistant to contamination. Trust may decrease quickly after strong negative evidence and should recover slowly through repeated verified performance.
+If present, they must be delayed, evidence-backed, versioned, attributable and governed. Raw audit history must never directly mutate production policy.
 
-## Non-Goals for Early Stages
+## What v1 Does Not Require Symphony-K to Own
 
-The first implementation will not attempt to:
+The following are not mandatory v1 release blockers:
 
-- support every agent or model,
-- autonomously discover unlimited work,
-- implement a fully distributed control plane,
-- replace human approval for irreversible actions,
-- optimize routing with machine learning before sufficient data exists,
-- build a universal workflow language,
-- treat self-reported model confidence as authoritative,
-- provide perfect sandboxing solely through Docker.
+- a generic Planner;
+- a generic Router;
+- learned routing/reputation;
+- multiple complete Agent runtimes;
+- a production sandbox runtime; or
+- a universal workflow engine.
+
+They may exist as external systems, optional modules, reference integrations or later work. The accepted Stage 2 sandbox architecture remains a valuable execution-provider security/conformance asset and optional/reference implementation path.
 
 ## Long-Term Direction
 
-The long-term system may orchestrate:
+The long-term system may govern work performed by coding agents, research agents, browser/computer-use agents, deterministic programs, external workflow engines, domain-specific tools, APIs, local/frontier models and Human specialists.
 
-- coding agents,
-- research agents,
-- browser and computer-use agents,
-- local models,
-- frontier API models,
-- deterministic programs,
-- domain-specific tools,
-- external APIs,
-- edge or GPU workers,
-- human specialists.
+The durable asset is not ownership of every executor. It is trustworthy causal governance across:
 
-The durable asset is the orchestration experience accumulated across:
-
-`work -> execution strategy -> evidence -> cost -> risk -> result -> verified outcome`.
+`claim -> evidence -> Evaluation -> authority -> Effect -> occurrence -> reconciliation -> audit`.

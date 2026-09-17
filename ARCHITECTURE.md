@@ -2,353 +2,316 @@
 
 ## 1. Architectural Principle
 
-The orchestrator manages work. Execution resources are replaceable.
+Symphony-K is a **framework-neutral governance/control plane for agentic work**.
 
-The architecture is divided into three primary planes plus a human governance layer.
+It governs authoritative work state, evidence, decisions, consequential Effects and reconstructable history. External agents, orchestrators, workflow engines and execution providers may determine how work is attempted, but they do not become authoritative merely because they executed work or produced a claim.
 
-### Control Plane
+The accepted Stage 1 Domain Kernel remains the semantic core. Planning, routing, Agent runtime and sandbox ownership are replaceable integration concerns rather than mandatory v1 product identity.
 
-Responsible for:
+## 2. Primary Architectural Boundaries
 
-- Objective lifecycle,
-- TaskProposal governance,
-- Task lifecycle,
-- planning,
-- routing,
-- scheduling,
-- budget,
-- risk,
-- value,
-- confidence,
-- verifiability,
-- permission envelopes,
-- policy decisions.
+### Governance Kernel
 
-### Execution Plane
+Owns or governs:
 
-Responsible for:
+- authoritative Objective, Task, Run, Outcome, Evaluation and Effect state;
+- lifecycle authority and controlled state transitions;
+- exact entity/candidate/version/authority binding;
+- evidence/effective-use semantics;
+- stale, superseded and cross-entity protection;
+- optimistic concurrency, idempotency and exact replay;
+- append-only historical meaning;
+- explicit Human governance decisions; and
+- durable provenance needed for audit reconstruction.
 
-- AgentDriver adapters,
-- models,
-- skills,
-- tools,
-- sandboxes,
-- workspaces,
-- Runs,
-- execution telemetry.
+The kernel is provider-, model-, Agent-, orchestrator- and runtime-neutral.
 
-### Verification and Safety Plane
+### Integration SDK / Facade
 
-Responsible for:
+Provides a bounded public surface for external callers so they do not need to understand the complete internal semantic type graph.
 
-- evidence collection,
-- validation planning,
-- static and dynamic verification,
-- semantic and logical verification,
-- confidence gating,
-- anomaly detection,
-- circuit breaking,
-- evaluation records,
-- recovery coordination,
-- rollback and compensation evidence,
-- audit,
-- reliability and reputation inputs.
+Conceptually it must support operations equivalent to:
 
-### Human Governance Layer
+- record/submit candidate work claims;
+- record trusted independent Evaluation/evidence;
+- request authoritative disposition;
+- request governed Effects;
+- record/perform required Human authorization through trusted authority paths;
+- reconcile Effect occurrence; and
+- export causal audit information.
 
-Humans may:
+Exact API shape remains a later bounded design.
 
-- accept or reject objectives where required,
-- authorize sensitive or irreversible effects,
-- resolve conflicts,
-- approve policy overrides,
-- perform break-glass actions under strict audit,
-- amend constitutional rules.
+### Verification and Evidence Boundary
 
-Humans do not rewrite historical facts.
+Independent verification remains separate from Worker execution.
 
-## 2. Core Domain Objects
+This boundary is responsible for:
+
+- attributable evidence ingestion;
+- Evaluation persistence;
+- exact binding to the candidate/entity/version under judgment;
+- effective-use checks;
+- conflict, invalidation and arbitration history;
+- stale/superseded evidence rejection; and
+- preventing substituted evidence from becoming authority.
+
+An evaluator does not receive Effect-commit authority merely because it validates an Outcome or Effect.
+
+### Governed Effect Gateway
+
+Consequential external actions cross a trusted gateway rather than being hidden inside Worker tool calls.
+
+The gateway must preserve distinct facts for:
+
+- Effect request/preparation;
+- required verification;
+- authorization;
+- dispatch/commit attempt;
+- external receipt;
+- occurrence confirmation;
+- uncertain occurrence;
+- quarantine/reconciliation; and
+- remediation, compensation or safe retry decisions.
+
+Authorization and occurrence are separate truths. A confirmed Effect remains historically real even if authorization was absent, invalid or later judged unsafe.
+
+Irreversible external Effects require explicit Human authorization under Constitution v0.2 unless a future explicit constitutional amendment changes that rule.
+
+### Audit and Conformance Surface
+
+The system must expose enough durable information for a fresh reviewer to reconstruct why an authoritative decision or consequential action occurred without direct database or private-source inspection.
+
+Conformance evidence should exercise:
+
+- authority isolation;
+- exact evidence binding;
+- stale/superseded evidence behavior;
+- cross-entity substitution resistance;
+- replay/idempotency;
+- optimistic concurrency;
+- append-only history; and
+- Effect authorization/occurrence/reconciliation guarantees.
+
+## 3. External Execution Boundary
+
+External systems MAY own:
+
+- task decomposition and planning;
+- routing and scheduling;
+- Agent runtime loops and tool use;
+- workflow continuation and retries;
+- sandbox/runtime implementation; and
+- provider failover.
+
+They MUST NOT:
+
+- promote their own claims directly into authoritative truth;
+- self-accept Outcomes or authoritative completion;
+- grant themselves permission, budget or Effect authority;
+- substitute evidence or authority across entities/versions;
+- bypass governed Effects; or
+- rewrite authoritative historical facts.
+
+External execution does not imply trust. Untrusted Worker execution must still occur inside an approved execution-isolation boundary appropriate to the integration.
+
+## 4. Embedded-First, Service-Capable Posture
+
+The same governance semantics must be usable through:
+
+- an embedded SDK/facade;
+- a stable local service/API for cross-process or non-Python consumers; and
+- a CLI/operator surface.
+
+These surfaces must share one semantic authority model rather than implement parallel weaker rules.
+
+This architecture does not select HTTP, gRPC, a web framework, a CLI library, an authentication mechanism, a queue or a deployment vendor. Service-mode identity, authentication, authorization and process-trust boundaries require later bounded design.
+
+## 5. Core Domain Objects
 
 ### Objective
 
-A finite, bounded, verifiable business or operational goal.
-
-An Objective is not a permanent strategy or vague mission. It has a desired state and an acceptance boundary.
-
-Example: `Restore successful payment processing for the affected payment path.`
-
-Long-term strategy belongs in portfolio or strategic context metadata, not the core state machine.
+A finite, bounded, verifiable business or operational goal with an explicit acceptance boundary.
 
 ### Task
 
-A bounded unit of work created to contribute to an Objective.
-
-A Task has exactly one `primary_objective` for ownership, budget attribution, and lifecycle authority. A Task MAY also have non-authoritative contribution links to other Objectives.
-
-Contribution links MUST NOT automatically propagate authoritative state transitions across Objectives.
+A bounded unit of work with exactly one `primary_objective` for ownership, budget attribution and lifecycle authority. Non-authoritative contribution links may exist but must not propagate authoritative state automatically.
 
 ### Run
 
-One concrete execution attempt for a Task using a specific execution profile and,
-when selected, execution route.
+One concrete execution attempt for a Task. A Task may have multiple Runs, including Runs performed by different external or reference execution systems.
 
-A Task may have multiple Runs. Runs may use different agents, models, tools, skills, permissions, and sandboxes.
+A reassignment/failover that represents a new attempt creates a successor Run rather than silently reusing attempt identity.
 
 ### Outcome
 
 A candidate result produced by a Run.
 
-An Outcome is not truth and is not equivalent to Objective satisfaction. It remains a candidate until independently validated and accepted according to policy.
+An Outcome is a claim, not truth. It remains non-authoritative until governed disposition based on valid independent evidence and authority.
 
 ### Evaluation
 
-An immutable validation record concerning a Run, Outcome, Effect, or related evidence.
+An immutable validation record concerning evidence, a Run, Outcome, Effect or related claim.
 
-An Evaluation records evidence, methods, judgments, conflicts, and provenance. It is not itself an unquestionable fact. Its recorded content remains immutable; effective lifecycle status is a projection of appended lifecycle and arbitration records, never an in-place rewrite of a prior verdict.
+Its recorded content is append-only in meaning. Effective use may change through appended conflict, invalidation or arbitration records; prior judgments are not rewritten.
 
-Material disagreement is recorded as an explicit conflict set with member/version references, affected scope and evidence. Every participating Evaluation whose effective use is affected by an unresolved conflict is projected as `CONFLICTED`; membership and projections must be consistent. Arbitration appends correlated decisions without erasing original content or releasing unrelated conflicts.
-
-`ARBITRATED` means an arbitration decision governs effective use. The appended record separately states arbitration_disposition (for example UPHELD, MODIFIED or REVERSED) and the effective judgment; an upheld original verdict does not imply an override.
+Stale, superseded or cross-entity Evaluation evidence cannot authorize a current disposition.
 
 ### Effect
 
-A planned or executed change to the external world.
+A planned, attempted or observed change to the external world.
 
-Examples include sending a message, changing a remote system, publishing content, charging money, deleting a cloud resource, deploying to production, or committing another externally visible side effect.
+Examples include publishing content, sending a message, changing a remote system, charging money, deleting a cloud resource or deploying to production.
 
-`COMMITTED` denotes independently confirmed occurrence, regardless of authorization. Governance/safety findings are separate records. The Effect Controller may register independently observed incidents directly as COMMITTED, or as QUARANTINED when occurrence is uncertain, including previously unregistered Effects. This recording authority cannot dispatch external actions or retroactively authorize them. Normal execution retains the Prepare–Verify–Authorize–Commit path and mandatory human authorization for irreversible action.
+Occurrence and authorization remain separate. `COMMITTED` denotes independently confirmed occurrence, not moral or policy approval. `QUARANTINED` represents controlled reconciliation for uncertain occurrence, incidents or unsafe/uncertain remediation.
 
-Planned Effects require Task ownership; incident observations may be temporarily unlinked to a Task/Run when attribution is unknown. External identity, evidence, observation provenance and the unlinked reason remain explicit; verified associations are appended later. Missing attribution never justifies fabricating provenance or suppressing a fact, and incident registration creates no execution eligibility.
+Compensation/remediation does not erase original occurrence.
 
-`QUARANTINED` means the Effect has left the normal automatic execution path for controlled reconciliation, including uncertain occurrence, incident handling or unsafe/uncertain remediation. Occurrence, incident and authorization truth are separate appended facts/metadata. A disproved suspicion may remain QUARANTINED with occurrence_status=DISPROVED and incident_status=CLOSED; that does not imply continuing factual uncertainty or authorize execution.
-
-## 3. Relationships
+## 6. Relationships
 
 ```text
 Objective
   |
-  +-- Task A
-  |     +-- Run A1
-  |     |     +-- Outcome A1
-  |     |     +-- Evaluation(s)
-  |     |     +-- Effect(s)
-  |     |
-  |     +-- Run A2
-  |           +-- Outcome A2
-  |
-  +-- Task B
-        +-- Run B1
+  +-- Task
+        |
+        +-- Run
+              |
+              +-- Outcome
+              +-- Evaluation(s)
+              +-- Effect(s)
 ```
 
-An accepted Outcome does not automatically satisfy its Objective.
+An accepted Outcome does not automatically complete its Objective. Objective satisfaction remains controlled by explicit completion policy and authority.
 
-Objective completion is controlled by an `ObjectiveCompletionPolicy` which may require:
+## 7. Planning and Routing Boundary
 
-- accepted Outcomes,
-- required Tasks,
-- confirmed Effects,
-- required Evaluations,
-- absence of unresolved critical risks,
-- explicit human acceptance.
+Symphony-K v1 does not require a Symphony-K-owned Planner or generic Router.
 
-Progress percentages are advisory only. Satisfaction requires explicit Completion Policy evaluation and acceptance authority, never Task completion percentage alone.
+If Symphony-K supplies planning, Planner output remains a non-executable `TaskProposal` that must pass governance before becoming a separate Task.
 
-## 4. Agent Boundary
+External planning output likewise grants no execution, budget, permission or lifecycle authority by itself.
 
-The Orchestrator does not require external agents to implement one universal wire protocol.
+If Symphony-K supplies routing, route choice remains a replaceable execution concern constrained by governance requirements. External routers may choose execution resources provided they preserve attempt identity/provenance and cannot bypass authority/evidence/Effect boundaries.
 
-Instead, each integration implements an `AgentDriver` adapter.
+## 8. Execution and Sandbox Boundary
 
-The minimal driver contract is expected to expose concepts equivalent to:
+ADR-0008 and the accepted Stage 2 sandbox architecture remain accepted technical assets.
 
-- capabilities,
-- start,
-- send,
-- resume,
-- cancel,
-- status,
-- events,
-- result,
-- usage.
+Their post-transition role is:
 
-Agents may communicate internally through CLI, stdio, JSON-RPC, HTTP, WebSocket, MCP, or vendor-specific protocols. Those details MUST remain inside the driver.
+- an execution-provider security/conformance contract;
+- an evidence/provenance boundary for execution integrations; and
+- an optional/reference execution implementation path.
 
-Workers MAY emit structured requests such as:
+Owning a production sandbox runtime is not Symphony-K's v1 product identity.
 
-- PermissionEscalationRequest,
-- BudgetIncreaseRequest,
-- HumanInputRequest,
-- TaskClarificationRequest,
-- DelegationRequest.
+External providers that cannot supply sufficient identity, isolation, provenance or evidence hooks fail conformance rather than receive a weaker trust path.
 
-A worker request is never self-approval.
+## 9. Recovery Boundary
 
-## 5. Planning Boundary
+Recovery is split into two categories.
 
-Planner output is a `TaskProposal`.
+### Execution Recovery
 
-A TaskProposal is not executable until it passes the applicable governance path, including policy, budget, risk, permission, and other required checks.
+External workflow/orchestrator systems may own retries, continuation, scheduling and provider failover.
 
-The Planner MUST NOT obtain unlimited authority to create work, expand an Objective, allocate unlimited budget, or launch workers directly.
+### Governance Recovery
 
-TaskProposal representation, lifecycle, generation and governance implementation belong to Stage 9 (Planner). Stage 1 is limited to Objective, Task, Run, Outcome, Evaluation and Effect. A proposal is never directly executable; governance creates separate Task work.
+Symphony-K remains responsible where recovery affects:
 
-## 6. Execution Profiles and Routes
+- authoritative attempt identity;
+- checkpoint/evidence trust;
+- Effect occurrence uncertainty;
+- reconciliation;
+- compensation;
+- Human resolution; or
+- preservation of historical facts.
 
-Routing selects an execution profile rather than only an agent. A resolved
-Execution Route is a runtime/control-plane path through which a Task may be
-attempted. It binds eligible execution dimensions; it is not a seventh core
-domain entity.
+A retry may not infer Effect non-occurrence merely from local failure. Replay across uncertain occurrence remains blocked until reconciliation establishes a safe next action.
 
-An execution profile may include:
+## 10. Persistence and Authority
 
-- agent,
-- model/provider,
-- skills,
-- tools,
-- sandbox provider and image,
-- workspace strategy,
-- permission envelope,
-- network policy,
-- secret capabilities,
-- budget limit,
-- timeout,
-- verification requirements.
-
-Tasks and execution policy should express required capabilities and constraints
-rather than a named client, provider, operating system, or model vendor, unless
-that identity is an explicit Task constraint. An eligible route must pass base
-substrate health (it can start commands and access its workspace) and Task
-capability health before repository mutation.
-
-Adapters and drivers normalize provider-, client-, runtime-, and
-operating-system-specific failures before they reach Control Plane routing.
-Route health, including future circuit-breaking policy, is runtime/control-plane
-state; a healthy model does not make an unhealthy route eligible. The exact route,
-capability, health, and failure-taxonomy data models remain deferred.
-
-Reassigning work to another route closes the existing Run according to the
-accepted lifecycle and creates a successor Run with a new RunId. Trusted
-workspace state, candidate artifacts, checkpoints, evidence, and audit history
-may survive route failure, subject to explicit recovery and verification.
-
-## 7. Persistence and Authority
-
-Workers are never the authoritative system of record.
+Workers and external orchestrators are never the authoritative system of record.
 
 Authoritative state includes:
 
-- Objective state,
-- Task state,
-- Run state,
-- checkpoints,
-- workspace references,
-- evidence references,
-- evaluation records,
-- effects and receipts,
-- permissions,
-- cost ledger,
-- audit events,
-- policy versions.
+- lifecycle state and versions;
+- evidence/evaluation provenance;
+- authority decisions;
+- Effects, receipts and occurrence records;
+- policy/context references;
+- audit events; and
+- replay/concurrency receipts.
 
-This state MUST persist independently of worker processes and sandbox lifetime.
+This state must survive Worker/runtime lifetime.
 
-The Stage 1 persistence candidate uses database-neutral read repositories and an
-atomic lifecycle UnitOfWork port, with stdlib SQLite as its initial adapter
-([ADR-0007](docs/adr/0007-stage-1-sqlite-persistence-and-atomicity.md)). The domain
-package remains independent of storage. The service invokes the accepted domain
-creation/transition functions inside the adapter transaction, checks current
-versions and creation relationships, and commits immutable versions, events and
-operation receipts together. Replays return the original historical result.
-Evaluation conflict/arbitration batches bind all affected member writes to one
-transaction. Supporting provenance records are retained separately from event
-reference annotations; normal repository APIs expose no state or history setter.
-Outcome disposition checks the durable Evaluation snapshot and re-derives its
-effective judgment from current conflict versions and retained arbitration and
-invalidation history inside the same transaction. A supplied stale observation
-or substituted judgment cannot authorize acceptance.
-This implementation does not dispatch external Effects or establish Stage 1 exit
-acceptance.
+The accepted Stage 1 implementation uses database-neutral repository/UnitOfWork boundaries with SQLite as the current adapter behind the domain boundary. Persistence technology may evolve without changing accepted semantic guarantees.
 
-## 8. Invariant Enforcement Layers
+## 11. Invariant Enforcement
 
-Invariants are enforced at multiple layers.
+### Structural / Persistence Layer
 
-### Database Layer
+Use hard constraints where expressible: foreign keys, uniqueness, immutable identifiers, version columns, transactional writes and append-only protections.
 
-Use hard structural constraints when expressible:
+### Domain Authority Layer
 
-- NOT NULL,
-- foreign keys,
-- uniqueness,
-- CHECK constraints,
-- immutable identifiers,
-- version columns,
-- transactional writes.
+All authoritative state changes pass through accepted creation/transition logic. Callers do not receive arbitrary state setters.
 
-### Domain Transition Layer
+### Evidence Layer
 
-All authoritative state changes pass through a controlled transition service. Application code MUST NOT arbitrarily assign state fields.
+Authoritative disposition re-derives validity from durable current evidence/effective-use state rather than trusting caller-supplied stale observations.
 
-### Concurrency Layer
+### Concurrency / Replay Layer
 
-State mutation must support transaction boundaries, idempotency, and concurrency protection such as optimistic locking.
+Mutations use exact operation identity, idempotency and version protection so stale or competing writers cannot silently overwrite authority.
 
-### Runtime Capability Layer
+### Runtime / Effect Capability Layer
 
-Security-sensitive restrictions must be physically enforced by sandboxes, network policy, credential brokers, and effect controllers rather than only application-level `if` statements.
+Security-sensitive external actions must cross trusted execution/effect boundaries rather than depend only on application-level policy checks.
 
-## 9. Facts, Judgments, and Policies
-
-The system distinguishes three levels:
+## 12. Facts, Judgments and Policies
 
 ### Facts
 
-Historical or externally anchored facts such as:
-
-- what action occurred,
-- who requested it,
-- what Effect was committed,
-- what evidence artifact existed,
-- what checksum or receipt was observed.
-
-Facts are append-only and cannot be rewritten through normal governance.
+Externally anchored or historical facts such as occurrence, receipts, evidence existence and actor/action provenance are append-only in meaning.
 
 ### Judgments
 
-Interpretations such as:
-
-- whether an Outcome satisfies a requirement,
-- whether a validator is reliable,
-- whether a risk is acceptable.
-
-Authorized governance may override a judgment, but the original judgment remains recorded.
+Evaluations and Human decisions may be corrected, superseded or arbitrated through new attributable records; original judgments remain historical facts.
 
 ### Policies
 
-Operational rules such as:
+Operational policy may evolve through authorized change, but policy changes do not rewrite historical facts or grant retroactive authorization.
 
-- budget limits,
-- retry thresholds,
-- model preferences,
-- confidence thresholds,
-- approval thresholds.
+## 13. Constitutional Invariants
 
-Authorized humans may change or temporarily waive policy within scope.
+At minimum:
 
-## 10. Constitutional Invariants
+1. Worker self-report is never proof of authoritative completion.
+2. Workers cannot accept their own Outcomes or grant themselves authority.
+3. Evaluators cannot commit Effects they validate.
+4. Historical facts and evidence provenance cannot be silently rewritten.
+5. Confirmed occurrence cannot later be represented as non-occurrence.
+6. Compensation is not historical erasure or true rollback when occurrence remains real.
+7. Human override is explicit and audited.
+8. Agent/orchestrator/provider/runtime semantics remain outside core governance semantics.
+9. Important external actions use the governed Effect path.
+10. Authoritative work state survives Worker/runtime loss.
 
-The following are non-negotiable unless the constitution itself is amended:
+## 14. v1 Architectural Target
 
-1. Worker self-report MUST NOT be treated as proof of completion.
-2. Workers MUST NOT directly mark their own authoritative Run, Task, Outcome, Evaluation, or Effect status as accepted/completed/committed.
-3. An evaluator MUST NOT commit the Effect it evaluates.
-4. A worker MUST NOT grant itself more permission or budget.
-5. Audit records and evidence provenance MUST NOT be physically deleted through normal operations.
-6. Historical Evaluations MUST NOT be silently rewritten.
-7. A real committed Effect MUST NOT be relabeled as if it never occurred.
-8. A compensated Effect MUST NOT be represented as a true rollback if the original side effect remained historically real.
-9. Human override MUST itself be auditable.
-10. All important state transitions MUST identify actor, reason, timestamp, previous state, new state, and policy context.
-11. Agent-specific protocol details MUST NOT leak into orchestrator core domain semantics.
-12. Work state MUST survive worker loss.
+The post-transition v1 architecture is complete only when evidence exists for all of the following product boundaries:
+
+```text
+accepted Stage 1 governance kernel
+    -> stable integration SDK/facade
+    -> trusted Evaluation/evidence boundary
+    -> governed Effect gateway + occurrence reconciliation
+    -> durable audit export
+    -> adversarial/conformance suite
+    -> external orchestrator integration
+    -> reference execution/provider path
+    -> end-to-end operational safety
+```
+
+This section is a target architecture, not a claim that these post-Stage-1 capabilities are already implemented.

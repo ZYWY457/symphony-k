@@ -2,225 +2,268 @@
 
 ## Authority and purpose
 
-This contract defines the observable Symphony-K v1 product and its final
-acceptance expectations. It constrains future implementation where a choice
-would materially change the product delivered, but it does not choose low-level
-implementation mechanisms.
+This contract defines the observable Symphony-K v1 product and its final acceptance expectations. It constrains future implementation where a choice would materially change the product delivered, but it does not choose low-level implementation mechanisms.
 
-This document is subordinate to the [Constitution](../CONSTITUTION.md), the
-[core beliefs](README.md#constitution-and-core-beliefs), accepted ADRs,
-[Architecture](../ARCHITECTURE.md), and accepted designs. It must be read with
-the [Roadmap](../ROADMAP.md), [Development Path](DEVELOPMENT_PATH.md), and
-[Reference Workflows](REFERENCE_WORKFLOWS.md). Nothing here grants execution
-authority or declares a future capability implemented.
+This document is subordinate to the [Constitution](../CONSTITUTION.md), the [core beliefs](README.md#constitution-and-core-beliefs), accepted ADRs and [Architecture](../ARCHITECTURE.md). It must be read with the [Roadmap](../ROADMAP.md), [Development Path](DEVELOPMENT_PATH.md), and [Reference Workflows](REFERENCE_WORKFLOWS.md). Nothing here grants implementation authority or declares a future capability implemented.
 
 ## Product identity
 
-Symphony-K v1 is a **single-node, self-hosted/local-first,
-outcome-oriented AI work orchestrator for bounded computer-mediated work**.
+Symphony-K v1 is a **framework-neutral governance/control-plane product for agentic work**.
 
-It manages work, not agents. A requester supplies bounded Objectives and
-constraints; Symphony-K governs work across replaceable execution resources
-while keeping authoritative state, evidence, acceptance authority, external
-Effect authority, and audit history outside untrusted Workers.
+It governs authoritative Objective/Task/Run/Outcome/Evaluation/Effect state, trusted evidence and Evaluation, consequential Effect authority/occurrence, and reconstructable history while allowing external agents, orchestrators, workflow engines and execution runtimes to determine how work is attempted.
 
 Symphony-K v1 is not primarily:
 
-- multi-agent chat;
-- an IDE plugin;
-- an autonomous unrestricted agent;
+- a complete self-owned agent orchestrator;
+- a generic Planner or Router;
+- a multi-agent chat framework;
+- an unrestricted autonomous agent;
 - an LLM wrapper;
-- a generic workflow-language engine; or
+- a production sandbox product; or
 - a SaaS multi-tenant control plane.
 
-Those may be integrations or post-v1 directions. They do not define the v1
-product.
+Those may be external integrations, optional/reference capabilities or post-v1 directions. They do not define the v1 product.
 
-## Supported v1 operator
+## Supported v1 operator and integration posture
 
-The primary supported operator is a technically capable Human who can install
-and operate one Symphony-K node on infrastructure they control. The operator
-understands explicit configuration, can inspect diagnostic evidence, and owns
-the Human decisions required by policy.
+The primary supported operator is a technically capable Human who can run Symphony-K on infrastructure they control and understand explicit governance decisions and diagnostic evidence.
 
-Automation may use stable programmatic interfaces, but Human governance must be
-operable without editing the database or calling private internal Python APIs.
+The intended deployment posture is **embedded-first and service-capable**:
+
+- a stable governance SDK/facade is a primary integration surface;
+- a stable local service/API may expose the same governance kernel for cross-process or non-Python integrations; and
+- a CLI/operator surface may expose the same authority model for Human operation and diagnostics.
+
 A rich graphical interface is not required for v1.
 
-## Required operator surfaces
+All supported surfaces must preserve one semantic authority model. This contract does not select HTTP, gRPC, an application framework, a CLI library, authentication mechanism, process supervisor, vendor or deployment topology.
 
-The v1 product provides:
-
-- a stable local service/API boundary;
-- a supported CLI operator surface; and
-- repository documentation sufficient to install, configure, operate,
-  stop/restart, inspect, troubleshoot and recover the supported deployment.
-
-The future bounded designs for Stage 11 and Stage 13 decide protocols,
-frameworks, transports, process supervision and packaging. This contract does
-not select those mechanisms. A graphical UI remains optional/post-v1 unless a
-Human roadmap amendment promotes it.
-
-## Canonical governed work lifecycle
+## Canonical governance boundary
 
 The observable v1 flow is conceptually:
 
 ```text
-Human/System submits a bounded Objective
-    -> the system records the authoritative Objective
-    -> the Planner may propose bounded TaskProposal(s)
-    -> applicable Human/policy governance reviews proposals
-    -> an accepted proposal becomes a separate Task
-    -> the Router selects an eligible ExecutionProfile and route
-    -> a Run executes through an AgentDriver in a governed sandbox/workspace
-    -> the Worker produces claims, artifacts and a candidate Outcome
-    -> independent verification collects evidence and persists Evaluation(s)
-    -> conflicts or low confidence escalate or arbitrate under policy
-    -> accepted disposition contributes to Task/Objective completion policy
-    -> a consequential external change becomes governed Effect work
-    -> normal Effect execution follows Prepare -> Verify -> Authorize -> Commit
-    -> receipt, occurrence, reconciliation and remediation remain durable
-    -> sufficient audit history remains inspectable
+external Human / agent / orchestrator / runtime
+    -> submits bounded work context or candidate claim
+    -> Symphony-K records authoritative identity/state separately from executor claims
+    -> trusted independent evidence/Evaluation is bound to the exact candidate/entity/version
+    -> stale/superseded/cross-entity evidence is rejected
+    -> authoritative disposition is made through the governed authority path
+    -> a consequential requested action becomes an Effect
+    -> Effect follows governed prepare/verify/authorize/dispatch-or-commit path
+    -> receipt and occurrence are recorded independently of authorization truth
+    -> uncertain occurrence enters quarantine/reconciliation
+    -> remediation/compensation preserves original historical occurrence
+    -> causal audit export explains why the decision/action occurred
 ```
 
-This is a product flow, not a new lifecycle table. It does not add a Stage 1
-entity or edge, make TaskProposal executable, allow an accepted Outcome to
-automatically complete an Objective, or combine execution, verification,
-authorization and commitment authority.
+This is a product flow, not a new Stage 1 lifecycle table. It does not add a seventh core entity, let a Worker self-accept, make an accepted Outcome automatically complete an Objective, or combine execution, Evaluation, authorization and Effect commitment authority.
 
-## Required observable capabilities
+## Required v1 capabilities
+
+At final v1 acceptance, Symphony-K must provide all of the following.
+
+### 1. Stable governance integration SDK/facade
+
+External callers must have a supported bounded surface for governance operations without needing private internal Python APIs or complete knowledge of the internal semantic type graph.
+
+The exact API shape is a later design decision, but the public surface must preserve accepted authority semantics.
+
+### 2. Trusted independent Evaluation/evidence binding
+
+The product must support attributable evidence and persisted Evaluation independent from Worker self-report.
+
+Authoritative disposition must bind to the exact relevant candidate/entity/version and current effective-use state.
+
+### 3. Exact authority enforcement
+
+The product must fail closed against at least:
+
+- Worker self-acceptance;
+- stale/superseded evidence;
+- cross-entity evidence or authority substitution;
+- replay of old authority as fresh permission;
+- incompatible concurrent writes from the same stale version; and
+- direct normal-path history erasure.
+
+### 4. Governed Effect gateway
+
+Consequential Effects must have durable, attributable handling for:
+
+- request/preparation;
+- verification where required;
+- authorization;
+- dispatch/commit attempt;
+- external receipt;
+- occurrence status;
+- uncertain occurrence;
+- quarantine/reconciliation;
+- remediation/compensation; and
+- safe retry or stop decisions.
+
+Irreversible Effects require exact explicit Human authorization under Constitution v0.2 unless a future explicit constitutional amendment changes that rule.
+
+The gateway must not infer non-occurrence merely from local failure after an external dispatch attempt.
+
+### 5. Durable audit reconstruction
+
+A supported operator or independent reviewer must be able to reconstruct why an important authoritative decision or consequential Effect occurred without direct database editing/inspection or private source-code knowledge.
+
+The audit surface must retain enough attributable provenance to answer questions such as:
+
+- what occurred;
+- who/what authorized it;
+- which exact evidence/judgment supported the decision;
+- which earlier evidence became stale/superseded;
+- whether occurrence was ever uncertain;
+- what reconciliation/remediation happened; and
+- why final authoritative history has its current meaning.
+
+### 6. Adversarial/conformance evidence
+
+Final v1 acceptance must include repeatable evidence for authority, evidence, replay, concurrency, historical meaning and Effect-governance guarantees.
+
+Conformance claims must be evidence-based. Configuration or provider marketing claims are insufficient.
+
+### 7. Reference integrations proving the boundary
+
+Final v1 must include at least:
+
+- one external agent/orchestrator integration; and
+- one reference execution/provider path or conformance target.
+
+Together they must prove the governance boundary end to end without requiring Symphony-K to own the complete execution stack.
+
+## Observable operator capabilities
 
 At final v1 acceptance, a supported operator can:
 
-1. install and start the supported single-node deployment;
-2. submit a bounded Objective with success criteria and applicable budget,
-   risk, time, permission and Human-approval constraints;
-3. query authoritative Objective, Task, Run, Outcome, Evaluation and Effect
-   state;
-4. review TaskProposals when planning is used and distinguish a proposal from
-   the separate Task created after governance;
-5. approve, reject or escalate decisions assigned to Human governance;
-6. observe route and Run progress without treating Worker self-report as fact;
-7. inspect artifacts, evidence, Evaluations and effective conflict/arbitration
-   status;
-8. observe low-confidence or materially conflicting verification escalation;
-9. inspect failure classification, checkpoints, recovery decisions and
-   Resume/Rewind/Reassign history;
-10. approve or reject sensitive and irreversible Effect authorization where
-    required;
-11. inspect Effect preparation evidence, authorization, receipts, occurrence,
-    quarantine, reconciliation, rollback and compensation history without
-    conflating those facts;
-12. stop and restart/reopen the application without losing authoritative state;
-    and
-13. query enough attributable audit history to reconstruct why important
-    decisions and external actions occurred.
+1. install/configure the supported deployment or embedded integration;
+2. create or identify bounded authoritative work context;
+3. query authoritative Objective, Task, Run, Outcome, Evaluation and Effect state;
+4. distinguish external claims from accepted authoritative disposition;
+5. inspect exact evidence/Evaluation provenance and effective-use status;
+6. approve/reject/escalate decisions assigned to Human authority;
+7. request and inspect governed consequential Effects;
+8. inspect authorization separately from occurrence;
+9. identify uncertain occurrence and perform/observe governed reconciliation;
+10. inspect remediation/compensation without erasing original occurrence;
+11. stop/restart supported operation without losing authoritative state; and
+12. export enough causal audit history to reconstruct important decisions/actions.
 
-These are target capabilities. Their presence here is not a claim that they are
-implemented before the owning stages have completed and passed Human review.
+These are target capabilities. Their presence here is not a claim that all are already implemented.
 
-## v1 deployment boundary
+## v1 execution and sandbox boundary
 
-The required initial delivery scope is:
+Symphony-K v1 does **not** require ownership of a production sandbox runtime.
 
-- one supported Symphony-K node;
-- self-hosted/local-first operation on operator-controlled infrastructure;
-- Docker as the first sandbox substrate, without making Docker the permanent
-  product identity; and
-- an accepted persistence adapter behind database-neutral domain boundaries.
+Untrusted execution still requires an approved execution-isolation boundary appropriate to the integration. That boundary may be supplied by:
 
-The current Stage 1 SQLite adapter may support this deployment where accepted,
-but this contract does not freeze SQLite as a permanent product choice.
+- an external execution provider; or
+- a Symphony-K reference/provider implementation.
 
-The following are not required for v1 unless a later Human roadmap amendment
-promotes them:
+ADR-0008 and the accepted Stage 2 sandbox architecture remain valid execution-provider security/conformance assets and optional/reference implementation paths.
 
-- distributed workers or HA/control-plane clustering;
-- a remote sandbox fleet or microVM isolation;
-- multi-tenant SaaS or organization tenancy;
-- GPU scheduling;
-- a rich web GUI;
-- an external tracker ecosystem;
-- cloud-specific deployment architecture; or
-- learned routing beyond the accepted Stage 10 boundary.
+External ownership does not make host execution trusted by default.
 
-Lack of these capabilities is not a v1 release blocker. Claiming them without
-implementation and evidence is prohibited.
+## Planning, routing, runtime and learning boundary
+
+The following are not v1 release blockers:
+
+- a Symphony-K-owned generic Planner;
+- a Symphony-K-owned generic Router;
+- learned routing/reputation;
+- multiple complete Agent runtimes; or
+- ownership of a best-in-class production sandbox runtime.
+
+If Symphony-K later supplies these capabilities, they must obey the accepted governance boundary. External systems may supply them provided their claims, evidence and consequential actions cross Symphony-K authority/Effect boundaries where required.
+
+## Recovery boundary
+
+External systems may own mechanical execution recovery such as retries, workflow continuation, scheduling and provider failover.
+
+Symphony-K v1 must govern recovery whenever it affects:
+
+- authoritative attempt identity;
+- trusted checkpoint/evidence lineage;
+- Effect occurrence uncertainty;
+- reconciliation;
+- compensation/remediation;
+- Human resolution; or
+- preservation of historical facts.
+
+A new execution attempt must not silently masquerade as an old Run when the accepted semantics require distinct attempt identity.
 
 ## Product invariants visible to the operator
 
-The operator must observe constitutional behavior, not merely internal policy
-claims:
+The operator must observe constitutional behavior, not merely internal policy claims:
 
 - Worker output never becomes accepted truth automatically.
-- Workers cannot directly mutate authoritative lifecycle state, grant
-  themselves authority or accept their own results.
+- Workers cannot directly mutate authoritative lifecycle state, grant themselves authority or accept their own results.
 - Important external Effects cannot bypass Effect governance.
-- Irreversible Effects require configured, exact Human authorization before
-  normal commit.
-- Confirmed occurrence remains factual even when authorization was absent or
-  unknown.
-- Failure, retry, recovery and reassignment do not silently erase or rewrite
-  history.
-- Recovery produces attributable decisions and new attempt identities where
-  required rather than pretending failure did not occur.
-- Accepted, rejected, conflicted, corrected and arbitrated evidence remains
-  auditable in historical meaning.
-- Rollback and compensation remain distinguishable; compensation cannot erase
-  original occurrence.
-- Replacing a route, provider, model, AgentDriver or sandbox does not change
-  core domain semantics.
-- Raw audit/learning history cannot directly mutate production policy.
-- Human override is explicit and audited and cannot rewrite facts or bypass the
-  Constitution.
+- Irreversible Effects require exact explicit Human authorization before normal real commit.
+- Confirmed occurrence remains factual even when authorization was absent, invalid or unknown.
+- Stale/superseded/cross-entity evidence cannot authorize a current disposition.
+- Exact replay is idempotent; old authority cannot become fresh authority.
+- Concurrent stale writers cannot silently overwrite authoritative history.
+- Failure, retry, recovery and reassignment do not erase historical attempts.
+- Rollback and compensation remain distinguishable; compensation cannot erase original occurrence.
+- Replacing an agent, orchestrator, provider or runtime does not change core governance semantics.
+- Human override is explicit and audited and cannot rewrite facts or bypass the Constitution.
 
 ## v1 final acceptance contract
 
-A fresh maintainer with no private conversation history must be able to clone
-the repository and, using repository documentation alone:
+A fresh maintainer with no private conversation history must be able to clone the repository and, using repository documentation and supported product surfaces alone:
 
-1. install and configure the supported deployment;
-2. start it and verify environment readiness;
-3. operate the canonical governed work lifecycle;
-4. exercise required Human governance and Effect decisions;
-5. stop, restart and reopen it without losing authoritative history;
-6. inspect evidence, decisions, recovery and Effect history; and
-7. reproduce the accepted release artifacts.
+1. install/configure the supported deployment/integration;
+2. exercise an external-agent/orchestrator governance flow;
+3. submit/record candidate work and trusted independent Evaluation/evidence;
+4. demonstrate authoritative disposition with exact evidence binding;
+5. exercise a consequential governed Effect with required Human authorization;
+6. demonstrate receipt/occurrence and an uncertainty/reconciliation case;
+7. demonstrate remediation/compensation preserving occurrence history;
+8. export an audit packet sufficient for independent reconstruction;
+9. run the required adversarial/conformance evidence; and
+10. reproduce accepted release artifacts.
 
-The final Stage 12–14 acceptance process must demonstrate every canonical
-scenario in [Reference Workflows](REFERENCE_WORKFLOWS.md). No unresolved
-release-blocking constitutional or security defect may remain. Known
-limitations must be explicit and must not conceal a failed required capability.
+No unresolved release-blocking constitutional, authority, Effect-safety or evidence-integrity defect may remain.
 
-Creating a tag or publishing a release is a separate remote Effect requiring
-explicit Human authorization. Candidate acceptance does not authorize
-publication.
+Creating a tag or publishing a release is a separate remote Effect requiring explicit Human authorization. Candidate acceptance does not authorize publication.
+
+## Explicit v1 non-requirements
+
+Unless a later accepted amendment promotes them, the following are not required for v1:
+
+- distributed/HA control-plane clustering;
+- multi-tenant SaaS;
+- GPU scheduling;
+- a rich web GUI;
+- ownership of a production Planner/Router stack;
+- learned routing/reputation;
+- multiple first-party Agent runtimes;
+- a remote sandbox fleet;
+- a universal workflow language; or
+- vendor-specific execution architecture.
+
+Claiming an optional capability without implementation and evidence is prohibited.
 
 ## Decision ownership
-
-The durable documents have distinct responsibilities:
 
 | Artifact | Decision owned |
 | --- | --- |
 | Constitution and core beliefs | Non-negotiable authority, trust, history and safety rules |
 | Accepted ADRs and Architecture | System boundaries and material architecture choices |
-| This Product Contract | Observable v1 scope, operator experience and final acceptance expectations |
+| This Product Contract | Observable v1 scope, operator/integration experience and final acceptance expectations |
 | Roadmap | Delivery order and stage boundaries |
 | Development Path | Stage entry, deliverable, evidence and exit contracts |
 | Reference Workflows | Canonical acceptance scenarios and stage-to-product traceability |
-| Stage parent plans | Bounded architecture/implementation contract for one stage |
+| Stage/transition plans | Bounded design/implementation contract |
 | Durable TaskSpecs | Authority for a concrete bounded repository mutation |
 
-The Product Contract cannot override a higher-authority artifact, and a lower-
-level plan or TaskSpec cannot silently redefine the Product Contract. If a
-future implementation cannot satisfy this contract without changing accepted
-architecture or observable v1 scope, the Worker must stop and seek the required
-Human, ADR or design reconciliation.
+The Product Contract cannot override higher-authority artifacts, and a lower-level plan or TaskSpec cannot silently redefine this contract.
 
 ## Implementation restraint
 
-This contract deliberately does not select an HTTP framework, CLI library,
-process supervisor, packaging mechanism, replacement database, message bus,
-container orchestrator, second Agent runtime, browser provider, semantic judge,
-router formula, learning algorithm, frontend framework or cloud architecture.
-Those choices belong to future bounded design and implementation work.
+This contract deliberately does not select a transport, application framework, CLI library, process supervisor, persistence replacement, queue, container/runtime provider, orchestrator vendor, semantic judge, frontend framework or cloud architecture.
+
+Those choices belong to later bounded design and implementation work.
