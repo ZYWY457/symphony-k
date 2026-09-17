@@ -1,21 +1,22 @@
 # Stage 02 — Sandbox Execution
 
-**Status:** ACTIVE - historical M1 design HUMAN ACCEPTED; M1C CANDIDATE;
-M2 BLOCKED / NOT STARTED
+**Status:** ACTIVE - cumulative M1C design HUMAN ACCEPTED; M2 BLOCKED / NOT
+STARTED
 **Constitutional baseline:** `constitution-v0.1`
 
 **Runtime implementation:** NOT YET STARTED
 
-**Sandbox ADR/design:** HUMAN ACCEPTED at `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+**Sandbox ADR/design:** HUMAN ACCEPTED at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
 
-The acceptance above is historical. ADR-0008 remains Accepted and unchanged;
-the design's discovered UNKNOWN collection ambiguity requires the M1C erratum
-to be reviewed and accepted before it can serve as an unambiguous M2 contract.
-Current M1C technical candidate:
+ADR-0008 remains Accepted and technically unchanged. The historical
+pre-erratum Human Accepted design baseline is
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`. The exact M1C technical correction
 `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
 (`docs(architecture): clarify unknown frozen salvage collection`), parent
-`7ff155c29de83fbcc5487698c8b72b70b2dec075`.
-Independent review and explicit Human erratum approval are PENDING.
+`7ff155c29de83fbcc5487698c8b72b70b2dec075`, passed
+[independent technical review with **ACCEPT**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706630764)
+and received
+[explicit Human erratum approval with **APPROVED**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706652702).
 
 **Runtime isolation evidence:** NOT YET ESTABLISHED
 
@@ -78,9 +79,9 @@ The accepted M1 design artifacts are:
 - [ADR-0008: Stage 2 Sandbox Execution Boundary](../../adr/0008-stage-2-sandbox-execution-boundary.md)
   — **Accepted**;
 - [Sandbox Execution v1](../../design-docs/sandbox-execution-v1.md) —
-  **historical Human Accepted M1 contract** at
-  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`, now carrying an unaccepted M1C
-  candidate erratum under
+  **current cumulative Human Accepted M1 contract** at
+  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`, with historical pre-erratum
+  baseline `b52df98530d8ce742b07d7f6c399ccd5b54e643b`, under
   [the Issue #83 correction plan](stage-02-correction-m1c-unknown-frozen-salvage-v1.md).
 
 ## Cross-stage dependencies
@@ -105,15 +106,16 @@ an unavailable or non-enforcing sandbox fails closed before Worker execution.
 
 1. **S2-M1 accepted:** activation plus ADR/design candidate, M1A correction
    under Issue #78, and final bounded R1-R4 M1B correction under Issue #81.
-   The exact technical baseline
-   `b52df98530d8ce742b07d7f6c399ccd5b54e643b` passed independent cumulative
-   M1B review with **ACCEPT** and received explicit Human M1 design approval.
+   The M1B baseline `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
+   remains the historical pre-erratum Human Accepted design. The cumulative M1C
+   baseline `77acfbdaf2bed6f0536873fafc8eb7a12599da83` passed independent review
+   with **ACCEPT** and received explicit Human erratum approval **APPROVED**.
 2. **S2-M2 not started / blocked:** Issue #82 governance review accepted
    `7ff155c29de83fbcc5487698c8b72b70b2dec075`. Issue #79 r2 was then released,
    but stopped before mutation on the UNKNOWN/collection contradiction.
-   Current #79 r3 is BLOCKED / NOT RELEASED. Issue #83's M1C correction must
-   pass independent review and explicit Human erratum approval, with durable
-   reconciliation before a new READY revision and fresh M2 launch.
+   Current #79 r3 is BLOCKED / NOT RELEASED. After separate publication and
+   independent verification of the Issue #84 acceptance reconciliation, a
+   trusted planning boundary may issue a new READY revision and fresh M2 launch.
 3. **S2-M3 proposed:** implement Docker lifecycle, enforced constraints,
    artifacts, telemetry and targeted cleanup on an eligible environment.
 4. **S2-M4 proposed:** execute adverse real-Docker, crash/reopen and cleanup
@@ -204,7 +206,8 @@ against `7ff155c29de83fbcc5487698c8b72b70b2dec075`. The resulting #79 r2
 release stopped before mutation because the design both allowed collection
 after independent freeze under UNKNOWN and prohibited that observation/operation.
 Issue #79 r3 records the STOP and blocks M2; Issue #83 produces the bounded
-M1C technical candidate `77acfbdaf2bed6f0536873fafc8eb7a12599da83`.
+M1C technical baseline `77acfbdaf2bed6f0536873fafc8eb7a12599da83`,
+subsequently independently accepted and explicitly Human approved.
 
 M1C preserves ADR-0008 and adds typed QUIESCENCE evidence, independent exact
 freeze guards and a single bounded salvage collect. Success retains UNKNOWN
@@ -212,8 +215,19 @@ and cleanup, never grants process termination/reuse/export/rebinding, and
 proceeds to targeted destruction. Walkthrough D and T-U07/T-F11/T-F14/
 T-D22/T-D23 describe future verification; no runtime test was run.
 
-Next gate: separately authorized publication, independent review of that exact
-M1C technical candidate, explicit Human approval of the erratum and durable
-acceptance reconciliation before a new READY #79 revision. This governance
-record does not accept M1C or release M2. Runtime implementation is not started,
+The accepted design preserves two explicit M2 implementation/test obligations:
+
+1. **Single salvage traversal per sandbox generation:** exact replay may reuse
+   the existing COLLECT receipt/result, while a competing or new-key UNKNOWN-
+   salvage COLLECT after the first begins is rejected atomically; files are not
+   traversed twice.
+2. **Durable QUIESCENCE evidence binding:**
+   `ArtifactManifest.quiescence_observation_ref` / `EvidenceRef` resolves to the
+   exact persisted `RuntimeObservation(kind=QUIESCENCE)` used by the exact
+   COLLECT receipt / `OperationScope`; stale, unrelated or caller-invented
+   evidence cannot satisfy the manifest.
+
+Next gate: separately authorized publication and independent verification of
+the Issue #84 acceptance reconciliation before a new READY #79 revision. This
+governance record does not release M2. Runtime implementation is not started,
 Stage 2 remains active and incomplete, and Stage 3 remains planned.

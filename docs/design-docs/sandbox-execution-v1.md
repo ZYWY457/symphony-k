@@ -2,10 +2,13 @@
 
 ## Status and authority
 
-**Status:** M1C corrected design CANDIDATE; independent review and Human
-approval of the exact erratum are PENDING.
+**Status:** HUMAN ACCEPTED, including the independently reviewed and explicitly
+Human-approved M1C erratum.
 
-**Historical Human Accepted technical baseline:**
+**Current cumulative Human Accepted technical baseline:**
+`77acfbdaf2bed6f0536873fafc8eb7a12599da83`
+
+**Historical pre-erratum Human Accepted technical baseline:**
 `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
 
 **Date:** 2026-09-16
@@ -15,14 +18,13 @@ approval of the exact erratum are PENDING.
 revision `r1 - stage-02-m1a-contract-closure`, and GitHub Issue #81, revision
 `r1 - stage-02-m1b-final-contract-correction`
 
-This document retains the historical Stage 2 M1 contract and proposes the
+This document retains the historical Stage 2 M1 contract and incorporates the
 bounded M1C UNKNOWN frozen-salvage erratum under GitHub Issue #83, revision
 `r1 - stage-02-m1c-unknown-frozen-salvage`. Issue #79 r2 stopped before mutation
 on contradictory UNKNOWN collection rules; its current r3 is BLOCKED / NOT
-RELEASED. The prior approval remains historical truth, but that baseline cannot
-serve as an unambiguous M2 contract until this erratum is reviewed and accepted.
-The current technical candidate SHA is recorded by the subsequent governance
-commit in `STATUS.md` and the active M1C correction plan.
+RELEASED. The prior approval remains historical truth, while the exact M1C
+technical correction is now the cumulative accepted M2 contract. Its acceptance
+lineage is recorded in `STATUS.md` and the active M1C correction plan.
 
 This document implements nothing, does not report any Docker probe as executed,
 and does not
@@ -33,12 +35,14 @@ exact cumulative design baseline above passed the
 with disposition **ACCEPT** and then received
 [explicit Human M1 design approval](https://github.com/ZYWY457/symphony-k/issues/81#issuecomment-5699311994).
 Issue #82 reconciles that approval without claiming runtime isolation evidence
-or releasing Issue #79.
+or releasing Issue #79. The exact M1C baseline then passed
+[independent technical review with **ACCEPT**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706630764)
+and received
+[explicit Human erratum approval with **APPROVED**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706652702).
 
-Normative words describe the historical M1 contract with the candidate M1C
+Normative words describe the Human Accepted M1 contract including its M1C
 erratum, not an implemented or runtime-tested sandbox. ADR-0008's accepted
-architectural decision is unchanged; the M1C correction is not yet Human
-Accepted and does not release M2.
+architectural decision is unchanged; M1C acceptance does not release M2.
 
 ## 1. Evidence and decision taxonomy
 
@@ -2147,7 +2151,7 @@ accepted exit plus a new TaskSpec may activate Stage 3.
 
 | Question/risk | Current safe behavior | Owner and blocking milestone |
 | --- | --- | --- |
-| Are interface/default decisions accepted? | historical M1B acceptance retained; UNKNOWN collection ambiguity requires exact M1C erratum review/approval before M2; no runtime isolation evidence | Issue #83 candidate review and Human approval pending; Issue #79 r3 BLOCKED |
+| Are interface/default decisions accepted? | yes at exact cumulative M1C baseline `77acfbdaf2bed6f0536873fafc8eb7a12599da83`; historical M1B acceptance retained; no runtime isolation evidence | Issue #83 independent review ACCEPT and Human erratum approval APPROVED; Issue #79 r3 remains BLOCKED pending reconciliation verification and re-release |
 | Which exact Engine/kernel/distribution versions are supported? | no support claim | M3 TaskSpec/preflight; blocks M3 execution evidence |
 | Do tmpfs `size`, block and inode options enforce correctly in the selected environment? | mark capability unsupported and do not start | M3 implementation, M4 adverse proof; blocks Stage 2 exit |
 | Can the selected Linux host provide protected service-manager timer/helper scheduling independent of guardian lifetime, local daemon control, race-resistant Worker execution-set proof, final resource-absence proof and the required pidfd/procfs/openat2 collector primitives? | capability unsupported; no Worker start | M3 preflight/implementation and M4 T-D17-T-D31; blocks supported profile |
@@ -2210,11 +2214,13 @@ Stage 3 = PLANNED
 ```
 
 Issue #79 r2 subsequently stopped before mutation on the UNKNOWN collection
-contradiction. Issue #83 proposes only the bounded frozen-salvage erratum in
-this document. Its exact technical candidate is recorded by the subsequent
-governance commit in STATUS and the M1C plan. Independent review and Human
-approval of that exact erratum are **PENDING**; prior M1B acceptance is not
-approval of M1C. ADR-0008 remains Accepted and unchanged. Issue #79 r3 remains
-BLOCKED / NOT RELEASED, runtime code is NOT STARTED, Stage 2 remains ACTIVE /
-NOT COMPLETE and Stage 3 remains PLANNED. No future test in this document was
-executed by this documentation correction.
+contradiction. Issue #83 supplied only the bounded frozen-salvage erratum in
+this document. The exact technical baseline
+`77acfbdaf2bed6f0536873fafc8eb7a12599da83` received independent technical
+review **ACCEPT** and explicit Human erratum approval **APPROVED** on Issue #83;
+it is now the cumulative Human Accepted Stage 2 sandbox design. The prior
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b` acceptance remains historical
+pre-erratum truth. ADR-0008 remains Accepted and technically unchanged. Issue
+#79 r3 remains BLOCKED / NOT RELEASED, runtime code is NOT STARTED, Stage 2
+remains ACTIVE / NOT COMPLETE and Stage 3 remains PLANNED. No future test in
+this document was executed by this governance reconciliation.

@@ -1,9 +1,13 @@
 # Stage 02 M1C — UNKNOWN Frozen-Salvage Correction
 
-**Status:** CANDIDATE — independent review and Human erratum approval PENDING.
+**Status:** ACCEPTED — independent technical review ACCEPT and Human erratum
+approval APPROVED.
 
-**Current M1C technical candidate:**
+**Accepted M1C technical baseline:**
 `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
+
+**Historical pre-erratum accepted baseline:**
+`b52df98530d8ce742b07d7f6c399ccd5b54e643b`
 
 **Technical candidate parent:** `7ff155c29de83fbcc5487698c8b72b70b2dec075`
 
@@ -36,6 +40,18 @@ Parent: [Stage 2](stage-02-sandbox-execution.md).
 Technical input: [sandbox design](../../design-docs/sandbox-execution-v1.md).
 Architectural constraint: [accepted ADR-0008](../../adr/0008-stage-2-sandbox-execution-boundary.md).
 
+## Acceptance record
+
+The exact M1C technical baseline passed
+[independent technical review with **ACCEPT**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706630764)
+and received
+[explicit Human erratum approval with **APPROVED**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706652702).
+Issue #84, revision `r1 - stage-02-m1c-human-approval-reconciliation`, durably
+reconciles those decisions. ADR-0008 remains Accepted and technically unchanged;
+no runtime isolation evidence is claimed, Issue #79 remains r3 BLOCKED / NOT
+RELEASED and M2 source code remains NOT STARTED. This plan remains under
+`active/` pending later M2 activation/archive reconciliation.
+
 ## Contradiction and bounded resolution
 
 At historical Human Accepted design baseline
@@ -51,8 +67,8 @@ Issue #83 selects the ADR-authorized freeze alternative as one guarded,
 bounded read-only salvage collect. UNKNOWN and cleanup-required remain after
 success; no termination, reuse, start/execute, lease rebinding, export snapshot
 or Stage 5 recovery authority follows. The accepted architecture is unchanged.
-The prior Human approval remains historical truth but cannot supply an
-unambiguous M2 implementation contract until this erratum is reviewed/accepted.
+The prior Human approval remains historical truth. The independently accepted
+and Human-approved erratum now supplies the cumulative unambiguous M2 contract.
 
 ## Technical work and acceptance criteria
 
@@ -71,6 +87,21 @@ unambiguous M2 implementation contract until this erratum is reviewed/accepted.
    disposition or empty success. Export from UNKNOWN remains prohibited.
 5. Add walkthrough D using existing public operations and metadata receipts;
    update T-U07, T-F11, T-F14, T-D22/T-D23 and direct requirement traceability.
+
+## Preserved M2 implementation obligations
+
+1. **Single salvage traversal per sandbox generation:** exact replay may reuse
+   the existing COLLECT receipt/result. A competing or new-key UNKNOWN-salvage
+   COLLECT after the first one begins must be rejected atomically. Files must
+   not be traversed twice.
+2. **Durable QUIESCENCE evidence binding:**
+   `ArtifactManifest.quiescence_observation_ref` / `EvidenceRef` must resolve to
+   the exact persisted `RuntimeObservation(kind=QUIESCENCE)` used by the exact
+   COLLECT receipt / `OperationScope`. Stale, unrelated or caller-invented
+   evidence must not satisfy the manifest.
+
+These are implementation/test obligations already implied by the accepted
+corrected design, not new architecture choices or public operations.
 
 ## Ordered commit plan and scope
 
@@ -122,15 +153,16 @@ paths. Final chain/path/link/protected-state checks are repeated after that
 commit and reported in the execution handoff; no self-referential commit hash
 or future validation outcome is invented here.
 
-## Candidate disposition
+## Accepted disposition
 
 ```text
 Stage 1 = COMPLETE, unchanged
 Stage 2 = ACTIVE / NOT COMPLETE
 ADR-0008 = ACCEPTED and unchanged
-Prior b52df985... acceptance = historical, with discovered internal ambiguity
-M1C independent review = PENDING
-Human approval of exact M1C erratum = PENDING
+Current Human Accepted design = 77acfbdaf2bed6f0536873fafc8eb7a12599da83
+Prior b52df985... acceptance = historical pre-erratum truth
+M1C independent review = ACCEPT
+Human approval of exact M1C erratum = APPROVED
 Issue #79 = BLOCKED / NOT RELEASED
 M2 source code = NOT STARTED
 Runtime isolation evidence = NOT YET ESTABLISHED
@@ -138,6 +170,6 @@ Stage 3 = PLANNED / not activated
 remote mutation = none
 ```
 
-Publication, independent review of the exact candidate, explicit Human erratum
-approval and durable reconciliation must precede a newly released #79 revision.
-This plan neither approves the candidate nor automatically releases M2.
+Separate publication and independent verification of the Issue #84 governance
+reconciliation must precede a newly released #79 revision. This plan records
+acceptance but does not automatically release M2.
