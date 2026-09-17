@@ -16,7 +16,7 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | ---: | --- | --- |
 | 0 | Constitution and Repository Harness | COMPLETE |
 | 1 | Domain Kernel | COMPLETE — Human Exit ACCEPTED |
-| G1 | Governance SDK / Facade | ACTIVE — M1 READY via Issue #100 |
+| G1 | Governance SDK / Facade | ACTIVE — M1 via Issue #100 |
 | G2 | Trusted Evaluation and Evidence Integration | PLANNED |
 | G3 | Governed Effect Gateway and Occurrence Reconciliation | PLANNED |
 | G4 | Audit Export and Causal Reconstruction | PLANNED |
@@ -27,7 +27,7 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | G9 | Production Hardening and Release Engineering | PLANNED |
 | G10 | v1 Acceptance and Final Delivery | PLANNED |
 
-`ACTIVE — M1 READY` means only Issue #100 revision `r1 - g1-m1-governance-facade-foundation` is released for implementation from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`. It does not imply G1 completion or authorize broader G1/G2 work.
+For G1/M1, **Issue #100's current body** is the sole authority for TaskSpec revision, readiness, exact launch HEAD, allowed paths and validation. Roadmap status does not release or override implementation authority.
 
 Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is historical only. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not the implementation TaskSpec for G1 or any other post-transition stage.
 
@@ -46,12 +46,11 @@ Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is histor
 
 ## G1 — Governance SDK / Facade
 
-- **Status:** ACTIVE — M1 READY via Issue #100; implementation not yet accepted merely by release.
-- **Current TaskSpec:** Issue #100 revision `r1 - g1-m1-governance-facade-foundation`.
-- **Exact M1 starting baseline:** `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+- **Status:** ACTIVE — current M1 TaskSpec identity is Issue #100.
+- **Execution authority:** use the current Issue #100 body; do not infer revision or launch SHA from this roadmap.
 - **Goal:** expose a stable bounded public integration surface over accepted Stage 1 semantics without requiring callers to understand the full internal semantic graph.
 - **Required outcome:** external callers can submit claims/candidates/evidence, bind them to exact authoritative identities/versions and query governed results through one semantic authority model.
-- **Initial M1 slice:** public Python-facing facade; typed claim/candidate/evidence submission; exact identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
+- **Initial M1 product intent:** public Python-facing facade; typed claim/candidate/evidence submission; exact identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
 - **Non-goals for M1:** new lifecycle semantics, real external Effect dispatch, generic Planner/Router ownership, Agent runtime ownership or sandbox-runtime ownership.
 - **Deployment posture:** embedded-first; service/API and CLI surfaces may expose the same kernel later or in parallel without weaker semantics.
 - **Exit proof:** public-contract tests demonstrate that the facade cannot bypass transition authority, evidence binding, replay or history rules; independent review and durable reconciliation are still required.

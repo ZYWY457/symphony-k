@@ -30,7 +30,7 @@ If a required source cannot be read or the baseline conflicts with the TaskSpec,
 - Generic Planner, Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 prerequisites.
 - ADR-0008 and the accepted Stage 2 M1/M1C design remain accepted provider/security/conformance assets and an optional/reference execution path.
 - Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority must not be reused or repurposed.
-- Current executable implementation TaskSpec is Issue #100 r1, **READY — RELEASED FOR WORKER EXECUTION**, from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+- Current G1/M1 implementation TaskSpec identity is **Issue #100**. The current Issue #100 body controls revision, readiness, exact launch HEAD, allowed paths and validation.
 
 ## Current-task and review discovery
 
@@ -62,8 +62,8 @@ For the current repository state:
 
 ```text
 Issue #79 = SUPERSEDED / NOT RELEASED / closed not planned
-Issue #100 r1 = READY implementation authority for G1/M1 only
-required starting HEAD = b5ee78f7febae1346c771fa6060fcb3e18ea56f3
+Issue #100 = current G1/M1 TaskSpec identity
+Issue #100 current body = sole authority for revision/readiness/launch HEAD
 ```
 
 ## Governance boundary for external execution
@@ -84,7 +84,7 @@ Before mutation, establish a concrete, pre-existing durable TaskSpec identity an
 
 A title, draft, future number, placeholder identity or conversation-only instruction is insufficient. Post-hoc Issue creation is not retroactive authorization.
 
-For current G1/M1 implementation, use Issue #100 revision `r1 - g1-m1-governance-facade-foundation`. It authorizes only its exact source/test paths and does not authorize remote publication, G2, real Effect dispatch or changes to Stage 1 domain/persistence semantics.
+For current G1/M1 implementation, freshly read Issue #100. Do not use a cached revision or launch SHA from another repository document as a substitute for the current Issue body.
 
 ## Architecture or product discoveries
 
@@ -140,8 +140,8 @@ Given only repository read access, a fresh maintainer/AI must be able to report:
 - that strategic transition R1-R5 is complete;
 - which Stage 2 assets remain accepted and what role they now have;
 - that Issue #79 is superseded/closed and cannot be reused;
-- that Issue #100 r1 is the current READY G1/M1 TaskSpec;
-- exact starting baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`;
+- that Issue #100 is the current G1/M1 TaskSpec identity;
+- the current Issue #100 revision/readiness/exact launch HEAD from its body;
 - what work and remote actions are actually authorized.
 
 Pass means correct, source-backed discovery without private conversation context.

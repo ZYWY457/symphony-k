@@ -51,8 +51,8 @@ Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 - Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, reviewed **ACCEPT** on Issue #99 comment `5712355215`.
 - Repository-level strategic transition R1-R5 is complete.
 - Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority is historical only and cannot be reused as G1 authority.
-- **G1 / M1 — Governance SDK / Facade Foundation is now READY** through Issue #100 revision `r1 - g1-m1-governance-facade-foundation`, from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
-- G1 implementation has not started or completed merely because its TaskSpec is READY.
+- **G1 / M1 — Governance SDK / Facade Foundation is the current implementation slice.** Its durable TaskSpec identity is Issue #100; the current Issue #100 body is authoritative for revision, readiness, exact launch HEAD and scope.
+- G1 implementation has not started or completed merely because its TaskSpec is released.
 - Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.

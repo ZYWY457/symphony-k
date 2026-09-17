@@ -50,15 +50,12 @@ A generic Planner, generic Router, learned routing/reputation, multiple complete
 
 The first post-transition implementation slice is **G1 / M1 — Governance SDK / Facade Foundation**.
 
-- Current executable TaskSpec: **Issue #100**.
-- TaskSpec revision: `r1 - g1-m1-governance-facade-foundation`.
-- Execution readiness: **READY — RELEASED FOR WORKER EXECUTION**.
-- Exact required starting HEAD: `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
-- Scope is limited to the new governance facade package, deliberate package export, and the two authorized facade test files.
-- `src/symphony_k/domain/**` and `src/symphony_k/persistence/**` are read-only under Issue #100; if facade implementation requires changing them, the Worker must STOP and report the gap.
-- G1 implementation has **NOT STARTED OR COMPLETED merely because the TaskSpec is READY**.
+- Current executable TaskSpec identity: **Issue #100**.
+- The **current Issue #100 body** is authoritative for its TaskSpec revision, execution readiness, exact launch HEAD, allowed paths, validation and remote-mutation boundary.
+- Repository roadmap/status text MUST NOT be used to infer or override a different Issue #100 launch SHA.
+- G1 implementation has **NOT STARTED OR COMPLETED merely because Issue #100 is released**.
 
-The released M1 scope includes a public Python-facing governance facade, typed external claim/candidate/evidence submission, exact entity/version binding, supported read/query surfaces, and deterministic authority/evidence/replay/concurrency tests. It adds no lifecycle semantics and performs no real external Effect dispatch.
+The bounded G1/M1 product intent is a public Python-facing governance facade, typed external claim/candidate/evidence submission, exact entity/version binding, supported read/query surfaces, and deterministic authority/evidence/replay/concurrency tests. It adds no lifecycle semantics and performs no real external Effect dispatch.
 
 ## Strategic lineage
 
@@ -71,12 +68,12 @@ The released M1 scope includes a public Python-facing governance facade, typed e
 - #98 — R5 final disposition, independent ACCEPT and final Human Acceptance.
 - #99 — R5A final accepted-truth reconciliation, independent ACCEPT.
 - #79 — closed SUPERSEDED / NOT RELEASED, historical only.
-- #100 — current READY G1/M1 implementation TaskSpec.
+- #100 — current G1/M1 implementation TaskSpec identity; current body controls release details.
 - #101 — post-transition cold-start handoff reconciliation.
 
 ## Next action
 
-Execute only Issue #100 revision `r1 - g1-m1-governance-facade-foundation` from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`. After a candidate is produced, independently review it and reconcile acceptance before broader G1 or G2 work is released.
+Freshly read Issue #100 and execute only its current released revision from the exact launch HEAD stated in that Issue. After a candidate is produced, independently review it and reconcile acceptance before broader G1 or G2 work is released.
 
 ## Navigation / cold-start reading order
 
@@ -91,6 +88,6 @@ Execute only Issue #100 revision `r1 - g1-m1-governance-facade-foundation` from 
 9. [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
 10. relevant core beliefs, accepted ADRs/designs
 11. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-12. Issue #100, the current executable TaskSpec
+12. Issue #100, the current executable TaskSpec identity
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.

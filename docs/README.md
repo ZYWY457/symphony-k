@@ -6,7 +6,7 @@ The accepted current product identity is a framework-neutral governance/control-
 
 Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 
-Current executable implementation work is **G1 / M1 — Governance SDK / Facade Foundation**, Issue #100 revision `r1 - g1-m1-governance-facade-foundation`, READY from exact baseline `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+Current G1/M1 implementation TaskSpec identity is **Issue #100**. The current Issue #100 body is authoritative for revision, readiness, exact launch HEAD, allowed paths and validation.
 
 ## Constitution and core beliefs
 
@@ -46,7 +46,7 @@ The accepted v1 critical path centers on governance facade, trusted evidence/Eva
 
 Generic Planner, Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 blockers.
 
-G1/M1 is now released only through Issue #100 r1. Broader G1/G2 work remains unreleased/planned until its own durable TaskSpec exists.
+G1/M1 implementation authority is carried only by the current Issue #100 body. Broader G1/G2 work remains unreleased/planned until its own durable TaskSpec exists.
 
 ## Exec Plans
 

@@ -33,8 +33,8 @@ Before mutation, read in this order unless the current TaskSpec narrows the scop
 - Final accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 - ADR-0008 and the accepted Stage 2 sandbox design remain valid historical/provider-conformance assets and an optional/reference execution path.
 - Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned and must not be revived, repurposed or treated as post-transition execution authority.
-- Current executable work is **Issue #100**, G1/M1 Governance SDK / Facade Foundation, revision `r1 - g1-m1-governance-facade-foundation`.
-- Issue #100 is **READY — RELEASED FOR WORKER EXECUTION** from exact starting HEAD `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+- Current G1/M1 implementation TaskSpec identity is **Issue #100**.
+- The **current Issue #100 body** is authoritative for TaskSpec revision, execution readiness, exact launch HEAD, allowed paths, validation and remote-mutation boundary.
 - G1 readiness does not imply implementation has started or that broader G1/G2 work is released.
 
 ## Core authority rules
@@ -65,7 +65,7 @@ Conversation-only instructions, draft titles, future Issue numbers and placehold
 
 A discovered TaskSpec is not executable when it is blocked, unreleased, baseline-mismatched, superseded, overlapping known active work or otherwise fails its stated preconditions.
 
-For current G1/M1 work, the only released implementation TaskSpec is Issue #100 r1. Its exact allowed paths, baseline and validation rules control execution.
+For current G1/M1 work, freshly read Issue #100 and obey its current body. Do not use a baseline or revision cached in another document as a substitute for the Issue.
 
 Final Worker evidence must report:
 
@@ -91,7 +91,7 @@ Historical accepted artifacts must not be rewritten to imply the current strateg
 
 Repository-local work and remote effects are separate authorities. Unless explicitly authorized by the current TaskSpec or Human instruction, a Worker MUST NOT push, mutate remote refs, create/merge/close PRs, publish releases, rewrite remote history or mutate Issues.
 
-Issue #100 releases implementation work but explicitly does not release arbitrary remote publication.
+Issue #100 releases only the implementation work stated in its current body; remote publication remains separately controlled.
 
 If remote mutation occurs, report the exact action, repository/branch, affected object, authorization source and resulting reference.
 
@@ -126,10 +126,6 @@ python --version
 uv --version
 ```
 
-For Issue #100 r1 the exact expected starting HEAD is:
-
-```text
-b5ee78f7febae1346c771fa6060fcb3e18ea56f3
-```
+The exact expected starting HEAD for current G1/M1 work MUST be read freshly from Issue #100.
 
 If required execution or validation cannot run, report the gap and do not fabricate evidence or claim completion.

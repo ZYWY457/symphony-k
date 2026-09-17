@@ -13,7 +13,7 @@ Strategic transition R1-R5 is COMPLETE AND HUMAN ACCEPTED. Final accepted-truth 
 ```text
 Stage 0 repository/constitutional harness — COMPLETE
    -> Stage 1 governance Domain Kernel — COMPLETE
-      -> G1 governance SDK/facade — M1 READY via Issue #100
+      -> G1 governance SDK/facade — current M1 TaskSpec is Issue #100
          -> G2 trusted Evaluation/evidence integration
             -> G3 governed Effect gateway + occurrence reconciliation
                -> G4 audit export / causal reconstruction
@@ -38,7 +38,7 @@ Every new stage requires:
 5. reproducible evidence for stated guarantees; and
 6. durable status reconciliation before dependent work is released.
 
-No stage may infer authority from roadmap order alone. Current executable work is controlled by the exact current TaskSpec body.
+No stage may infer authority from roadmap order alone. The current TaskSpec body controls readiness and exact launch baseline.
 
 ## Stage 0 — Constitution and Repository Harness
 
@@ -56,13 +56,10 @@ No stage may infer authority from roadmap order alone. Current executable work i
 
 ## G1 — Governance SDK / Facade
 
-- **Status:** ACTIVE — M1 READY via Issue #100.
-- **Current TaskSpec:** Issue #100 revision `r1 - g1-m1-governance-facade-foundation`.
-- **Exact M1 starting baseline:** `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`.
+- **Status:** ACTIVE — current M1 TaskSpec identity is Issue #100.
+- **Execution authority:** the current Issue #100 body controls TaskSpec revision, readiness, exact launch HEAD, allowed paths and validation. Do not infer those values from this document.
 - **Purpose:** provide a bounded stable public integration surface over accepted governance semantics.
-- **Initial M1 implementation slice:** public Python-facing governance facade; typed external claim/candidate/evidence submission; exact Objective/Task/Run/Outcome/Evaluation/Effect identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
-- **Allowed implementation boundary for M1:** new `src/symphony_k/governance/**`, deliberate `src/symphony_k/__init__.py` export/description changes, and the two authorized facade test files defined by Issue #100.
-- **Read-only under M1:** `src/symphony_k/domain/**` and `src/symphony_k/persistence/**`; if a facade requires changes there, the Worker must STOP and report the architectural gap.
+- **Initial M1 product intent:** public Python-facing governance facade; typed external claim/candidate/evidence submission; exact Objective/Task/Run/Outcome/Evaluation/Effect identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
 - **Required deliverables:** caller-safe public facade operations over accepted Stage 1 semantics, versioning/compatibility rules and contract tests. Later G1 work may expand supported decision/Effect request surfaces without bypassing the same authority model.
 - **Non-goals:** new lifecycle semantics, real external Effect dispatch in the first slice, implementing a generic Planner/Router, adopting a specific agent framework, Agent runtime ownership or sandbox-runtime ownership.
 - **Minimum evidence:** legal integration flows plus self-authority, stale version/evidence, cross-entity substitution and replay/concurrency negatives through the public facade.
