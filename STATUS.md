@@ -7,8 +7,8 @@
 - **Stage 1:** **COMPLETE**; final accepted implementation/governance boundary `987f927905cadcedd473f2ba3270f56908b7f6b9`.
 - **Current accepted constitutional baseline:** Constitution v0.2 + ADR-0009, accepted at exact R1 head `9c842f18ffcdd51daef8f05d9367f571df677703`.
 - **Accepted R2 product definition:** exact head `2b54c2672c0c400aab1f35e0245c8c4e97a62321`; independent review **ACCEPT** `5711134872`; Human acceptance `5711951534`.
-- **Accepted R3 delivery path:** exact head `f467fd75071e5d0252719539cf7323fb71de587c`; independent review **ACCEPT** `5712008632`; Human acceptance `5712045668`; acceptance reconciliation `a4583f8f5ccfcb0da8af6f542db6ba12fdef7513` reviewed **ACCEPT** on Issue #95 comment `5712061701`.
-- **Accepted R4 workflow/cold-start reconciliation:** exact head `ecccbedd68f2f0e0eff949c20b627f250ddf189e`; independent review **ACCEPT** on Issue #96 comment `5712098419`; explicit Human acceptance on Issue #96 comment `5712165121`.
+- **Accepted R3 delivery path:** exact head `f467fd75071e5d0252719539cf7323fb71de587c`; independent review **ACCEPT** `5712008632`; Human acceptance `5712045668`.
+- **Accepted R4 workflow/cold-start reconciliation:** exact head `ecccbedd68f2f0e0eff949c20b627f250ddf189e`; independent review **ACCEPT** `5712098419`; Human acceptance `5712165121`; R4A acceptance reconciliation `51137a3549388b61abfcbcbd5d70c6ec66101dae` reviewed **ACCEPT** on Issue #97 comment `5712179640`.
 - **Stage 2 M1/M1C technical design:** **HUMAN ACCEPTED** at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`; ADR-0008 remains **ACCEPTED**.
 - Stage 2 runtime code is **NOT STARTED** and runtime isolation evidence is **NOT ESTABLISHED**.
 
@@ -41,17 +41,26 @@ A generic Planner, generic Router, learned routing/reputation, multiple complete
 - **R1 architecture/constitution:** COMPLETE AND HUMAN ACCEPTED.
 - **R2 product definition:** COMPLETE AND HUMAN ACCEPTED.
 - **R3 delivery path:** COMPLETE AND HUMAN ACCEPTED.
-- **R4 workflow/cold-start reconciliation:** **COMPLETE AND HUMAN ACCEPTED** at exact head `ecccbedd68f2f0e0eff949c20b627f250ddf189e`; acceptance/status reconciliation is being finalized under Issue #97.
-- **R5 final strategic disposition/release boundary:** current next strategic work. R5 must finalize the old Stage 2/#79 disposition, mark repository-level strategic reconciliation complete, and establish the first post-transition implementation release boundary. A fresh implementation TaskSpec may be released only through that explicit gate.
+- **R4 workflow/cold-start reconciliation:** COMPLETE AND HUMAN ACCEPTED.
+- **R5 final strategic disposition/release boundary:** current bounded candidate work under Issue #98. R5 finalizes the obsolete old Stage 2/#79 execution path and defines the release boundary for the first post-transition implementation slice.
+- **R5 acceptance status:** PENDING independent review and explicit Human acceptance. Repository-level strategic reconciliation is not COMPLETE until that exact gate passes and final acceptance reconciliation is persisted.
 
 ## Stage 2 / Issue #79 disposition
 
 - ADR-0008 and accepted Stage 2 M1/M1C design remain valid execution-provider security/conformance assets and an optional/reference implementation path.
 - The old Stage 2 runtime-first v1 sequencing is superseded by accepted R3.
-- Issue #79 remains **BLOCKED / NOT RELEASED** pending R5 final disposition.
-- Its old r2 authority cannot be reused; its current r3 body authorizes no mutation.
-- It must not be repurposed in place as the first post-transition implementation TaskSpec.
-- No production implementation restart is authorized before R5 establishes a fresh release boundary.
+- Issue #79 remains **BLOCKED / NOT RELEASED** during R5 candidate/review.
+- Its old r2/r3 execution authority is obsolete for the post-transition product and MUST NOT be revived or repurposed as G1 authority.
+- After exact R5 Human Acceptance and final reconciliation, #79 may be durably marked **SUPERSEDED / NOT RELEASED** or closed as not planned; it MUST NOT be changed to READY.
+- Future reference-provider implementation may reuse ADR-0008/M1/M1C only through a fresh bounded TaskSpec.
+
+## Post-transition implementation release boundary
+
+The first intended implementation slice is **G1 — Governance SDK / Facade Foundation**.
+
+R5 candidate work does **not** release G1. A new durable implementation TaskSpec may be released only after exact R5 Human Acceptance and final reconciliation. That future TaskSpec must provide an exact baseline, file/test scope, milestones and execution authority.
+
+The intended G1 foundation includes a public Python-facing governance facade, typed external claim/candidate/evidence submission, exact entity/version binding, supported read/query surfaces, and deterministic authority/evidence/replay/concurrency tests. It adds no lifecycle semantics and performs no real external Effect dispatch.
 
 ## Strategic lineage
 
@@ -61,10 +70,11 @@ A generic Planner, generic Router, learned routing/reputation, multiple complete
 - #92/#93 — R2 product-definition acceptance and reconciliation.
 - #94/#95 — R3 delivery-path acceptance and reconciliation.
 - #96/#97 — R4 workflow/cold-start acceptance and reconciliation.
+- #98 — R5 final disposition/release-boundary candidate.
 
 ## Next action
 
-Complete Issue #97 acceptance/status reconciliation, then execute R5 final strategic disposition/release-boundary work. Until R5 explicitly releases a fresh post-transition implementation TaskSpec, production implementation remains blocked.
+Independently review the exact R5 candidate and obtain explicit Human acceptance. Until that occurs and final reconciliation is persisted, #79 remains BLOCKED / NOT RELEASED and G1 remains NOT RELEASED.
 
 ## Navigation / cold-start reading order
 

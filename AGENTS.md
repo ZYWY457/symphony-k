@@ -30,9 +30,11 @@ Before mutation, read in this order unless the current TaskSpec narrows the scop
 - Constitution v0.2 and ADR-0009 are accepted.
 - R2 product definition is accepted: Symphony-K is a governance/control-plane product, not a mandatory full-orchestrator stack.
 - R3 delivery path is accepted: the v1 critical path centers on governance SDK/facade, trusted Evaluation/evidence, governed Effects, audit reconstruction, conformance, integrations, operational safety and hardening.
+- R4 workflows/cold-start truth are accepted and operate across the external-execution/governance boundary.
+- R5 is the final strategic disposition/release-boundary gate. Until exact R5 acceptance and final reconciliation, production implementation remains unreleased.
 - ADR-0008 and the accepted Stage 2 sandbox design remain valid historical/provider-conformance assets and an optional/reference execution path.
-- Issue #79 is **BLOCKED / NOT RELEASED** and must not be revived, repurposed or treated as post-transition execution authority.
-- Production implementation may start only from a fresh post-transition TaskSpec after the strategic reconciliation sequence and its release gate are complete.
+- Issue #79 is **BLOCKED / NOT RELEASED** during R5 and must not be revived, repurposed or treated as post-transition execution authority.
+- The first intended post-transition implementation slice is **G1 — Governance SDK / Facade Foundation**, but a Worker may execute it only from a separate fresh TaskSpec released after R5 acceptance/final reconciliation.
 
 ## Core authority rules
 

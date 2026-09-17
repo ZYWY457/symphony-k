@@ -36,7 +36,7 @@ Every new stage requires:
 5. reproducible evidence for stated guarantees; and
 6. durable status reconciliation before dependent work is released.
 
-No stage may infer authority from roadmap order alone. Issue #79 remains BLOCKED / NOT RELEASED and authorizes no post-transition implementation.
+No stage may infer authority from roadmap order alone. Issue #79 remains BLOCKED / NOT RELEASED during the R5 gate and authorizes no post-transition implementation.
 
 ## Stage 0 — Constitution and Repository Harness
 
@@ -55,11 +55,12 @@ No stage may infer authority from roadmap order alone. Issue #79 remains BLOCKED
 ## G1 — Governance SDK / Facade
 
 - **Status:** NEXT — NOT YET RELEASED.
-- **Entry criteria:** R1–R4 strategic reconciliation complete and a fresh implementation TaskSpec explicitly released.
+- **Entry criteria:** R1–R5 strategic reconciliation complete, exact R5 Human Acceptance durably reconciled, and a fresh implementation TaskSpec explicitly released.
 - **Purpose:** provide a bounded stable public integration surface over accepted governance semantics.
-- **Required deliverables:** public facade operations for authoritative work creation/query, external claim/candidate submission, evidence/Evaluation integration, governed decision requests, Effect requests and audit queries; caller-safe identifiers/errors; versioning/compatibility rules; contract tests.
-- **Non-goals:** implementing a generic Planner/Router, adopting a specific agent framework, weakening internal authority checks for SDK convenience.
-- **Minimum evidence:** legal integration flows plus self-authority, stale version/evidence, cross-entity substitution and replay negatives through the public facade.
+- **Initial implementation slice:** public Python-facing governance facade; typed external claim/candidate/evidence submission; exact Objective/Task/Run/Outcome/Evaluation/Effect identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
+- **Required deliverables:** caller-safe public facade operations over accepted Stage 1 semantics, versioning/compatibility rules and contract tests. Later G1 work may expand supported decision/Effect request surfaces without bypassing the same authority model.
+- **Non-goals:** new lifecycle semantics, real external Effect dispatch in the first slice, implementing a generic Planner/Router, adopting a specific agent framework, Agent runtime ownership or sandbox-runtime ownership.
+- **Minimum evidence:** legal integration flows plus self-authority, stale version/evidence, cross-entity substitution and replay/concurrency negatives through the public facade.
 - **Exit criterion:** an external caller can use governance without importing private internal services or bypassing accepted semantics.
 
 ## G2 — Trusted Evaluation and Evidence Integration
@@ -122,7 +123,7 @@ No stage may infer authority from roadmap order alone. Issue #79 remains BLOCKED
 ## G8 — End-to-End Operational Safety and Governance Recovery
 
 - **Status:** PLANNED.
-- **Entry criteria:** G1–G7 accepted and R4 reference workflows reconciled.
+- **Entry criteria:** G1–G7 accepted and canonical reference workflows stable.
 - **Purpose:** prove authority/history safety across realistic failure and recovery conditions.
 - **Required deliverables:** end-to-end scenario matrix, restart/reopen, failure injection, uncertain Effect recovery, compensation, Human escalation, correlation/observability and runbooks.
 - **Non-goals:** requiring Symphony-K to own generic workflow retry/scheduling engines.
@@ -139,7 +140,7 @@ No stage may infer authority from roadmap order alone. Issue #79 remains BLOCKED
 ## G10 — v1 Acceptance and Final Delivery
 
 - **Status:** PLANNED.
-- **Entry criteria:** G1–G9 complete; Product Contract and R4 workflows stable.
+- **Entry criteria:** G1–G9 complete; Product Contract and canonical workflows stable.
 - **Purpose:** independently demonstrate the complete accepted v1 product.
 - **Required deliverables:** acceptance matrix, known limitations, architecture/security review, install/operator/contributor guides, examples and reproducible release-candidate artifacts.
 - **Exit criterion:** a fresh maintainer can install, operate, inspect and reproduce the accepted product from repository documentation alone; all required Product Contract/workflow cases pass.
@@ -152,7 +153,7 @@ The historical Stage 2 parent and accepted technical design remain durable prove
 
 Their post-transition role is an execution-provider security/conformance contract, an optional/reference implementation path and a source of evidence/provenance requirements for G7.
 
-The old Stage 2 runtime implementation path is superseded for current v1 sequencing. Runtime code was not started. Issue #79 remains BLOCKED / NOT RELEASED and must not be re-released under its old M2 scope.
+The old Stage 2 runtime implementation path is superseded for current v1 sequencing. Runtime code was not started. Issue #79 remains BLOCKED / NOT RELEASED during R5 and its old r2/r3 execution authority is obsolete for the post-transition product. After exact R5 Human Acceptance and final reconciliation, #79 may be marked SUPERSEDED / NOT RELEASED or closed as not planned; it must never be re-released in place as G1 authority.
 
 ## Historical pre-transition stages
 

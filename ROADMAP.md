@@ -6,7 +6,7 @@ Read with:
 
 - [v1 Product Contract](docs/V1_PRODUCT_CONTRACT.md) — observable v1 scope and final acceptance expectations;
 - [Development Path](docs/DEVELOPMENT_PATH.md) — entry, evidence and exit contracts for the current delivery sequence; and
-- [Reference Workflows](docs/REFERENCE_WORKFLOWS.md) — canonical scenarios, pending R4 reconciliation.
+- [Reference Workflows](docs/REFERENCE_WORKFLOWS.md) — canonical accepted governance-boundary scenarios.
 
 The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neutral governance/control-plane product for agentic work. External agents, orchestrators and execution runtimes may determine how work is attempted; Symphony-K governs authoritative state, evidence, decisions, consequential Effects and reconstructable history.
 
@@ -27,9 +27,9 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | G9 | Production Hardening and Release Engineering | PLANNED |
 | G10 | v1 Acceptance and Final Delivery | PLANNED |
 
-`NEXT — NOT YET RELEASED` is planning status only. It does not authorize implementation. A fresh durable implementation TaskSpec is required after the strategic reconciliation sequence completes.
+`NEXT — NOT YET RELEASED` is planning status only. It does not authorize implementation. G1 may be released only through a fresh durable implementation TaskSpec after exact R5 Human Acceptance and final strategic reconciliation.
 
-Issue #79 remains **BLOCKED / NOT RELEASED** and is not the implementation TaskSpec for G1 or any other post-transition stage.
+Issue #79 remains **BLOCKED / NOT RELEASED** during the R5 gate. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not the implementation TaskSpec for G1 or any other post-transition stage.
 
 ## Stage 0 — Constitution and Repository Harness
 
@@ -48,7 +48,9 @@ Issue #79 remains **BLOCKED / NOT RELEASED** and is not the implementation TaskS
 
 - **Status:** NEXT — NOT YET RELEASED.
 - **Goal:** expose a stable bounded public integration surface over accepted Stage 1 semantics without requiring callers to understand the full internal semantic graph.
-- **Required outcome:** external callers can submit claims/candidates, attach evidence, request governed decisions/Effects and query authoritative results through one semantic authority model.
+- **Required outcome:** external callers can submit claims/candidates/evidence, bind them to exact authoritative identities/versions and query governed results through one semantic authority model.
+- **Initial implementation slice after R5:** public Python-facing facade; typed claim/candidate/evidence submission; exact identity/version binding; supported read/query surfaces; deterministic authority-bypass, stale/superseded/cross-entity, replay and concurrency tests.
+- **Non-goals for the first slice:** new lifecycle semantics, real external Effect dispatch, generic Planner/Router ownership, Agent runtime ownership or sandbox-runtime ownership.
 - **Deployment posture:** embedded-first; service/API and CLI surfaces may expose the same kernel later or in parallel without weaker semantics.
 - **Exit proof:** public-contract tests demonstrate that the facade cannot bypass transition authority, evidence binding, replay or history rules.
 
@@ -99,7 +101,7 @@ Issue #79 remains **BLOCKED / NOT RELEASED** and is not the implementation TaskS
 - **Status:** PLANNED.
 - **Goal:** demonstrate that realistic success, failure, restart, stale evidence, conflict, uncertain Effect and recovery scenarios preserve constitutional truth.
 - **Required outcome:** execution recovery may be external, while authoritative attempt lineage, evidence trust, occurrence uncertainty, reconciliation, compensation and Human resolution remain governed.
-- **Exit proof:** canonical R4 workflows and adverse branches preserve authority and reconstructable history.
+- **Exit proof:** accepted reference workflows and adverse branches preserve authority and reconstructable history.
 
 ## G9 — Production Hardening and Release Engineering
 
@@ -113,7 +115,7 @@ Issue #79 remains **BLOCKED / NOT RELEASED** and is not the implementation TaskS
 - **Status:** PLANNED.
 - **Goal:** independently demonstrate the accepted Product Contract and canonical workflows from repository documentation alone.
 - **Required outcome:** frozen supported scope, acceptance matrix, known limitations, install/operator/contributor guides, architecture/security review and reproducible candidate artifacts.
-- **Exit proof:** all required product-contract obligations and reconciled reference workflows are independently accepted; no release-blocking constitutional/security defect remains.
+- **Exit proof:** all required product-contract obligations and accepted reference workflows are independently accepted; no release-blocking constitutional/security defect remains.
 
 Release/tag publication remains a separate remote Effect requiring explicit Human authorization.
 
@@ -141,7 +143,7 @@ Their historical Exec Plans, ADRs, accepted designs and Git history remain attri
 
 ADR-0008 and the Human Accepted Stage 2 M1/M1C technical design remain valid. Their current role is an execution-provider security/conformance contract, an evidence/provenance boundary and an optional/reference implementation path.
 
-The historical Stage 2 runtime implementation path is superseded for current delivery sequencing. Runtime code was never started. Issue #79 remains BLOCKED / NOT RELEASED and must not be reused or silently revised into the first post-transition implementation task.
+The historical Stage 2 runtime implementation path is superseded for current delivery sequencing. Runtime code was never started. Issue #79 remains BLOCKED / NOT RELEASED during R5 and cannot be reused or silently revised into the first post-transition implementation task. After accepted R5 final reconciliation it may be marked SUPERSEDED / NOT RELEASED or closed as not planned; future reuse of the technical design requires a new TaskSpec.
 
 ## Post-v1 / optional backlog
 
