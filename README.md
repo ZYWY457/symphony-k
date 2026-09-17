@@ -10,7 +10,7 @@ The accepted Stage 1 domain kernel remains the product core: Objective, Task, Ru
 
 ## v1 direction
 
-The post-transition v1 target is centered on:
+The accepted v1 target is centered on:
 
 - a stable governance SDK/facade;
 - trusted independent Evaluation/evidence binding;
@@ -21,9 +21,9 @@ The post-transition v1 target is centered on:
 - at least one external agent/orchestrator integration; and
 - at least one reference execution/provider path proving the governance boundary end to end.
 
-The intended deployment posture is **embedded-first and service-capable**. A Python SDK may be the first integration surface; a stable local service/API and CLI may expose the same governance kernel for cross-process or non-Python consumers.
+The deployment posture is **embedded-first and service-capable**. A Python SDK may be the first integration surface; a stable local service/API and CLI may expose the same governance kernel for cross-process or non-Python consumers.
 
-These are v1 product targets unless their implementation has separately completed and been accepted.
+These are v1 requirements, not claims that the post-transition implementation already exists.
 
 ## What v1 no longer requires Symphony-K to own
 
@@ -37,25 +37,19 @@ The following are not mandatory v1 release blockers:
 
 Planning, routing, execution and sandboxing may be supplied by external systems or reference/provider integrations. External ownership does not grant authority or make execution trusted by default.
 
-The accepted Stage 2 sandbox architecture remains a valid technical asset: an execution-provider security/conformance boundary and optional/reference implementation path rather than Symphony-K's product identity.
+The accepted Stage 2 sandbox architecture remains a valid execution-provider security/conformance asset and optional/reference path rather than Symphony-K's product identity.
 
 ## Current status
 
 Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 
-The strategic transition to a framework-neutral governance/control-plane product has been explicitly Human approved. ADR-0009 and Constitution v0.2 are accepted. R1 acceptance reconciliation is published at `c0d08d697541675ad4f9e7f15717a0bad415b5a4`.
-
-R2 product-definition reconciliation is **COMPLETE AND HUMAN ACCEPTED** at exact head `2b54c2672c0c400aab1f35e0245c8c4e97a62321`, after independent review **ACCEPT** on Issue #92 comment `5711134872` and explicit Human acceptance on comment `5711951534`. `VISION.md`, `ARCHITECTURE.md`, `docs/V1_PRODUCT_CONTRACT.md` and this README define the accepted post-transition product identity.
-
-R3 delivery-plan reconciliation is **COMPLETE AND HUMAN ACCEPTED** at exact head `f467fd75071e5d0252719539cf7323fb71de587c`, after independent review **ACCEPT** on Issue #94 comment `5712008632` and explicit Human acceptance on comment `5712045668`. `ROADMAP.md` and `docs/DEVELOPMENT_PATH.md` now define the accepted governance-centered v1 critical path.
-
-R4 workflow/cold-start reconciliation is next. Canonical workflows, maintainer instructions, handoff and documentation navigation still need to be reconciled so they no longer assume the historical full-orchestrator sequencing.
-
-Post-transition SDK/Effect gateway/audit/conformance capabilities must not be treated as implemented merely because they are product requirements.
-
-The Stage 2 M1 design remains a Human Accepted historical technical asset at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`; runtime isolation evidence is not yet established and Stage 2 runtime code has not started.
-
-Issue #79 remains **BLOCKED / NOT RELEASED**. No production implementation restart is authorized until the strategic reconciliation sequence completes and a fresh post-transition implementation TaskSpec is explicitly released.
+- Constitution v0.2 and ADR-0009 are accepted.
+- R2 product-definition reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `2b54c2672c0c400aab1f35e0245c8c4e97a62321`.
+- R3 delivery-path reconciliation is **COMPLETE AND HUMAN ACCEPTED** at `f467fd75071e5d0252719539cf7323fb71de587c`.
+- R4 workflow/cold-start reconciliation is the current bounded documentation/governance work under Issue #96.
+- Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
+- Issue #79 remains **BLOCKED / NOT RELEASED** and cannot be reused as post-transition implementation authority.
+- No production implementation restart is authorized until R4 is accepted and R5 explicitly establishes the post-transition implementation release boundary.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
 
@@ -78,17 +72,18 @@ External execution may be powerful, autonomous or provider-managed. It still can
 
 ## Project navigation
 
+- [Status](STATUS.md) — current accepted baseline, strategic gate and blocked/released work
 - [Architecture](ARCHITECTURE.md) — governance kernel, integration and external execution boundaries
 - [v1 Product Contract](docs/V1_PRODUCT_CONTRACT.md) — observable v1 responsibilities and acceptance boundary
-- [Full roadmap](ROADMAP.md) — accepted governance-centered v1 delivery map
-- [Complete development path](docs/DEVELOPMENT_PATH.md) — accepted stage/evidence/exit contracts for the governance v1 path
-- [Reference workflows](docs/REFERENCE_WORKFLOWS.md) — canonical scenarios; workflow reconciliation follows in R4
-- [AI and maintainer handoff](docs/AI_HANDOFF.md) — resume work without chat or account-specific memory
+- [Roadmap](ROADMAP.md) — accepted governance-centered v1 delivery map
+- [Development path](docs/DEVELOPMENT_PATH.md) — accepted delivery contracts and evidence/exit boundaries
+- [Reference workflows](docs/REFERENCE_WORKFLOWS.md) — canonical governance-boundary acceptance scenarios
+- [AI and maintainer handoff](docs/AI_HANDOFF.md) — cold-start resume workflow without private memory
 - [Constitution](CONSTITUTION.md) — highest-precedence project rules
 - [Architecture decisions](docs/adr/README.md) — accepted ADRs including ADR-0009
 - [Documentation map](docs/README.md) — core beliefs, designs and plans
 
-Historical Stage 1 and Stage 2 work remains in accepted ADRs, design documents, completed/active Exec Plans and Git history rather than being rewritten to imply the post-transition product identity always existed.
+Historical Stage 1 and Stage 2 work remains in accepted ADRs, design documents, Exec Plans and Git history rather than being rewritten to imply the post-transition product identity always existed.
 
 ## Development commands
 

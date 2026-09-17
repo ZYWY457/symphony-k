@@ -2,214 +2,114 @@
 
 ## Purpose
 
-This repository implements an outcome-oriented AI work orchestrator. The orchestrator manages work, not specific agents. Agents, models, skills, tools, and sandboxes are replaceable execution resources.
+This repository implements Symphony-K as a **framework-neutral governance/control-plane system for agentic work**. External agents, orchestrators and runtimes may decide how work is attempted. Symphony-K governs authority, evidence, Evaluation, consequential Effects and reconstructable history.
 
-This file is a navigation map, not the full specification.
+This file is a navigation and execution-governance map, not the full specification.
 
-## Read First
+## Read first
 
-Before making changes, read the documents relevant to the task:
+Before mutation, read in this order unless the current TaskSpec narrows the scope:
 
-- `CONSTITUTION.md` — highest-precedence project rules and amendment process.
-- `STATUS.md` — compact current accepted stage, next work, and blocking gate.
-- `VISION.md` — product purpose, non-goals, and long-term direction.
-- `ARCHITECTURE.md` — system boundaries, core entities, planes, and invariants.
-- `docs/V1_PRODUCT_CONTRACT.md` — observable v1 product, operator, deployment, and final acceptance boundary.
-- `ROADMAP.md` — staged implementation order.
-- `docs/DEVELOPMENT_PATH.md` — complete Stage 0–14 delivery contracts.
-- `docs/REFERENCE_WORKFLOWS.md` — canonical v1 acceptance scenarios and stage-to-product traceability.
-- `docs/AI_HANDOFF.md` — model-neutral repository resume workflow.
-- `docs/TASKSPEC_TEMPLATE.md` — reusable durable Issue TaskSpec contract.
-- `docs/STAGE_EXIT_TEMPLATE.md` — independent Human stage-exit checklist.
-- `docs/core-beliefs/TRUST_MODEL.md` — claims, evidence, facts, judgments, policies, and trust hierarchy.
-- `docs/core-beliefs/STATE_AND_AUTHORITY.md` — state machines, transition authority, invariants, and human override rules.
-- `docs/core-beliefs/EXECUTION_ISOLATION.md` — worker isolation, network, credentials, and sandbox assumptions.
-- `docs/core-beliefs/VERIFICATION_MODEL.md` — evidence-based dynamic verification.
-- `docs/core-beliefs/FAILURE_AND_RECOVERY.md` — checkpoints, Resume, Rewind, Reassign, recovery, and handoff.
-- `docs/core-beliefs/EFFECTS_AND_SIDE_EFFECTS.md` — external effects, authorization, rollback, compensation, and idempotency.
-- `docs/core-beliefs/LEARNING_AND_REPUTATION.md` — audit isolation, delayed learning, reliability, and policy evolution.
+1. `CONSTITUTION.md`
+2. `STATUS.md`
+3. `AGENTS.md`
+4. `VISION.md`
+5. `ARCHITECTURE.md`
+6. `docs/V1_PRODUCT_CONTRACT.md`
+7. `ROADMAP.md`
+8. `docs/DEVELOPMENT_PATH.md`
+9. `docs/REFERENCE_WORKFLOWS.md`
+10. relevant core beliefs, accepted ADRs/designs
+11. `docs/AI_HANDOFF.md`
+12. the concrete durable TaskSpec
 
-## Repository Continuity
+`STATUS.md` is the compact current-truth entry point. Historical plans and accepted technical assets remain evidence, but they do not automatically define current execution authority.
 
-No AI-specific memory, private chat context, model session, account, or Worker
-report is a source of truth. A new maintainer starts with `STATUS.md`, follows
-the authority hierarchy, and verifies repository and TaskSpec evidence
-independently.
+## Current strategic truth
 
-If conversation context conflicts with durable repository truth, stop and
-reconcile rather than silently choosing one. Candidate commits and Worker
-claims do not become Human Accepted truth without the applicable independent
-review and durable governance reconciliation.
+- Constitution v0.2 and ADR-0009 are accepted.
+- R2 product definition is accepted: Symphony-K is a governance/control-plane product, not a mandatory full-orchestrator stack.
+- R3 delivery path is accepted: the v1 critical path centers on governance SDK/facade, trusted Evaluation/evidence, governed Effects, audit reconstruction, conformance, integrations, operational safety and hardening.
+- ADR-0008 and the accepted Stage 2 sandbox design remain valid historical/provider-conformance assets and an optional/reference execution path.
+- Issue #79 is **BLOCKED / NOT RELEASED** and must not be revived, repurposed or treated as post-transition execution authority.
+- Production implementation may start only from a fresh post-transition TaskSpec after the strategic reconciliation sequence and its release gate are complete.
 
-If a TaskSpec or implementation would materially change observable v1 product
-scope, supported operator behavior, deployment boundary, or required reference
-workflow semantics, stop and seek the necessary Human, ADR, design, and Product
-Contract reconciliation. A Worker MUST NOT silently redefine v1 to fit an
-implementation choice.
+## Core authority rules
 
-Before mutation, follow the current-task discovery procedure in
-[`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md). Consider the exact current candidate
-and its latest review, and inspect correction or dependent Issue state when it
-materially determines the current TaskSpec's lineage, readiness or approval.
-A discovered TaskSpec is not execution authority when it is blocked,
-unreleased, overlaps known active work or otherwise fails its preconditions.
+1. Workers and external runtimes are untrusted by default.
+2. Worker/executor output is a claim, not authoritative truth.
+3. External planners/orchestrators may propose or attempt work but MUST NOT grant themselves lifecycle, acceptance, permission, budget or Effect authority.
+4. Independent Evaluation/evidence governs authoritative disposition.
+5. Stale, superseded, unrelated or cross-entity evidence MUST NOT substitute for exact current evidence.
+6. An evaluator MUST NOT commit the Effect it validates.
+7. Important external Effects MUST use the governed Effect path.
+8. Irreversible Effects require explicit Human authorization under Constitution v0.2.
+9. Occurrence truth is distinct from authorization truth.
+10. Uncertain Effect occurrence blocks blind retry until governed reconciliation.
+11. Historical facts, evidence provenance and audit meaning are append-only.
+12. External retry/failover MUST preserve correct attempt lineage and MUST NOT infer non-occurrence from execution failure.
+13. Agent-, provider-, runtime- and transport-specific semantics MUST remain outside core governance semantics.
+14. Planner/Router/sandbox ownership is optional/reference/future work unless a later accepted decision changes the v1 contract.
 
-A Worker MAY propose a bounded technical solution when the TaskSpec asks it to;
-that proposal is not self-approval. Never fabricate a Human preference, a
-missing precondition, a validation result, a Worker-occupancy fact or a future
-Issue identity.
+## Durable TaskSpec precondition
 
-Exec Plan state is explicit:
+Before any repository mutation, a Worker must establish a concrete, pre-existing durable TaskSpec identity using either:
 
-```text
-planned/   future parent plans; not execution authorization
-active/    current authorized planning/implementation parent plans
-completed/ exited and accepted historical plans
-```
+- `direct-read`; or
+- `materialized-handoff`.
 
-Activation requires a durable Human-approved TaskSpec and every prerequisite
-stage exit. Stage completion requires independent Human Exit acceptance and a
-subsequent reconciliation; moving a file alone grants no authority.
+Conversation-only instructions, draft titles, future Issue numbers and placeholders are insufficient. Post-hoc TaskSpec creation does not retroactively authorize earlier work.
 
-## Non-Negotiable Rules
+A discovered TaskSpec is not executable when it is blocked, unreleased, baseline-mismatched, superseded, overlapping known active work or otherwise fails its stated preconditions.
 
-1. A worker is untrusted by default.
-2. A worker MUST NOT directly control authoritative state transitions.
-3. A worker MAY make structured requests, but MUST NOT grant itself permissions, budget, acceptance, or completion.
-4. All worker execution MUST occur inside an approved sandbox boundary.
-5. Task state, run state, checkpoints, evidence, audit history, and policy state MUST survive worker loss.
-6. Worker claims are not evidence.
-7. Evaluation MUST be independent from execution.
-8. An evaluator MUST NOT commit external effects it validates.
-9. Important external effects MUST use the Effect Controller path.
-10. Irreversible effects require explicit human authorization unless a future constitutional amendment changes this rule.
-11. Historical facts, evidence provenance, and audit records MUST NOT be rewritten by normal application flows.
-12. Human operators MAY override policy or judgment when authorized, but MUST NOT rewrite facts or bypass constitutional invariants.
-13. New agents MUST integrate through an adapter/driver boundary. Orchestrator core MUST NOT depend on agent-specific protocol details.
-14. Planner output is a `TaskProposal`, not an executable `Task`.
-15. No new top-level domain concept or cross-cutting dependency may be added without an ADR.
-
-## Remote Repository Mutation Boundary
-
-Repository-local work and remote repository effects are separate authorities.
-
-Unless the current Issue or an explicit human instruction authorizes otherwise:
-
-* an agent MAY edit files within the approved Issue scope;
-* an agent MAY run local validation commands;
-* an agent MAY create a local git commit when requested;
-* an agent MUST NOT run `git push`;
-* an agent MUST NOT create, update, merge, or close a pull request;
-* an agent MUST NOT merge into `main`;
-* an agent MUST NOT create or delete remote branches or tags;
-* an agent MUST NOT publish releases;
-* an agent MUST NOT force-push or rewrite remote history;
-* an agent MUST NOT close or mutate GitHub Issues except when explicitly authorized.
-
-A successful local commit is not authorization for a remote mutation.
-
-If remote publication is not explicitly authorized, stop after the validated local commit and report its exact hash.
-
-If a remote mutation occurs, the final execution report MUST state:
-
-* the exact remote action performed;
-* repository and branch;
-* commit or object affected;
-* whether the action was explicitly authorized;
-* the resulting remote reference.
-
-Do not report a remote mutation as absent merely because it occurred after an earlier execution segment or after recovery from an interrupted session.
-
-## Durable TaskSpec Precondition
-
-Before any repository mutation, an implementation Worker MUST establish a
-concrete, pre-existing durable TaskSpec identity and record it in its execution
-evidence. This is an execution-governance precondition: it does not make GitHub
-Issues a future Symphony-K product-domain requirement. GitHub Issue is the
-current manual durable TaskSpec carrier.
-
-A valid TaskSpec reference identifies an already-materialized durable work item,
-for example `GitHub Issue #32` or its full Issue URL. A title-only task, a future
-Issue, a placeholder Issue number such as `<ISSUE_NUMBER>`, or conversation-only
-text describing an uncreated TaskSpec is insufficient.
-
-Workers MUST distinguish TaskSpec source access from TaskSpec materialization.
-Either of the following access modes is valid:
-
-1. `direct-read`: the Worker has a concrete durable TaskSpec identity and
-   successfully reads that TaskSpec from its source.
-2. `materialized-handoff`: the Worker has a concrete durable TaskSpec identity,
-   and a trusted launch boundary has supplied the exact TaskSpec content in the
-   execution context.
-
-Direct GitHub or network access is not required for `materialized-handoff`.
-Regardless of access mode, the durable TaskSpec MUST already exist before the
-Worker begins mutation. If the Worker cannot establish this precondition, it
-MUST stop: it MUST NOT infer a future Issue number, proceed from a title alone,
-create the Issue itself unless separately authorized, or expect governance
-metadata to be backfilled later.
-
-Post-hoc Issue creation MUST NOT be treated as retroactive authorization or as
-satisfying the original Run's TaskSpec precondition. In particular, Issue #31 is
-a retrospective provenance record: commit
-`7948852c4b319f241d6bc03ecab086145d8242e0` was produced before its intended
-Issue #31 existed. Its subsequent independent review and acceptance do not
-change that historical chronology.
-
-The current manual two-phase workflow is:
-
-```text
-Planner drafts TaskSpec
-    ->
-Human materializes GitHub Issue
-    ->
-concrete Issue number exists
-    ->
-executable Worker launch prompt
-    ->
-Worker execution
-```
-
-The executable Worker launch prompt MUST contain the concrete Issue number or
-URL. It MUST NOT be issued against an uncreated TaskSpec.
-
-Final Worker evidence MUST report:
+Final Worker evidence must report:
 
 ```text
 TaskSpec reference:
 TaskSpec access mode: direct-read | materialized-handoff
 TaskSpec precondition: PASS
+starting baseline:
+changed paths:
+validation:
+remote mutation:
 ```
 
+## Repository continuity
 
-## Development Discipline
+No private chat, model memory, Worker report or account context is a source of truth. If conversation context conflicts with durable repository authority, stop at the conflict and reconcile it explicitly.
 
-For substantial changes:
+Candidate commits do not become accepted truth merely because they exist. Acceptance follows the review/Human gates defined by the current TaskSpec.
 
-1. Determine whether the change is architectural.
-2. If architectural, write or update an ADR before implementation.
-3. For multi-step implementation, create a versioned plan under `docs/exec-plans/active/`.
-4. Split work into bounded tasks with explicit scope, out-of-scope items, and acceptance criteria.
-5. Prefer deterministic tests and objective evidence over prose assertions.
-6. Do not broaden task scope opportunistically.
-7. Update relevant architecture documentation in the same change when behavior or invariants change.
+Historical accepted artifacts must not be rewritten to imply the current strategy always existed. Corrections and supersession are forward, attributable records.
 
-## Current Implementation Bias
+## Remote repository mutation boundary
 
-The initial control plane is expected to use Python, a simple persistence layer, and Docker as the first sandbox provider. These are implementation choices, not permanent product identity. Interfaces MUST preserve future substitution.
+Repository-local work and remote effects are separate authorities. Unless explicitly authorized by the current TaskSpec or Human instruction, a Worker MUST NOT push, mutate remote refs, create/merge/close PRs, publish releases, rewrite remote history or mutate Issues.
 
-## Execution Substrate Preflight
+If remote mutation occurs, report the exact action, repository/branch, affected object, authorization source and resulting reference.
 
-Before making any repository modification, an implementation worker MUST verify that the execution substrate required by the Issue is operational.
+## Development discipline
 
-At minimum, the worker MUST successfully execute lightweight repository/toolchain preflight commands sufficient to establish that:
+For substantial work:
 
-* the repository command runner can start;
-* Git commands can execute;
-* the repository root can be resolved;
-* the required language/toolchain launcher is callable.
+1. verify repository identity, clean/expected baseline and TaskSpec preconditions;
+2. stop on higher-authority contradiction;
+3. keep changes inside the exact allowed paths;
+4. use ADR/amendment process for material architecture/constitutional changes;
+5. prefer deterministic evidence over prose assertions;
+6. inspect the exact diff and validation results before publication;
+7. do not broaden scope opportunistically;
+8. do not claim implementation or validation that was not actually performed.
 
-A typical Python repository preflight is:
+## Execution isolation and integrations
+
+Untrusted execution must use an approved isolation/provenance boundary appropriate to the integration. This may be an external provider or a Symphony-K reference provider. External ownership does not make direct host execution trusted by default.
+
+ADR-0008 and the accepted Stage 2 design remain useful as provider/security/conformance assets. They are not current authority to restart the old Stage 2 M2 implementation path.
+
+## Execution substrate preflight
+
+Implementation work must verify the required repository/toolchain substrate before mutation. Typical checks include:
 
 ```text
 git status --short
@@ -218,35 +118,4 @@ python --version
 uv --version
 ```
 
-If command execution fails before repository modification begins:
-
-* STOP the Run;
-* do not modify workspace files;
-* report the failure as execution-infrastructure failure;
-* do not fabricate validation evidence;
-* do not create a commit;
-* do not perform remote mutation.
-
-If command execution becomes unavailable after workspace modification has already occurred:
-
-* preserve the workspace;
-* report exactly which verification gates could not run;
-* treat produced changes as an unverified candidate only;
-* do not claim task completion;
-* do not commit or publish the candidate unless an explicitly authorized recovery workflow independently performs the required verification.
-
-Successful reasoning or file editing is not equivalent to successful execution.
-
-A candidate that has not passed its required validation gates is not a verified Outcome.
-
-When a sandbox denies access to a default cache or temporary path,
-a Worker may redirect only non-authoritative disposable execution data
-to a repository-local ignored path when:
-
-- task semantics remain unchanged;
-- lock/dependency inputs remain unchanged;
-- security or validation is not weakened;
-- no authoritative state or credential store is redirected;
-- the fallback is reported in execution evidence.
-
-Otherwise stop and report the capability gap.
+If required execution or validation cannot run, report the gap and do not fabricate evidence or claim completion.

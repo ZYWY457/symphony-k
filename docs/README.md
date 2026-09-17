@@ -1,13 +1,8 @@
 # Documentation Map
 
-Start with the root [project status](../STATUS.md), then follow the authority and
-reading order in [AGENTS.md](../AGENTS.md).
+Start with the root [project status](../STATUS.md), then follow the authority and reading order in [AGENTS.md](../AGENTS.md).
 
-The current governance work is the strategic-transition Human decision gate in
-Issue #87, not a Stage 2 implementation release. The accepted Stage 2 M1 design
-remains a historical technical asset, while the current product-identity
-documents retain their accepted historical wording until explicit Human
-approval and the required hierarchy reconciliation.
+The accepted current product identity is a framework-neutral governance/control-plane system for agentic work. Constitution v0.2 and ADR-0009 are accepted; R2 product definition and R3 delivery path are Human accepted. R4 is reconciling canonical workflows, handoff and cold-start navigation. Issue #79 remains BLOCKED / NOT RELEASED.
 
 ## Constitution and core beliefs
 
@@ -24,40 +19,41 @@ approval and the required hierarchy reconciliation.
 
 - [Architecture](../ARCHITECTURE.md)
 - [Architecture Decision Records](adr/README.md)
+- [Accepted ADR-0009 governance kernel decision](adr/0009-framework-neutral-agent-governance-kernel.md)
 - [Design documents](design-docs/)
 - [Accepted ADR-0008 sandbox boundary](adr/0008-stage-2-sandbox-execution-boundary.md)
-- [Accepted Stage 2 M1 sandbox execution design](design-docs/sandbox-execution-v1.md)
+- [Accepted Stage 2 M1/M1C sandbox design](design-docs/sandbox-execution-v1.md)
 
-Accepted ADRs and designs remain subordinate to the Constitution and core
-beliefs. Material architecture changes use a new ADR rather than silently
-rewriting accepted history.
+ADR-0008 and the Stage 2 design remain accepted execution-provider security/conformance assets and an optional/reference implementation path. They no longer define the mandatory v1 delivery sequence.
 
-## Current status and development path
+## Product and delivery truth
 
 - [Current status](../STATUS.md)
+- [Vision](../VISION.md)
+- [Architecture](../ARCHITECTURE.md)
 - [v1 Product Contract](V1_PRODUCT_CONTRACT.md)
 - [Canonical roadmap](../ROADMAP.md)
-- [Complete Stage 0–14 development path](DEVELOPMENT_PATH.md)
+- [Development path](DEVELOPMENT_PATH.md)
 - [Canonical reference workflows](REFERENCE_WORKFLOWS.md)
+
+The accepted v1 critical path centers on governance facade, trusted evidence/Evaluation, governed Effect gateway and reconciliation, audit reconstruction, conformance, integrations, operational safety, hardening and v1 acceptance.
+
+Generic Planner, Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 blockers.
 
 ## Exec Plans
 
 - [Lifecycle rules](exec-plans/README.md)
-- [Planned parent plans](exec-plans/planned/) — future contracts, no execution
-  authorization
-- [Active Stage 2 plans](exec-plans/active/) — accepted M1 technical history;
-  the old M2 release path remains blocked during strategic reconciliation
+- [Planned parent plans](exec-plans/planned/) — future or historical planning artifacts; no execution authority by themselves
+- [Active plans](exec-plans/active/) — may contain historically accepted technical assets; current authority must be confirmed through `STATUS.md` and the current TaskSpec
 - [Completed plans](exec-plans/completed/) — accepted historical plans
 
-The normal lifecycle is `planned -> active -> completed`, with durable Human
-activation and exit gates.
+The historical Stage 2 active plan preserves accepted M1/M1C provenance but the old runtime-first implementation sequence is superseded for v1 delivery. Issue #79 must not be revived or repurposed.
 
 ## Handoff and governance templates
 
 - [AI and maintainer handoff](AI_HANDOFF.md)
 - [Durable TaskSpec template](TASKSPEC_TEMPLATE.md)
 - [Human stage-exit template](STAGE_EXIT_TEMPLATE.md)
-- [Independent review records](reviews/) — durable review evidence when a
-  review materially controls current execution or readiness
+- [Independent review records](reviews/)
 
 No private conversation or AI-specific memory replaces these durable sources.

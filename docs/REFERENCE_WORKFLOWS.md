@@ -2,405 +2,236 @@
 
 ## Purpose and authority
 
-These workflows are canonical v1 product acceptance scenarios and architecture
-traceability tools. They make the [v1 Product Contract](V1_PRODUCT_CONTRACT.md)
-observable without selecting low-level implementations or authorizing future
-stages early.
+These workflows are canonical v1 acceptance scenarios for the accepted
+framework-neutral governance/control-plane product. They describe observable
+behavior across the governance boundary without requiring Symphony-K to own the
+external planner, orchestrator, Agent runtime or production sandbox.
 
-Each workflow uses existing accepted domain concepts. Mechanics that do not yet
-exist remain owned by their stages and require bounded designs, ADRs and
-TaskSpecs. A workflow description is not evidence that the capability is
-implemented.
+A workflow description is a product acceptance target, not evidence that the
+capability is implemented. Implementation requires a fresh durable TaskSpec and
+the applicable design/review gates.
 
-## Workflow A — Bounded software-maintenance Objective
+## Common governance boundary
 
-### Operator intent
+```text
+external agent / orchestrator / runtime
+    -> claims, candidate Outcomes, evidence, requested Effects
+    -> Symphony-K binds Task/Run/entity/version/provenance
+    -> trusted independent Evaluation/evidence
+    -> authoritative disposition
+    -> governed Effect authorization/dispatch/receipt/occurrence
+    -> uncertainty/reconciliation/remediation when required
+    -> durable causal audit reconstruction
+```
 
-Deliver a bounded repository change with explicit success criteria, protected
-paths, validation requirements, budget/permission constraints and a declared
-remote-mutation boundary.
+External execution may decide how work is attempted. It never gains authority
+merely by producing a result, choosing a route, retrying work or reporting tool
+success.
 
-### Preconditions
+## Workflow A — External execution submits a candidate Outcome
 
-- The Objective is finite and has acceptance criteria and authority.
-- Repository identity, baseline and durable TaskSpec are concrete.
-- Required execution, sandbox, toolchain and verification capabilities are
-  available and eligible.
-- Permissions distinguish local work from remote publication.
+### Intent
 
-### Main path
-
-1. The operator submits the bounded maintenance Objective and constraints.
-2. The system records the authoritative Objective.
-3. When planning is used, the Planner produces bounded TaskProposals with
-   dependencies and rationale.
-4. Governance reviews proposals and creates separate Tasks for approved work.
-5. The Router selects an eligible execution profile and route.
-6. A Run executes through an AgentDriver inside a governed sandbox/workspace.
-7. The Worker produces code/document artifacts, evidence references and a
-   candidate Outcome claim.
-8. Independent validators perform applicable static checks, tests, diff review
-   and policy checks and persist Evaluations.
-9. Current, non-conflicted evidence informs Outcome and Task disposition under
-   their completion policies.
-10. No deployment, push or other external Effect occurs unless separately
-    represented, verified and authorized.
-
-### Human decision points
-
-- Accept, reject or revise TaskProposals where policy requires Human review.
-- Supply clarification or scoped permission/budget decisions when escalated.
-- Arbitrate material verification conflict when automated policy cannot.
-- Authorize any sensitive or irreversible external Effect separately.
-
-### Expected authoritative records
-
-Objective, proposal/review history when planning is used, Task, Run and route
-binding, artifacts/evidence, candidate Outcome, Evaluations and conflicts,
-completion decisions, audit events, budget/permission usage and any separately
-governed Effect/receipt.
-
-### Failure and escalation branches
-
-- Invalid or ambiguous scope blocks planning or Task promotion.
-- An ineligible/unhealthy route blocks or selects another route under policy.
-- Worker/sandbox/provider loss enters the recovery workflow.
-- Failed tests or insufficient evidence reject, rewind or escalate the candidate.
-- Conflicting Evaluations remain conflicted until governed arbitration.
-- A remote mutation request without authority remains uncommitted.
-
-### What must never happen
-
-- A Worker claim marks the Run, Outcome, Task or Objective accepted/completed.
-- A TaskProposal executes directly.
-- Host execution silently replaces the required sandbox.
-- Protected paths, permissions or remote boundaries expand themselves.
-- A failed/rejected candidate or prior commit is rewritten as initially valid.
-
-### Owning stages
-
-Stages 1–6 establish authoritative state, execution, verification, recovery and
-Effects; Stages 8–9 add routing/planning; Stage 11 exposes operator actions;
-Stages 12–14 prove and deliver the complete scenario.
-
-### Final v1 acceptance evidence
-
-A repository fixture with a durable Objective/TaskSpec; proposal and promotion
-records; sandboxed Run trace; exact candidate artifacts; independently captured
-test/static/diff evidence; persisted Evaluation and disposition; restart/reopen
-proof; complete audit correlation; and evidence that no unauthorized remote
-Effect occurred.
-
-## Workflow B — Non-code artifact or research Objective
-
-### Operator intent
-
-Produce a bounded research, analysis or document/artifact outcome with explicit
-questions, source/evidence requirements, freshness boundary and acceptance
-criteria.
-
-### Preconditions
-
-- The requested result and stopping boundary are finite.
-- Required data/tool access, network policy and source constraints are explicit.
-- The selected route declares the necessary capabilities and permissions.
-- Validation requirements distinguish source evidence from Worker narrative.
+Allow an external agent/orchestrator to attempt bounded work while Symphony-K
+retains authority over the resulting state and disposition.
 
 ### Main path
 
-1. The operator submits the bounded Objective and evidence expectations.
-2. Governance creates Tasks directly or from approved TaskProposals.
-3. The Router selects eligible tools and an AgentDriver/profile without assuming
-   a particular browser or research provider.
-4. The Run executes in the governed environment and produces artifacts,
-   citations/evidence references and a candidate Outcome.
-5. Independent validation checks required coverage, provenance, source
-   integrity/freshness and stated acceptance criteria.
-6. Evaluations and any conflicts are persisted before governed disposition.
-7. The accepted artifact remains linked to its evidence and production history.
+1. A bounded Task and Run identity exist under Symphony-K governance.
+2. An external runtime receives the execution context and attempts the work.
+3. The runtime submits artifacts, evidence references and a candidate Outcome.
+4. Symphony-K binds the submission to the exact Task, Run, entity versions,
+   execution identity and provenance.
+5. Independent Evaluation checks the applicable evidence and acceptance rules.
+6. Only current, eligible, non-conflicted evidence may support authoritative
+   disposition.
+7. The authoritative Outcome/Task decision is appended through governed state
+   transitions.
+8. The complete causal record remains reconstructable without trusting the
+   producing runtime's narrative.
 
-### Human decision points
+### Must fail closed
 
-- Approve ambiguous scope or evidence/source tradeoffs.
-- Grant narrowly scoped access to restricted data or tools.
-- Resolve semantic disagreement or low-confidence acceptance.
-- Authorize publication or delivery when it is an external Effect.
+- Worker self-report is treated as acceptance.
+- A candidate from another Run or entity is substituted.
+- A stale or superseded Evaluation is reused.
+- An external orchestrator directly marks authoritative completion.
 
-### Expected authoritative records
+### Acceptance evidence
 
-Objective, Task/TaskProposal history, Run and route, source/evidence references,
-artifact manifest, Outcome, Evaluations/conflict/arbitration, access/permission
-decisions, acceptance decision and any publication Effect receipt.
+A reference integration demonstrates candidate submission, exact provenance
+binding, independent Evaluation, authoritative disposition and audit
+reconstruction from supported public surfaces.
 
-### Failure and escalation branches
+## Workflow B — Stale, superseded or cross-entity evidence
 
-- Missing, stale or unverifiable sources leave the Outcome unaccepted.
-- Tool/network denial may block, reroute or request scoped escalation.
-- Conflicting evidence triggers additional validation or Human arbitration.
-- Sensitive-source or privacy constraints may narrow or terminate the Task.
-- Publication failure or uncertain occurrence follows Effect reconciliation.
+### Intent
 
-### What must never happen
-
-- Worker prose substitutes for required source evidence.
-- Citations or provenance are fabricated to satisfy acceptance.
-- A specific browser/tool provider becomes core domain semantics by implication.
-- Missing access silently broadens network or credential permission.
-- Artifact acceptance automatically authorizes external publication.
-
-### Owning stages
-
-Stages 1–6 provide state, tools/sandbox, verification, recovery and Effects;
-Stages 8–9 route and plan; Stage 11 provides supported operation; Stages 12–14
-prove documentation, restart and final acceptance behavior.
-
-### Final v1 acceptance evidence
-
-A bounded non-code fixture; explicit evidence requirements; sandboxed execution
-trace; content-addressed or durably identified artifact/source evidence;
-independent provenance and semantic Evaluations; conflict/low-confidence path;
-operator inspection proof; and separately governed publication when exercised.
-
-## Workflow C — Worker, sandbox or provider failure and recovery
-
-### Operator intent
-
-Continue or safely terminate valid work after an execution resource fails,
-without losing authoritative progress, changing attempt identity silently or
-duplicating an uncertain Effect.
-
-### Preconditions
-
-- Task and Run identity, route and policy are durably recorded.
-- Authoritative state exists outside the Worker/sandbox.
-- Applicable checkpoints, workspace/artifact references and evidence-chain
-  anchors have explicit completeness/trust status.
-- Recovery limits, budget and permissions are configured.
+Demonstrate that evidence cannot be replayed or substituted to obtain authority.
 
 ### Main path
 
-1. A governed Run starts on an eligible route.
-2. The Worker, sandbox, driver, provider or substrate fails.
-3. Durable state and telemetry survive outside the failed resource.
-4. The system normalizes and classifies the failure.
-5. It assesses the latest checkpoint, candidate work and any possible Effect.
-6. The Recovery Controller chooses bounded Resume, Rewind, Reassign or Human
-   escalation under policy.
-7. Resume continues the trustworthy interrupted Run where semantics permit;
-   Rewind or Reassign creates/links a new attempt identity where required.
-8. Preserved candidate material is reverified before authoritative use.
-9. The operator can inspect failure, decision, predecessor/successor and
-   resource/budget history.
-
-### Human decision points
-
-- Approve extra budget, permission or a materially different recovery route.
-- Decide when failure classification or checkpoint trust is ambiguous.
-- Take over or terminate work when automated recovery limits are exhausted.
-- Resolve any external Effect occurrence uncertainty before replay.
-
-### Expected authoritative records
-
-Run and route history, normalized failure, telemetry/evidence, checkpoint
-manifest/trust status, workspace/artifact references, recovery decision and
-policy version, predecessor/successor Run links, budget/permission use, handoff
-package and Effect reconciliation evidence when applicable.
-
-### Failure and escalation branches
-
-- An incomplete/corrupt checkpoint is rejected as a recovery anchor.
-- Repeated equivalent failure triggers stall/loop limits and escalation.
-- No eligible route leaves work blocked rather than violating constraints.
-- Budget or permission exhaustion stops automatic recovery.
-- Possible external occurrence quarantines replay pending reconciliation.
+1. A candidate disposition references exact evidence and entity versions.
+2. One test case supplies stale evidence, one superseded evidence, and one
+   evidence record belonging to another entity/Run.
+3. Symphony-K re-derives current effective use under the accepted Stage 1
+   semantics.
+4. Every invalid substitution fails closed or enters explicit governed conflict
+   handling; none authorizes the requested disposition.
+5. The rejection reason and provenance remain inspectable.
 
 ### What must never happen
 
-- Worker or sandbox loss erases Task state, evidence or audit history.
-- Reassign mutates the old Run into a different attempt.
-- Hidden reasoning is required to reconstruct the checkpoint.
-- Candidate artifacts become trusted merely because they survived.
-- Route failure is treated as proof an external Effect did not occur.
+- Caller-supplied judgment overrides current evidence status.
+- Matching text/content alone substitutes for exact identity/version binding.
+- A prior accepted Evaluation silently regains authority after supersession.
 
-### Owning stages
+## Workflow C — Consequential Effect with exact Human authorization
 
-Stage 1 owns Run/history semantics; Stages 2–3 provide failure boundaries;
-Stage 4 verifies preserved work; Stage 5 owns recovery; Stage 6 protects
-Effects/budgets/permissions; Stage 8 supplies routes; Stages 11–14 expose,
-exercise and accept the scenario.
+### Intent
 
-### Final v1 acceptance evidence
-
-Deterministic failure injection for Worker, sandbox and provider loss; durable
-state reread after process restart; checkpoint rejection/acceptance evidence;
-Resume/Rewind/Reassign traces with exact Run lineage; recovery limit behavior;
-uncertain-Effect no-replay proof; and operator-visible audit reconstruction.
-
-## Workflow D — Consequential external Effect with Human authorization
-
-### Operator intent
-
-Perform a consequential external change that contributes to accepted work while
-preserving verification, least privilege, exact authorization, idempotency and
-occurrence evidence.
-
-### Preconditions
-
-- A governed Task owns the planned Effect and the intended target/payload is
-  exact and attributable.
-- Required budget, risk, permission, reversibility, idempotency and
-  rollback/compensation information exists.
-- The preparing Worker has no commit authority.
-- Required independent verification and Human-authorization policy is known.
+Perform a consequential external change while preserving separation of
+proposal, Evaluation, authorization, dispatch and occurrence.
 
 ### Main path
 
-1. Accepted work produces an Effect intent through the governed boundary.
-2. The Effect Controller prepares or simulates the exact intended operation.
-3. Independent verification checks Task alignment, target/payload, permissions,
-   risks and remediation readiness.
-4. Policy obtains exact Human authorization for irreversible or configured
-   sensitive actions.
-5. The Effect Controller commits with scoped credentials and idempotency.
-6. The system captures a receipt or independently rereads external state.
-7. Occurrence, authorization and verification remain separately inspectable.
-8. Required rollback, compensation or reconciliation appends linked history.
-
-### Human decision points
-
-- Approve or reject sensitive/irreversible commit for the exact operation.
-- Acknowledge scoped policy override or break-glass risk when constitutionally
-  permitted.
-- Decide remediation when the desired result, receipt or occurrence is
-  ambiguous.
-
-### Expected authoritative records
-
-Effect intent and lifecycle, exact target/payload identity or hash,
-preparation/simulation artifact, evidence/Evaluations, budget/risk/permission
-decision, Human authorization, commit request/idempotency key, receipt/state
-observation, authorization findings and rollback/compensation records.
-
-### Failure and escalation branches
-
-- Failed preparation/verification or denied/expired authorization prevents
-  normal commit.
-- Dispatch timeout or missing receipt triggers reconciliation, not blind retry.
-- Receipt mismatch or undesired result triggers investigation/remediation.
-- Rollback/compensation failure remains visible and escalates.
-- Confirmed unauthorized occurrence follows Workflow E.
+1. Governed work produces an exact Effect request with target/payload identity.
+2. The Effect gateway prepares or validates the exact intended operation.
+3. Independent Evaluation verifies policy, permissions, evidence and applicable
+   remediation readiness.
+4. For an irreversible Effect, exact Human authorization is recorded before
+   normal real commit.
+5. Dispatch uses scoped authority and an idempotency identity.
+6. Receipt and/or independent external observation is recorded.
+7. Authorization truth and occurrence truth remain separate.
+8. Remediation, rollback where real, or compensation appends new history rather
+   than erasing occurrence.
 
 ### What must never happen
 
-- A Worker or evaluator commits the Effect it proposes/validates.
+- The producing Worker or evaluator commits the Effect it proposes/validates.
 - Irreversible normal commit proceeds without exact Human authorization.
-- API success alone is treated as verified desired state.
-- Retry duplicates a possibly committed Effect.
-- Compensation relabels the original occurrence as nonexistent or rolled back.
+- Tool/API success alone is treated as verified desired state.
+- Compensation rewrites the original Effect as never having occurred.
 
-### Owning stages
+## Workflow D — Dispatch succeeds but occurrence recording is uncertain
 
-Stage 1 owns Effect truth/history; Stage 4 provides independent verification;
-Stage 5 prevents unsafe recovery replay; Stage 6 owns runtime governance;
-Stages 11–14 expose, integrate, harden and accept the scenario.
+### Intent
 
-### Final v1 acceptance evidence
-
-A safe test/stub external system; exact prepared payload and independent
-Evaluation; denied and approved authorization cases; principal separation;
-idempotent commit; durable receipt and external reread; restart/replay proof;
-and operator inspection of authorization separately from occurrence.
-
-## Workflow E — Unauthorized or externally observed Effect incident
-
-### Operator intent
-
-Record and govern evidence that an external mutation occurred or may have
-occurred outside the normal authorized path, without hiding reality, inventing
-attribution or turning observation into execution permission.
-
-### Preconditions
-
-- Independently anchored evidence identifies an external target/operation or a
-  supported suspicion.
-- The observer has scoped recording/incident-ingestion authority but no implied
-  execution authority.
-- Deduplication and provenance information are available.
-- Unknown Task/Run attribution and authorization may be recorded as unknown.
+Handle the crash-consistency window where an external action may have happened
+but a local authoritative occurrence/receipt update is missing or uncertain.
 
 ### Main path
 
-1. The system independently observes confirmed or suspected external activity.
-2. It deduplicates the observation against existing Effect identity/history.
-3. Confirmed occurrence is recorded as `COMMITTED`; supported uncertainty is
-   recorded as `QUARANTINED` under accepted Stage 1 semantics.
-4. Occurrence, incident, attribution and authorization findings remain separate.
-5. Unknown attribution is preserved rather than fabricated and may be linked
-   later through appended verified association.
-6. Investigation gathers evidence and determines policy/safety impact.
-7. Reconciliation, rollback or compensation follows a separately governed path.
-8. Closure appends disposition and evidence without erasing original history.
-
-### Human decision points
-
-- Assess incident severity, policy violation and required containment.
-- Approve sensitive remediation or compensation.
-- Accept verified later attribution without rewriting the earlier unknown fact.
-- Close a disproved suspicion or confirmed incident with explicit rationale.
-
-### Expected authoritative records
-
-Effect/incident identity, external target/operation, observer and recording
-authority, observation and occurrence times where known, evidence/provenance,
-deduplication result, occurrence/incident/authorization findings, quarantine or
-commit event, attribution links, investigation, remediation and closure.
-
-### Failure and escalation branches
-
-- Insufficient evidence retains uncertainty and blocks automatic replay.
-- Conflicting observations require additional verification/arbitration.
-- Duplicate observations link to the existing Effect rather than create a
-  second occurrence.
-- Unsafe/uncertain remediation remains quarantined and escalates.
-- A disproved suspicion retains a supported non-occurrence/closure record.
+1. The Effect gateway dispatches an idempotently identified operation.
+2. The external endpoint may have applied the operation.
+3. Before Symphony-K can durably establish occurrence, the process/connection
+   fails or the receipt is unavailable.
+4. The Effect enters an explicit uncertain/quarantined reconciliation state
+   according to accepted semantics.
+5. Automatic blind retry is blocked.
+6. Reconciliation uses external readback, receipts, provider evidence and Human
+   decision where required.
+7. The eventual occurrence/remediation result is appended with provenance.
 
 ### What must never happen
 
-- Missing prior authorization suppresses confirmed occurrence.
-- Recording authority dispatches an external mutation or grants permission.
-- Unknown actor, Task, Run or authorization is invented.
-- `QUARANTINED` is treated as an occurrence verdict or automatic retry request.
-- Rollback/compensation or incident closure deletes the original observation.
+- Dispatch failure is inferred to mean non-occurrence.
+- A retry duplicates a possibly occurring Effect.
+- Uncertainty is hidden by mutating the previous event.
 
-### Owning stages
+## Workflow E — External retry, failover and attempt lineage
 
-Stage 1 owns occurrence/authorization/quarantine history; Stage 4 verifies
-evidence; Stage 5 blocks unsafe replay; Stage 6 owns observation/reconciliation
-runtime; Stages 11–14 expose, integrate, harden and accept incident handling.
+### Intent
 
-### Final v1 acceptance evidence
+Permit an external orchestrator to own mechanical retries/failover without
+allowing it to rewrite authoritative attempt identity or Effect safety.
 
-Fixtures for confirmed unauthorized occurrence, uncertain suspicion,
-deduplication, unknown attribution, later verified association, disproval,
-quarantine reconciliation and compensation; independent evidence; process
-restart/reopen proof; and operator-visible separation of occurrence,
-authorization and incident status.
+### Main path
 
-## Stage traceability matrix
+1. An external orchestrator attempts a governed Run and encounters failure.
+2. Mechanical retry/failover policy may choose another executor or substrate.
+3. Where accepted Run semantics require a new attempt, Symphony-K records a new
+   Run/attempt identity and predecessor relationship.
+4. Surviving artifacts/checkpoints remain claims until their trust and evidence
+   lineage is verified.
+5. If any Effect occurrence is uncertain, retry across that boundary remains
+   blocked pending reconciliation.
+6. Audit history explains the original attempt, failure, successor attempt and
+   evidence reused or rejected.
 
-`Enable` means the stage supplies a capability required by the workflow;
-`prove` means its exit evidence must exercise the composed behavior.
+### What must never happen
 
-| Workflow | Enables and governs | Integration/final proof |
-| --- | --- | --- |
-| A — Software maintenance | Stages 1–6, 8–9 | Stages 11–14 |
-| B — Non-code artifact/research | Stages 1–6, 8–9 | Stages 11–14 |
-| C — Failure and recovery | Stages 1–5, 8 | Stages 6, 11–14 |
-| D — Authorized external Effect | Stages 1, 4–6 | Stages 11–14 |
-| E — Observed Effect incident | Stages 1, 4–6 | Stages 11–14 |
+- External failover mutates an old Run into a different attempt.
+- Provider failure proves an Effect did not occur.
+- A surviving checkpoint becomes trusted merely because the orchestrator kept
+   it.
 
-Stage 0 supplies the constitutional and repository governance foundation for
-all workflows. Stages 7 and 10 provide cross-cutting architecture validation
-and governed reliability/learning inputs; neither is allowed to weaken any
-workflow invariant. The [Roadmap](../ROADMAP.md) states the observable
-capability unlocked by every Stage 0–14.
+## Workflow F — Durable causal audit reconstruction
+
+### Intent
+
+Allow a fresh operator/reviewer to explain why an authoritative decision or
+external Effect occurred without reading private database tables, source code or
+hidden model reasoning.
+
+### Required reconstruction
+
+For a selected Outcome or Effect, supported public audit surfaces must identify:
+
+- governing Objective/Task/Run lineage;
+- producing execution identity and provenance;
+- candidate/result identity and relevant versions;
+- exact evidence and Evaluation effective use;
+- conflicts/arbitration or Human decisions when applicable;
+- Effect preparation/authorization/dispatch/receipt/occurrence/reconciliation;
+- policy/version context sufficient to explain the authoritative decision.
+
+A 7/7-style successful reconstruction or its future equivalent must be based on
+published supported records, not private implementation inspection.
+
+## Workflow G — Reference execution/provider path
+
+### Intent
+
+Prove the external execution boundary end to end using at least one supported
+reference provider path without making that provider Symphony-K's product
+identity.
+
+### Main path
+
+1. The reference provider executes a bounded attempt under its approved
+   isolation/provenance contract.
+2. It returns candidate artifacts/evidence through the same governance facade
+   available to other integrations.
+3. Symphony-K applies the same authority, Evaluation, Effect and audit rules as
+   for any external provider.
+4. Provider-specific metadata remains at the integration boundary.
+5. Replacing the provider must not change core domain semantics.
+
+ADR-0008 and the accepted Stage 2 sandbox design may supply this reference or
+conformance path. Their acceptance does not make ownership of a production
+sandbox runtime a v1 prerequisite.
+
+## v1 traceability
+
+The accepted governance-centered delivery path is:
+
+```text
+Stage 1 governance kernel
+-> governance SDK/facade
+-> trusted Evaluation/evidence integration
+-> governed Effect gateway and occurrence reconciliation
+-> durable audit export/reconstruction
+-> adversarial/conformance suite
+-> external agent/orchestrator integration
+-> reference execution/provider path
+-> end-to-end governance safety/recovery
+-> production hardening
+-> v1 acceptance
+```
+
+Workflows A-G are acceptance scenarios across that path. Generic Planner,
+generic Router, learned routing/reputation, multiple complete Agent runtimes and
+ownership of a production sandbox runtime are optional/reference/future
+capabilities, not mandatory workflow prerequisites.
