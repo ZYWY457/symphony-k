@@ -2,12 +2,15 @@
 
 ## Status
 
-Proposed.
+Accepted.
 
-This is a Worker-produced candidate under GitHub Issue #89. It requires
-independent review and explicit Human acceptance before it becomes an accepted
-architecture decision. It does not authorize production implementation,
-reconcile the Product Contract or Roadmap, or release Issue #79.
+The corrected R1 decision at exact head
+`9c842f18ffcdd51daef8f05d9367f571df677703` received independent technical
+re-review **ACCEPT** on Issue #89 comment `5711016301` and explicit Human
+**APPROVED / ACCEPTED** on Issue #89 comment `5711029647`.
+
+This acceptance does not authorize production implementation, reconcile the
+Product Contract or Roadmap, or release Issue #79.
 
 ## Date
 
@@ -218,10 +221,10 @@ ADR-0003, ADR-0006 and ADR-0008 are not rejected by this decision.
 
 ## Constitutional amendment impact
 
-Constitution v0.1 names the product as a complete orchestrator and can be read
+Constitution v0.1 named the product as a complete orchestrator and could be read
 to assign Symphony-K ownership of planning, sandboxing, recovery and learning
-mechanisms. The accompanying Constitution v0.2 candidate changes that
-responsibility boundary while preserving the trust model.
+mechanisms. The accepted Constitution v0.2 amendment changes that responsibility
+boundary while preserving the trust model.
 
 The amendment affects product-purpose and ownership wording, not the six entity
 state machines or their accepted transitions. It preserves Worker distrust,
@@ -310,9 +313,8 @@ retains Stage 2 as an optional/reference provider boundary.
 
 ## Migration impact
 
-This R1 decision does not itself reconcile or authorize changes to the
-following documents. Later bounded work must update them in order after this
-candidate is independently reviewed and explicitly Human accepted:
+This R1 decision is accepted. Later bounded work must update the following
+documents in order:
 
 - **R2 — product and architecture:** `VISION.md`, `ARCHITECTURE.md`,
   `docs/V1_PRODUCT_CONTRACT.md` and the root `README.md`;
@@ -336,15 +338,14 @@ and a fresh post-transition implementation TaskSpec is explicitly released.
 
 ## Verification and rollback posture
 
-R1 verification is documentary: inspect the exact diff and allowed paths,
-check links and Markdown structure, confirm the Constitution version and
-candidate statuses, and verify that protected product, architecture, roadmap,
-source, test and accepted ADR contents are unchanged. It makes no runtime
-claim.
+R1 verification was documentary: inspect the exact diff and allowed paths,
+check links and Markdown structure, confirm the Constitution version and status,
+and verify that protected product, architecture, roadmap, source, test and
+accepted ADR contents were unchanged. It makes no runtime claim.
 
-If independent review finds that the decision weakens an accepted invariant,
-misstates evidence or creates an unresolved contradiction, the candidate must
-receive REQUEST CHANGES and be corrected forward. If an accepted transition is
-later reversed, a new ADR and constitutional amendment must append the new
-decision and migration consequences. Historical approvals, evidence and Effect
-occurrences must not be silently rewritten.
+If later review finds that the accepted decision weakens an invariant,
+misstates evidence or creates an unresolved contradiction, work must stop and
+the correction must be made forward through the applicable governance process.
+If an accepted transition is later reversed, a new ADR and constitutional
+amendment must append the new decision and migration consequences. Historical
+approvals, evidence and Effect occurrences must not be silently rewritten.

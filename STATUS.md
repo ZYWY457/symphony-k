@@ -8,9 +8,15 @@
   boundary is `987f927905cadcedd473f2ba3270f56908b7f6b9`, with Human Exit
   acceptance recorded by GitHub Issue #75 and its ordered governance commits.
 - **Latest accepted stage:** Stage 1 — Domain Kernel
-- **Current accepted constitutional baseline:** `constitution-v0.1`.
-  Constitution v0.2 and ADR-0009 are the proposed R1 candidates under Issue
-  #89; they are not accepted merely by Worker materialization.
+- **Current accepted constitutional baseline:** `constitution-v0.2`, accepted
+  with ADR-0009 at exact head
+  `9c842f18ffcdd51daef8f05d9367f571df677703` after independent technical
+  re-review **ACCEPT** on Issue #89 comment `5711016301` and explicit Human
+  **APPROVED / ACCEPTED** on Issue #89 comment `5711029647`.
+- **ADR-0009:** **ACCEPTED** — Framework-Neutral Agent Governance Kernel and
+  External Execution Boundary. It preserves accepted Stage 1 semantics while
+  narrowing v1 ownership of planning, routing, Agent runtime and sandbox
+  mechanisms.
 - **Stage 2 M1 architecture/design:** **HUMAN ACCEPTED**. ADR-0008 remains
   **ACCEPTED** and technically unchanged. The current cumulative accepted
   sandbox design baseline is
@@ -45,21 +51,23 @@
 - **Strategic evidence result:** gates A/B/C/D/E passed under the registered
   experiment. That evidence supported consideration of an amendment; the later
   Human approval is a separate governance decision.
-- **Current governance work:** Issue #89 R1 is the current
-  architecture/constitutional candidate. Product Contract, Architecture,
-  Vision and Roadmap reconciliation still await later R2-R4 work and their own
-  review/acceptance gates; their existing wording remains historical accepted
-  truth meanwhile.
+- **R1 architecture/constitution:** **COMPLETE AND HUMAN ACCEPTED** at exact head
+  `9c842f18ffcdd51daef8f05d9367f571df677703`. ADR-0009 and Constitution v0.2
+  are current accepted governance truth.
+- **Current governance work:** R2 product-definition reconciliation is the next
+  strategic step. `VISION.md`, `ARCHITECTURE.md`, `docs/V1_PRODUCT_CONTRACT.md`
+  and the root `README.md` still carry historical pre-transition accepted
+  wording until R2 is materialized, reviewed and accepted.
 - **Implementation hold:** Issue #79 remains **BLOCKED / NOT RELEASED**. Its old
   Stage 2 M2 scope must not be re-released during strategic reconciliation.
-  Human strategic approval and the R1 candidate do not authorize an
-  implementation restart.
+  R1 acceptance does not authorize an implementation restart.
 
 ## Current Stage 2 status
 
 - **Current stage:** Stage 2 — Sandbox Execution
 - **Stage 2 activity:** **ACTIVE** at the accepted M1 design boundary; runtime
-  implementation remains blocked pending the current strategic decision.
+  implementation remains blocked pending completion of the strategic
+  reconciliation sequence.
 - **Current parent plan:**
   [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
 - **Current Human Accepted Stage 2 technical design baseline:**
@@ -112,20 +120,21 @@
   independent **ACCEPT** comment `5709520565`. The accepted review classifies
   gates A/B/C/D/E as PASS and reaches the registered GO gate for considering a
   formal amendment; it does not approve that amendment.
-- **Current governance work:** Issue #87 records the Human strategic approval;
-  Issue #89 R1 now materializes the proposed ADR-0009 and Constitution v0.2
-  candidate. Worker commits remain candidates pending independent review and
-  explicit Human acceptance.
+- **R1 acceptance lineage:** Issue #87 Human strategic approval -> Issue #89 R1
+  candidate -> independent REQUEST CHANGES comment `5710385425` -> Issue #90
+  narrow R1C correction -> corrected head `9c842f18...` -> independent technical
+  re-review **ACCEPT** comment `5711016301` -> explicit Human R1 acceptance
+  comment `5711029647` -> Issue #91 acceptance reconciliation.
 - **Issue #79:** **BLOCKED / NOT RELEASED**, revision
   `r3 - stage-02-m2-blocked-after-unknown-collection-stop`. Its earlier r2 was
   released but stopped before mutation; no M2 code or implementation commit
   was produced. Do not reuse r2 execution authority or re-release its old M2
   scope while the required strategic reconciliation remains unresolved.
-- **Next action:** complete independent review and explicit Human acceptance of
-  the Issue #89 R1 candidate. Product Contract/Architecture/Vision/Roadmap and
-  delivery/workflow reconciliation remain later work; implementation cannot
-  restart before the required reconciliation and a fresh executable TaskSpec.
-  This status update does not release M2.
+- **Next action:** execute and review R2 product-definition reconciliation for
+  `VISION.md`, `ARCHITECTURE.md`, `docs/V1_PRODUCT_CONTRACT.md` and root
+  `README.md`. R3 delivery-plan and R4 workflow/cold-start reconciliation remain
+  subsequent bounded work. Implementation cannot restart before the required
+  reconciliation and a fresh executable TaskSpec.
 - **Stage 3:** **PLANNED** — not activated.
 
 An open or `READY` Issue does not prove that a Worker is executing it. Issue

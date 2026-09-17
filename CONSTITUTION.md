@@ -2,8 +2,10 @@
 
 **Version:** 0.2
 
-**Amendment status:** Candidate pending independent review and explicit Human
-acceptance of the exact amendment.
+**Amendment status:** Accepted. The corrected R1 candidate received independent
+technical re-review **ACCEPT** on Issue #89 comment `5711016301` and explicit
+Human **APPROVED / ACCEPTED** on Issue #89 comment `5711029647` at exact head
+`9c842f18ffcdd51daef8f05d9367f571df677703`.
 
 ## 1. Purpose
 
@@ -216,15 +218,19 @@ Those choices may evolve through ADRs as long as constitutional behavior remains
 
 ## 9. Constitution v0.2 Amendment Record
 
-Constitution v0.2 is the amendment candidate associated with
+Constitution v0.2 is the accepted amendment associated with
 [ADR-0009](docs/adr/0009-framework-neutral-agent-governance-kernel.md).
 
-The durable authority and evidence chain is:
+The durable authority, evidence and acceptance chain is:
 
 - [Human strategic approval on Issue #87, comment `5710053258`](https://github.com/ZYWY457/symphony-k/issues/87#issuecomment-5710053258);
-- strategic falsification and correction evidence in Issues #85 and #86; and
+- strategic falsification and correction evidence in Issues #85 and #86;
 - [independent ACCEPT of the corrected evidence on Issue #86, comment
-  `5709520565`](https://github.com/ZYWY457/symphony-k/issues/86#issuecomment-5709520565).
+  `5709520565`](https://github.com/ZYWY457/symphony-k/issues/86#issuecomment-5709520565);
+- [independent technical re-review ACCEPT of the corrected R1 candidate on
+  Issue #89, comment `5711016301`](https://github.com/ZYWY457/symphony-k/issues/89#issuecomment-5711016301); and
+- [explicit Human R1 acceptance on Issue #89, comment `5711029647`](https://github.com/ZYWY457/symphony-k/issues/89#issuecomment-5711029647),
+  accepting exact head `9c842f18ffcdd51daef8f05d9367f571df677703`.
 
 This amendment changes Symphony-K's product responsibility and ownership
 boundary. It does not weaken the accepted trust model, reopen the six core
@@ -234,8 +240,9 @@ work, accept their own Outcomes, grant themselves authority, or bypass governed
 Effects; Evaluators still cannot commit the Effects they validate; and
 historical occurrence and evidence provenance remain append-only in meaning.
 
-The amendment is implemented first as a reviewable candidate. If independent
-review or later reconciliation identifies an inconsistency, work MUST stop and
-the correction or reversal MUST be made through an explicit forward ADR and
-constitutional amendment. Historical governance, evidence and occurrence facts
-MUST NOT be silently reverted or rewritten.
+The amendment was materialized first as a reviewable candidate and is now
+accepted at the exact head identified above. If later reconciliation identifies
+an inconsistency, work MUST stop and the correction or reversal MUST be made
+through an explicit forward ADR and constitutional amendment. Historical
+governance, evidence and occurrence facts MUST NOT be silently reverted or
+rewritten.
