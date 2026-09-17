@@ -1,155 +1,256 @@
-# Strategic Governance-Layer Validation — Issue #85
+# Strategic Governance-Layer Validation Correction — Issue #86
 
 ## Authority and precondition
 
 ```text
-TaskSpec reference: https://github.com/ZYWY457/symphony-k/issues/85
-TaskSpec revision: r1 - strategic-validation-governance-layer-thesis
+TaskSpec reference: https://github.com/ZYWY457/symphony-k/issues/86
+TaskSpec revision: r1 - strategic-validation-evidence-correction
 TaskSpec access mode: direct-read
-TaskSpec updatedAt: 2026-09-17T01:29:56Z
+TaskSpec updatedAt: 2026-09-17T02:02:14Z
 TaskSpec precondition: PASS
-Starting SHA: 8e7a86ad8ef2e94a5583ac1acb88fc86e56e02c7
-Starting parent: 335a7315300c00857cb1472995e21ad37434be0a
-Starting title: docs(governance): accept stage two m1c sandbox erratum
+Starting SHA: 52879a6ddcbfa4005c666c0cf23776899dd7825d
+Starting parent: b7d105fa44d3252ada401e0aeab48e3ef773ef1d
+Starting title: docs(strategy): record governance-layer validation evidence
 ```
 
-Issue #84's independent ACCEPT was freshly read. Issue #79 was freshly read as
+Issue #85 and independent review comment `5707299068` were freshly read before
+mutation. Issue #79 was freshly read as
 `r3 - stage-02-m2-blocked-after-unknown-collection-stop`, **BLOCKED / NOT
-RELEASED**. Origin and remote `main` matched the required starting SHA, the
-worktree was clean, no merge/rebase state existed, and Git/Python/uv preflight
-passed before mutation.
+RELEASED**. Remote `main` matched the required starting SHA; origin, clean
+worktree, parent/title, merge/rebase absence, Git, Python and uv all matched the
+TaskSpec. No durable overlap or later Issue #86 revision was present.
 
-The criteria A/B/C/E below are the Issue's pre-registered criteria, applied
-without post-result adjustment. Criterion D is not self-scored.
+This correction changes only the Issue #85 experiment, tests, generated
+evidence and this review. Production `src/symphony_k`, accepted Stage 1
+semantics, Constitution, Product Contract, Roadmap, Development Path, ADRs and
+Stage 2 plans/design are unchanged.
 
-## Experimental architecture and cost
+## Corrected G1 — execution success is distinct from Outcome acceptance
 
-The external fake Worker, evaluator, Human fixture, trusted gateway and fake
-external system remain outside `src/symphony_k`. The fake external system owns
-its own target state and idempotency receipts. An opaque-port facade maps four
-operations to the accepted `LifecycleService`/`SQLiteStore` boundary:
+G1 now starts with an accepted Stage 1 `Run` in `RUNNING`. The external Worker
+uses its Worker port and a Worker-labelled transition request to attempt
+`Run.RUNNING -> COMPLETED`. The facade rejects the Worker lane before the Run
+head changes. This is a real execution/work-success boundary: `COMPLETED` means
+normal execution closure and is controlled by the Run controller; it does not
+mean Outcome acceptance.
 
-1. `submit_creation`;
-2. `apply_transition`;
-3. `commit_effect`;
-4. `export_audit`.
+G2 remains the separate attack in which a Worker forges/relabels a disposition
+port to accept its own Outcome. The fair baseline now has a distinct execution
+attempt record and rejects Worker self-completion separately from candidate
+self-acceptance.
 
-The Worker receives only its Worker port and cannot obtain the gateway port.
-Actor labels in requests are data, not capabilities. The gateway exact-binds
-Effect identity/version, target, payload and correlation to explicit Human
-authorization before changing the fake external system. The resulting Human
-authorization and receipt are stored in an append-only experimental SQLite
-table; Stage 1 stores the confirmed occurrence and compensation records.
+Result: both registered threats are distinct and produce the expected safe
+behavior.
 
-Measured facade glue: **234 nonblank/non-comment lines**, 264 physical lines.
-Baseline: **183 nonblank/non-comment lines**, 211 physical lines. No production
-source, dependency or Stage 1 semantic file changed.
+## Corrected G3 — stale Evaluation, current Outcome request
 
-Six broad existing API types are directly exposed to the integration caller:
-`CreationRequest`, `CreationContext`, `LifecycleEntityId`, `TransitionRequest`,
-`TransitionContext`, and `TransitionResult`. Concrete construction also requires
-knowledge of numerous exact semantic record types. The four-operation count is
-good; request-construction ergonomics are materially worse than the operation
-count suggests.
+The corrected Symphony-K attack keeps the authoritative Outcome and
+`TransitionRequest.expected_version` exactly current. It first persists the
+Evaluation snapshot referenced by the accepted disposition semantics, then a
+trusted independent writer advances that Evaluation to a newer durable version.
+The disposition still supplies the earlier exact Evaluation/effective-use
+observation while requesting the current Outcome version.
 
-## Raw adversarial results
+The domain transition is structurally valid and the Outcome version check
+passes. Stage 1 persistence rejects it with
+`Outcome disposition requires an unchanged current Evaluation`; the Outcome
+head remains unchanged. The rejection is therefore caused by exact durable
+Evaluation/effective-use binding, not by an ordinary stale Outcome request.
 
-| ID | Expected | Symphony-K actual | Fair baseline actual | Difference |
-|---|---|---|---|---|
-| G1 | Worker claim cannot become authoritative success | SAFE: Worker port rejected lifecycle authority; durable head unchanged | SAFE: producer cannot dispose candidate | Equal protection |
-| G2 | Worker cannot self-accept Outcome | SAFE: forged/relabelled port rejected | SAFE: producer identity rejected | Equal protection |
-| G3 | Stale evidence cannot authorize current candidate | SAFE: exact snapshot/version guard rejected | SAFE: candidate-version mismatch rejected | Equal protection |
-| G4 | Cross-entity substitution rejected | SAFE: nominal identity and exact authority binding rejected | SAFE: string identity equality rejected | Same outcome; Symphony-K has structural type/binding support |
-| G5 | Old context rejected or exact idempotent replay only | SAFE: exact event replay returned the immutable original receipt without head mutation | SAFE: stale replay rejected | Symphony-K provides durable exact replay, not merely rejection |
-| G6 | Sensitive Effect cannot commit without Human authorization | SAFE: gateway rejected missing authorization before external mutation | SAFE: missing approval rejected | Equal protection; gateway remains integration glue |
-| G7 | Confirmed occurrence cannot be erased | SAFE: database append-only trigger rejected delete; COMMITTED remained factual | SAFE through service API; compensation retained `occurred=true` | Symphony-K enforcement is below the application API |
-| G8 | At most one stale concurrent writer succeeds | SAFE: one update and one explicit conflict across independent SQLite connections | SAFE: lock+CAS produced one update and one conflict | Equal result; Symphony-K persists the history |
+The fair baseline performs the analogous case: it revises the candidate, keeps
+the disposition request current, and supplies the earlier exact-version
+Evaluation. Its exact-current Evaluation check rejects the request.
 
-Enforcement result: **8 / 8 safe**.
+Result: expected safe behavior in both systems; Symphony-K additionally
+re-derives the effective-use view from durable Evaluation/arbitration history.
 
-## Raw legal-flow results
+## Corrected G7 — threat-equivalent direct history attack
 
-| ID | Symphony-K actual | Baseline actual |
-|---|---|---|
-| H1 | External Worker candidate recorded as PROPOSED through authoritative creation | Candidate recorded |
-| H2 | Independent exact-target Evaluation advanced PENDING -> RUNNING -> COMPLETED with durable result evidence | Independent exact-version evaluation recorded |
-| H3 | Current completed Evaluation supported ACCEPTED disposition | Current evaluation supported ACCEPTED disposition |
-| H4 | Exact Human authorization gated trusted fake commit; authorization, receipt and occurrence survived database reopen | Exact Human approval gated commit and recorded occurrence |
-| H5 | COMMITTED -> COMPENSATING -> COMPENSATED retained the original occurrence record | Compensation retained `occurred=true` and append history |
+Both sides now receive an attack beneath their normal service API.
 
-Legal-flow result: **5 / 5**.
+- Symphony-K: direct SQL deletion from the Stage 1 `events` table is rejected by
+  the SQLite append-only trigger; the `COMMITTED` occurrence remains factual.
+- Baseline: the bounded baseline intentionally remains the same competent
+  in-process service with exact checks, lock/CAS, idempotency and an
+  append-only-by-API event list. It has no durable database or private
+  persistence boundary. A direct in-memory attack can clear the event history
+  and replace the Effect with `occurred=false`.
 
-## Fairness and differentiation
+The baseline result is **UNPROTECTED**, not a comparable SAFE pass. No baseline
+check was removed or weakened; the corrected test exposes the structural limit
+of its original persistence design.
 
-The baseline uses ordinary frozen Python records, application policy checks,
-an append-only-by-API event log, exact version checks, a lock/CAS boundary,
-Human approval records and idempotency keys. It is intentionally competent and
-passes every comparable attack and legal control.
+## Executed audit scenario and exporter
 
-No differentiation is claimed for G1, G2, G3, G6 or G8. The bounded structural
-advantages are:
+The former hand-authored `RECORDS` tuple and standalone narrative ledger were
+removed. `audit.py` now executes one deterministic scenario through the Issue
+#85 facade and accepted Stage 1 service/persistence:
 
-- G4: nominal identity/version objects and pervasive exact-binding semantics;
-- G5: durable request fingerprinting and exact idempotent replay after head
-  advancement;
-- G7: SQLite-level append-only enforcement plus immutable historical versions,
-  rather than reliance only on service encapsulation.
+```text
+candidate A in validation
+-> persisted Evaluation E1 exact-bound to A
+-> accepted Outcome supersession A -> B
+-> persisted supporting E2 and conflicting E3 exact-bound to B
+-> persisted direct Stage 1 arbitration upholding E2 for effective use
+-> accepted Outcome B disposition using exact-current arbitrated E2
+-> persisted planned Effect
+-> verified experimental authorization/evidence binding
+-> exact Human authorization
+-> trusted gateway commit and external receipt
+-> confirmed Stage 1 occurrence
+-> Stage 1 compensation preserving the committed occurrence
+```
 
-These are reusable governance primitives, not proof that a senior engineer
-could not rebuild similar controls. The experiment demonstrates lower risk of
-omission and richer provenance, not monopoly on the guarantees.
+E3 is honestly represented as a separate persisted conflicting judgment. It is
+not claimed as a member of a Stage 1 conflict set. The implemented effective
+resolution used for B is direct Stage 1 arbitration of E2. This is narrower
+than full multi-member conflict-set arbitration and is stated in the blind
+packet.
 
-## Audit reconstruction
+After execution, the exporter closes and reopens SQLite and derives all packet
+records from these durable sources:
 
-The deterministic packet includes candidate A, E1, explicit supersession by B,
-E1's exact-target staleness, supporting E2, conflicting E3, Stage 1 arbitration
-and effective disposition, an Effect request, exact Human authorization,
-external receipt, confirmed occurrence and compensation preserving occurrence.
+- Stage 1 `entity_versions` and `events` for candidates, Evaluations and Effect;
+- Stage 1 `operations` provenance for supersession and disposition;
+- Stage 1 `supporting_records` for Evaluation arbitration, Effect occurrence and
+  compensation semantics;
+- append-only experimental `strategic_authorization_bindings`;
+- append-only experimental `strategic_integration_records` for Human
+  authorization and external receipt.
 
-- Blind packet: `experiments/governance_layer_validation/artifacts/blind-audit-packet.md`
-- Separate answer key: `experiments/governance_layer_validation/artifacts/audit-answer-key.md`
-- Machine records: `experiments/governance_layer_validation/artifacts/audit-records.json`
+The renderer normalizes those records into stable human-readable labels. It
+does not begin with desired answers or pre-authored narrative records.
 
-The seven registered questions are embedded in the packet. Occurrence
-uncertainty was not modeled, and the packet says so explicitly. The deterministic
-records survive SQLite close/reopen and cannot be updated/deleted through the
-experimental ledger. This prepares criterion D but does not score it.
+Fresh artifacts:
+
+- blind packet:
+  `experiments/governance_layer_validation/artifacts/blind-audit-packet.md`;
+- separate answer key:
+  `experiments/governance_layer_validation/artifacts/audit-answer-key.md`;
+- machine export:
+  `experiments/governance_layer_validation/artifacts/audit-records.json`.
+
+The seven Issue #86 questions are unchanged. The packet contains no answer key.
+
+## Authorization-to-evidence binding
+
+Issue #86 Option A is implemented outside production `src/`.
+
+`bind_authorization_evidence` accepts the exact `HumanAuthorization`, Effect,
+accepted Outcome and effective Evaluation identities. Before inserting an
+append-only binding it verifies:
+
+1. exact current Effect identity/version/target/payload;
+2. current accepted Outcome and its current persisted disposition event;
+3. disposition operation provenance contains the exact Evaluation
+   id/version/state/target/verifier and an eligible effective-use view;
+4. the Evaluation has persisted nonempty evidence;
+5. every referenced arbitration identity resolves to a persisted Stage 1
+   supporting record.
+
+`commit_effect` reloads the durable binding, re-derives it from current persisted
+sources and requires exact equality before touching the external system. A
+nonblank but unbound `evidence_ref` is explicitly tested and rejected before
+external mutation.
+
+This is bounded experimental adapter storage. It does not change or claim a new
+accepted Stage 1 production semantic.
+
+## Corrected raw results
+
+| ID | Symphony-K result | Fair baseline result | Corrected interpretation |
+|---|---|---|---|
+| G1 | SAFE: Worker cannot complete its Run | SAFE: Worker cannot complete its execution attempt | Distinct execution-success threat; equal bounded protection |
+| G2 | SAFE: forged disposition port rejected | SAFE: producer cannot dispose own candidate | Distinct Outcome self-acceptance threat; equal protection |
+| G3 | SAFE: current Outcome request rejected because Evaluation observation is no longer durable-current | SAFE: current candidate request rejects earlier-version Evaluation | Registered stale-evidence threat now exercised |
+| G4 | SAFE: nominal/exact binding rejects substitution | SAFE: string identity equality rejects substitution | Same outcome; reusable structural binding advantage |
+| G5 | SAFE: exact durable replay returns original immutable receipt | SAFE: stale replay rejected | Material durable replay/provenance difference |
+| G6 | SAFE: missing or unbound Human authorization rejected before external mutation | SAFE: missing approval rejected | Experimental exact evidence binding now demonstrated |
+| G7 | SAFE: direct SQL deletion rejected | UNPROTECTED: direct in-memory mutation erases occurrence/history | Material durable structural difference; not counted as baseline SAFE |
+| G8 | SAFE: one SQLite writer wins, one conflicts | SAFE: lock/CAS gives one winner | Equal outcome; Symphony-K history is durable |
+
+All H1-H5 legal controls pass. H4 now includes successful durable
+authorization-to-disposition/evaluation/evidence binding before exact Human
+authorization and external commit.
+
+## Recomputed provisional criteria
+
+- **A — PASS (provisional):** meaningful candidate, Evaluation, disposition,
+  Effect and audit governance still execute without owning Planner, Router,
+  AgentDriver or Sandbox.
+- **B — PASS (provisional):** corrected distinct G1, true stale-evidence G3,
+  G2/G4-G8 all produce their registered safe behavior; H1-H5 all succeed.
+- **C — PASS (provisional):** G4 exact nominal/provenance binding, G5 durable
+  idempotent replay and G7 database-enforced append-only history remain three
+  material structural differentiators after the fair direct-attack correction.
+- **D — PENDING INDEPENDENT BLIND REVIEW:** the Worker does not self-score it.
+- **E — PASS (provisional):** five primary operations, 445 measured
+  nonblank/non-comment facade lines (480 physical), zero production changes and
+  zero accepted semantic changes. The large Stage 1 type surface remains a
+  material ergonomics warning.
+
+The baseline is 216 measured nonblank/non-comment lines (249 physical). Audit
+scenario/export code is 575 measured nonblank/non-comment lines (608 physical)
+and is reported separately from facade glue.
+
+**NON-BINDING Worker recommendation: DEFER STRATEGIC CLASSIFICATION.** A/B/C/E
+are provisionally PASS, but no GO/CONDITIONAL/NO-GO conclusion should be made
+before the independent blind review determines D. Product Contract and Roadmap
+remain unchanged.
 
 ## Negative and falsifying evidence
 
-1. Stage 1 has no production external dispatch API. The experiment must supply
-   the trusted gateway and capability-port launch boundary.
-2. Stage 1 records authorization/occurrence semantics, but atomicity across a
-   real external commit and the local durable record is not solved. A crash after
-   the external action but before local recording requires future reconciliation.
-3. Human authorization and external receipt persistence required experimental
-   adapter storage. The Stage 1 occurrence record alone is not a complete
-   production commit controller.
-4. The baseline matched all 13 safety/legal outcomes with less code and fewer
-   concepts. Symphony-K's advantage is stronger reusable structure/provenance,
-   not unique bounded-case behavior.
-5. Four facade operations fit the target, but constructing accepted Stage 1
-   request/context objects exposes a large semantic type surface. A real SDK
-   would be needed before ordinary framework integrations are ergonomic.
-6. The audit packet is deterministic and durable, but independent 7/7
-   comprehensibility remains untested.
+1. The competent fair baseline still matches most bounded safety/legal outcomes
+   with less code and fewer concepts.
+2. The baseline lacks durable/private persistence, making it structurally
+   vulnerable to direct history mutation; this is a genuine negative for the
+   baseline, not proof that every ordinary application shares the weakness.
+3. E3 is not part of a persisted Stage 1 conflict set. The scenario demonstrates
+   direct arbitration of E2, not full conflict-set resolution across E2/E3.
+4. Authorization-to-evidence binding is experimental integration storage, not a
+   production Stage 1 contract.
+5. A crash after the external commit but before local occurrence recording is
+   still not transactionally solved.
+6. Five facade operations meet the numeric target, but constructing accepted
+   request/context objects exposes a broad semantic type surface.
+7. Independent blind comprehensibility is not yet established; criterion D
+   remains pending.
 
-## Provisional criteria and recommendation
+## Validation evidence
 
-- **A — PASS (provisional):** meaningful candidate, Evaluation, disposition,
-  Effect and audit governance ran without Planner, Router, AgentDriver or
-  Sandbox ownership.
-- **B — PASS (provisional):** G1-G8 = 8/8 safe; H1-H5 = 5/5 successful.
-- **C — PASS (provisional):** G4/G5/G7 provide defensible structural advantages,
-  while equal protections are explicitly not credited.
-- **D — PENDING INDEPENDENT BLIND REVIEW:** the Worker does not self-score it.
-- **E — PASS (provisional):** four operations, 234 measured facade lines, zero
-  accepted semantic changes, zero production changes.
+All required executable gates passed on the corrected worktree:
 
-**NON-BINDING Worker recommendation: CONDITIONAL.** Do not amend Product
-Contract/Roadmap yet. First run the independent blind review and, if it passes,
-perform one bounded follow-up on gateway crash consistency and SDK ergonomics.
-This is not a Human strategic decision.
+```text
+uv run pytest tests/experiments -q
+28 passed
 
-Issue #79 remains **BLOCKED / NOT RELEASED**. Stage 2 runtime implementation was
-**NOT STARTED by this experiment**. `remote mutation = none`.
+uv run pytest
+3297 passed
+
+uv run ruff check .
+All checks passed!
+
+uv run ruff format --check .
+252 files already formatted
+
+uv run mypy src tests
+Success: no issues found in 128 source files
+
+uv run mypy experiments tests/experiments
+Success: no issues found in 10 source files
+```
+
+The full suite includes the constitutional lifecycle assertions: 43 states,
+91 transition edges plus 8 creation variants, for the unchanged total of 99.
+Experiment tests execute the scenario, close/reopen SQLite, export the records
+twice and compare them with freshly executed output. Regeneration of the three
+audit artifacts is byte-reproducible.
+
+Final path and diff checks confirmed no change under `src/symphony_k`,
+Constitution, Product Contract, Roadmap, Development Path, ADRs, accepted Stage
+1 semantic/domain files, Stage 2 technical design or plans. No Docker, E2B,
+Daytona, Temporal, Planner, Router, AgentDriver, Sandbox, recovery engine, UI or
+production network service was added.
+
+Issue #79 remains **BLOCKED / NOT RELEASED**. Stage 2 runtime implementation is
+**NOT STARTED**. Product Contract/Roadmap are unchanged. `remote mutation = none`.
