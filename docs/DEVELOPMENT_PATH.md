@@ -1,292 +1,161 @@
 # Symphony-K Development Path
 
-This document is the authoritative delivery contract from repository bootstrap
-through v1.0. [ROADMAP.md](../ROADMAP.md) is the compact stage map; planned and
-active parent Exec Plans provide the next level of detail. This path freezes
-responsibilities, trust boundaries, required evidence and exit contracts while
-leaving future implementation choices to bounded Issues, accepted design work
-and ADRs.
+This document is the authoritative delivery contract from the accepted Stage 1 governance kernel through v1.0 after the strategic transition.
 
-`ACTIVE - M1 architecture/design` is design authority only, not runtime
-implementation or acceptance. A future stage may move to `active/` only after
-prerequisite exits and a durable Human-approved TaskSpec. Every stage becomes
-`COMPLETE` only after independent Human Exit acceptance and durable governance
-reconciliation.
+[ROADMAP.md](../ROADMAP.md) is the compact delivery map. Parent Exec Plans and bounded TaskSpecs provide the next level of detail. No stage is executable merely because it is listed here.
 
-## End-to-end dependency graph
+The accepted Constitution v0.2, ADR-0009 and R2 Product Contract define the current product boundary: Symphony-K governs authoritative claims/state, trusted evidence and Evaluation, consequential Effects and reconstructable history while external agents, orchestrators and execution runtimes may determine how work is attempted.
+
+## Current dependency graph
 
 ```text
-Stage 0 Constitution / repository harness
-   -> Stage 1 authoritative Domain Kernel
-      -> Stage 2 sandbox and workspace substrate
-         -> Stage 3 first AgentDriver
-            -> Stage 4 independent verification
-               -> Stage 5 recovery
-                  -> Stage 6 budgets, permissions and Effects
-                     -> Stage 7 second-runtime architecture test
-                        -> Stage 8 routing and escalation
-                           -> Stage 9 governed planning
-                              -> Stage 10 governed learning
-                                 -> Stage 11 operable application boundary
-                                    -> Stage 12 end-to-end safety proof
-                                       -> Stage 13 release hardening
-                                          -> Stage 14 v1.0 acceptance
+Stage 0 repository/constitutional harness — COMPLETE
+   -> Stage 1 governance Domain Kernel — COMPLETE
+      -> G1 governance SDK/facade
+         -> G2 trusted Evaluation/evidence integration
+            -> G3 governed Effect gateway + occurrence reconciliation
+               -> G4 audit export / causal reconstruction
+                  -> G5 adversarial + conformance suite
+                     -> G6 external agent/orchestrator integration
+                        -> G7 reference execution/provider path
+                           -> G8 end-to-end operational safety / governance recovery
+                              -> G9 production hardening
+                                 -> G10 v1 acceptance
 ```
 
-The sequence is intentionally conservative: later stages may design against
-earlier accepted interfaces, but they may not treat unaccepted capabilities as
-authoritative dependencies.
+This is the current v1 critical path. The historical Stage 2–14 full-orchestrator sequence is no longer a mandatory dependency chain.
+
+## General stage rules
+
+Every new stage requires:
+
+1. a durable parent plan or equivalent bounded design contract;
+2. exact entry baseline and protected-path scope;
+3. independent review of architecture/security/trust-sensitive changes;
+4. explicit Human acceptance where the stage changes product/architecture/governance commitments;
+5. reproducible evidence for stated guarantees; and
+6. durable status reconciliation before dependent work is released.
+
+No stage may infer authority from roadmap order alone. Issue #79 remains BLOCKED / NOT RELEASED and authorizes no post-transition implementation.
 
 ## Stage 0 — Constitution and Repository Harness
 
 - **Status:** COMPLETE.
-- **Purpose:** Establish the project mission, authority hierarchy, constitutional invariants and repeatable repository workflow.
-- **Architectural owner / plane:** Cross-cutting Human Governance and repository governance.
-- **Entry criteria:** Repository exists and Human intent is materialized.
-- **Required deliverables:** Constitution, vision, architecture, roadmap, core beliefs, ADR process, Exec Plan process and initial harness.
-- **Explicit non-goals:** Runtime orchestration, agents, sandboxes, verification or external Effects.
-- **Major dependencies:** None.
-- **Required ADR/design decisions:** Initial language, sandbox, work-not-agents and evidence-before-acceptance decisions.
-- **Minimum test/evidence classes:** Document hierarchy review, repository navigation and baseline toolchain execution.
-- **Human Review questions:** Are authority, trust, history and amendment boundaries explicit and internally consistent?
-- **Exit criteria:** Constitutional boundaries and repository navigation are accepted; work can be planned without chat-only context.
-- **What becomes authorized after exit:** Bounded Stage 1 design and implementation TaskSpecs.
-- **Expected repository artifacts:** Root governance documents, `docs/core-beliefs/`, `docs/adr/`, and `docs/exec-plans/`.
+- **Purpose:** establish authority hierarchy, constitutional invariants, ADR/Exec Plan process and cold-start repository continuity.
+- **Current significance:** Constitution v0.2 is now the accepted constitutional baseline.
 
-## Stage 1 — Domain Kernel
+## Stage 1 — Governance Domain Kernel
 
 - **Status:** COMPLETE — Human Exit ACCEPTED.
-- **Purpose:** Provide the authoritative work-state kernel that later planes must obey.
-- **Architectural owner / plane:** Control Plane domain and persistence boundary.
-- **Entry criteria:** Stage 0 accepted; state-machine design and ADR-0005 accepted.
-- **Required deliverables:** Objective, Task, Run, Outcome, Evaluation and Effect entities; 99 legal lifecycle edges; transition authority; immutable events/history; persistence and concurrency.
-- **Explicit non-goals:** Agent execution, real verification, recovery runtime, Effect dispatch, routing, planning and UI.
-- **Major dependencies:** Stage 0 and accepted ADRs 0001–0007.
-- **Required ADR/design decisions:** Core state machines and initial persistence/atomicity decisions.
-- **Minimum test/evidence classes:** Legal/illegal transition tests, authority and invariant tests, atomicity, replay, stale-version rejection and persistence reopen tests.
-- **Human Review questions:** Can Workers mutate authority, histories be rewritten, concurrent actors overwrite, or claims substitute for independent acceptance?
-- **Exit criteria:** M7/M8/M9 Human Accepted; lifecycle coverage 99 / 99; all eight Human Exit questions answered safely.
-- **What becomes authorized after exit:** Stage 2 planning; Stage 2 implementation only under its own durable TaskSpec.
-- **Expected repository artifacts:** Domain/persistence implementation, constitutional suite, accepted ADRs/designs and completed Stage 1 plans.
+- **Purpose:** provide the authoritative state/evidence/history semantics every later surface must obey.
+- **Required accepted capabilities:** Objective, Task, Run, Outcome, Evaluation and Effect separation; lifecycle authority; immutable historical meaning; persistence; exact replay; optimistic concurrency; evidence/effective-use semantics.
+- **Exit evidence:** 99/99 lifecycle coverage and accepted Stage 1 Human Exit review.
+- **Current significance:** product core, not merely a precursor to an owned orchestrator runtime.
 
-## Stage 2 — Sandbox Execution
+## G1 — Governance SDK / Facade
 
-- **Status:** ACTIVE - M1 architecture/design. Runtime implementation is NOT YET STARTED and is not authorized by Issue #77.
-- **Purpose:** Execute arbitrary bounded commands in disposable, policy-controlled isolation.
-- **Architectural owner / plane:** Execution Plane substrate.
-- **Entry criteria:** Stage 1 complete; Stage 2 parent plan activated for design by Issue #77. Runtime entry remains blocked until the sandbox and network-policy ADR/design are independently reviewed and Human approved and a separate implementation TaskSpec plus Docker/toolchain preflight exists.
-- **Required deliverables:** `SandboxProvider`, first `DockerSandbox`, `Workspace`, bounded command API, CPU/memory/process/time limits, safe-default network policy, artifact collection, teardown, telemetry and normalized failures.
-- **Explicit non-goals:** AgentDriver, model/vendor integration, routing, verification decisions, recovery orchestration and real Effect execution.
-- **Major dependencies:** Domain Run identity, execution-profile references, ADR-0002 and ADR-0006.
-- **Required ADR/design decisions:** Sandbox lifecycle, workspace ownership, network enforcement, resource accounting and failure normalization before those contracts become code.
-- **Minimum test/evidence classes:** Isolation escape negatives, resource/time limit tests, network-denial tests, artifact integrity, cleanup/leak tests and host-boundary inspection.
-- **Human Review questions:** Is the host excluded as Worker runtime; are privilege, Docker socket, mounts, network and teardown fail-closed?
-- **Exit criteria:** Bounded commands run in temporary Docker sandboxes under demonstrably enforced constraints and cleanup.
-- **What becomes authorized after exit:** Stage 3 AgentDriver work against the accepted sandbox boundary.
-- **Expected repository artifacts:** Accepted ADR/designs, sandbox interfaces/provider, integration tests, operator diagnostics and a completed Stage 2 plan.
+- **Status:** NEXT — NOT YET RELEASED.
+- **Entry criteria:** R1–R4 strategic reconciliation complete and a fresh implementation TaskSpec explicitly released.
+- **Purpose:** provide a bounded stable public integration surface over accepted governance semantics.
+- **Required deliverables:** public facade operations for authoritative work creation/query, external claim/candidate submission, evidence/Evaluation integration, governed decision requests, Effect requests and audit queries; caller-safe identifiers/errors; versioning/compatibility rules; contract tests.
+- **Non-goals:** implementing a generic Planner/Router, adopting a specific agent framework, weakening internal authority checks for SDK convenience.
+- **Minimum evidence:** legal integration flows plus self-authority, stale version/evidence, cross-entity substitution and replay negatives through the public facade.
+- **Exit criterion:** an external caller can use governance without importing private internal services or bypassing accepted semantics.
 
-## Stage 3 — First AgentDriver
+## G2 — Trusted Evaluation and Evidence Integration
 
 - **Status:** PLANNED.
-- **Purpose:** Prove an Agent can be replaced behind a provider-neutral driver contract.
-- **Architectural owner / plane:** Execution Plane adapter boundary.
-- **Entry criteria:** Stage 2 accepted; AgentDriver protocol/design and Codex adapter TaskSpecs approved.
-- **Required deliverables:** Capability declaration; structured `AgentRequest`, response and event contracts; `start/send/status/events/result/usage/cancel`; provider-supported resume; Codex adapter; normalized errors; Run/profile/route binding.
-- **Explicit non-goals:** Core-domain vendor fields, a second Agent, learned routing, authoritative verification or direct Worker state mutation.
-- **Major dependencies:** Stages 1–2 and ADR-0003/0006.
-- **Required ADR/design decisions:** Driver contract, event/usage semantics, cancellation/resume guarantees and credential boundary.
-- **Minimum test/evidence classes:** Contract tests, fake-driver tests, sandboxed Codex integration, cancellation, provider failure normalization, usage accuracy and no-vendor-leak architecture checks.
-- **Human Review questions:** Can Codex be removed without changing core semantics; are Worker outputs still claims and requests?
-- **Exit criteria:** A governed Task/Run executes through Codex and the sandbox via the driver boundary without vendor coupling in core domain.
-- **What becomes authorized after exit:** Stage 4 verification runtime work.
-- **Expected repository artifacts:** Driver interfaces, Codex adapter, protocol documentation, contract/integration tests and completed parent plan.
+- **Entry criteria:** stable G1 facade and accepted evidence-integration design.
+- **Purpose:** bind external/independent verification to exact authoritative candidates and effective-use state.
+- **Required deliverables:** trusted evaluator/evidence identities; exact entity/candidate/version binding; evidence provenance; stale/superseded/invalidation handling; cross-entity substitution rejection; durable effective-use references.
+- **Non-goals:** universal semantic judge, Worker self-validation, provider-specific core semantics.
+- **Minimum evidence:** stale, superseded, tampered, unrelated and substituted evidence fail closed; legal current evidence supports disposition.
+- **Exit criterion:** authoritative decisions can depend on independent external evidence without weakening Stage 1 trust rules.
 
-## Stage 4 — Verification Plane
+## G3 — Governed Effect Gateway and Occurrence Reconciliation
 
 - **Status:** PLANNED.
-- **Purpose:** Turn candidate results and evidence into independent persisted Evaluations.
-- **Architectural owner / plane:** Verification and Safety Plane.
-- **Entry criteria:** Governed sandboxed Runs are available; validation and independence designs accepted.
-- **Required deliverables:** `ValidationPlanner`, evidence collection, L0–L5 validator interfaces, intermediate assertions, validation profiles, semantic validation, confidence gate, persisted Evaluations and conflict/arbitration integration.
-- **Explicit non-goals:** Evaluator Effect commit, Worker self-acceptance, universal LLM judge, recovery orchestration and learning-driven policy.
-- **Major dependencies:** Stages 1–3 and ADR-0004/0005.
-- **Required ADR/design decisions:** Evidence package, validator independence, confidence aggregation, conflict scheduling and evaluation persistence boundaries.
-- **Minimum test/evidence classes:** Deterministic/static/dynamic validator tests, independence negatives, tampered evidence, conflicting verdicts, stale snapshot rejection and sandbox replay.
-- **Human Review questions:** Can any producing Worker accept itself; can correlated or stale evidence pass; can an evaluator commit the Effect it validates?
-- **Exit criteria:** Evidence-backed Evaluations, not Worker claims, govern candidate Outcome disposition under accepted policy.
-- **What becomes authorized after exit:** Stage 5 recovery decisions may use verification evidence.
-- **Expected repository artifacts:** Verification interfaces/services, evidence schema/design, validator suites, acceptance matrices and completed plan.
+- **Entry criteria:** G1/G2 accepted and Effect gateway design approved.
+- **Purpose:** govern consequential external actions across the trusted boundary.
+- **Required deliverables:** Effect request/prepare, verification, authorization, dispatch/commit, receipt/observation, occurrence status, uncertainty/quarantine, idempotency, reconciliation, remediation and compensation; exact Human authorization where constitutionally required.
+- **Non-goals:** Worker-held unrestricted production credentials, retroactive authorization, treating dispatch failure as proof of non-occurrence.
+- **Minimum evidence:** duplicate dispatch, lost receipt, external-success/local-recording crash, unauthorized observed occurrence, reconciliation and compensation scenarios.
+- **Exit criterion:** uncertain occurrence cannot be blindly replayed and confirmed occurrence cannot be erased or falsified.
 
-## Stage 5 — Failure and Recovery
+## G4 — Audit Export and Causal Reconstruction
 
 - **Status:** PLANNED.
-- **Purpose:** Preserve trustworthy progress and choose bounded recovery after failure.
-- **Architectural owner / plane:** Verification and Safety Plane with Control/Execution coordination.
-- **Entry criteria:** Runs, sandbox/driver telemetry and independent verification exist; recovery ADR/design accepted.
-- **Required deliverables:** `CheckpointManifest`, trusted/incomplete checkpoint states, `FailureClassifier`, `RecoveryController`, Resume, Rewind, Reassign, `HandoffPackage`, stall detection and recovery budgets/limits.
-- **Explicit non-goals:** Silent Run identity mutation, blind Effect replay, unbounded retries and Worker-selected authoritative recovery.
-- **Major dependencies:** Stages 1–4 and ADR-0006.
-- **Required ADR/design decisions:** Checkpoint atomicity/storage, failure taxonomy, successor Run semantics, workspace trust and recovery policy.
-- **Minimum test/evidence classes:** Crash/restart, corrupted/incomplete checkpoint rejection, transient resume, invalid-path rewind, route reassignment, loop detection and uncertain-Effect replay denial.
-- **Human Review questions:** Does authoritative progress survive loss; is every recovery attributable, bounded and safe around Effects?
-- **Exit criteria:** Worker/sandbox/provider loss cannot erase work, and Resume/Rewind/Reassign produce auditable deterministic outcomes.
-- **What becomes authorized after exit:** Stage 6 can attach budgets, permissions and Effect safety to recovery-aware execution.
-- **Expected repository artifacts:** Recovery services/contracts, checkpoint/handoff designs, failure-injection suite, runbooks and completed plan.
+- **Entry criteria:** durable G1–G3 authoritative/integration records exist.
+- **Purpose:** export complete attributable causal history without private database/source inspection.
+- **Required deliverables:** machine-readable provenance graph, human-readable narrative, stable record references, redaction/export policy and deterministic reconstruction.
+- **Minimum evidence:** blind reviewer reconstructs registered authority/evidence/Effect scenarios from export alone.
+- **Exit criterion:** consequential decisions/actions are explainable from durable public audit artifacts.
 
-## Stage 6 — Budget, Risk, Permission, and Effects
+## G5 — Adversarial and Conformance Suite
 
 - **Status:** PLANNED.
-- **Purpose:** Govern resource authority and consequential external mutations.
-- **Architectural owner / plane:** Control Plane policy plus Effect Controller boundary.
-- **Entry criteria:** Recovery-safe execution and independent verification exist; Effect protocol, permission and credential designs accepted.
-- **Required deliverables:** Budget ledger; Risk, Value, Confidence and Verifiability profiles; `PermissionEnvelope`; `EffectIntent`; Effect Controller; Prepare–Verify–Authorize–Commit; receipts; idempotency; rollback/compensation records; Human approval and scoped secret/capability boundaries.
-- **Explicit non-goals:** Worker-held broad credentials, retroactive authorization, conflating occurrence with permission, evaluator/committer identity collapse and raw tool-call Effects.
-- **Major dependencies:** Stages 1–5, ADR-0004/0005 and Effect core beliefs.
-- **Required ADR/design decisions:** Budget accounting, policy evaluation, credential broker, Effect dispatch/reconciliation, idempotency and compensation execution.
-- **Minimum test/evidence classes:** Budget exhaustion, permission denial/escalation, reversible/irreversible gates, duplicate dispatch, lost receipt reconciliation, unauthorized observed occurrence and compensation history.
-- **Human Review questions:** Can any important Effect bypass governance; are irreversible actions Human-authorized; does history preserve unauthorized and compensated occurrence truth?
-- **Exit criteria:** Consequential Effects use the governed controller; irreversible commit requires explicit Human authorization; receipts and remediation remain auditable.
-- **What becomes authorized after exit:** Stage 7 can test a second runtime against the complete execution and safety boundaries.
-- **Expected repository artifacts:** Policy/effect services, schemas/designs, security tests, operator approval workflow and completed plan.
+- **Entry criteria:** stable public governance/evidence/Effect/audit contracts.
+- **Purpose:** encode Symphony-K guarantees as executable conformance evidence.
+- **Required deliverables:** test harness and result format covering authority separation, stale/superseded evidence, cross-entity substitution, replay/idempotency, concurrency, history erasure, Effect authorization/occurrence uncertainty and compensation.
+- **Minimum evidence:** deterministic legal and adversarial matrices with exact version/configuration attribution.
+- **Exit criterion:** claimed guarantees are independently reproducible rather than documentation-only assertions.
 
-## Stage 7 — Second Agent and Architecture Test
+## G6 — External Agent / Orchestrator Integration
 
 - **Status:** PLANNED.
-- **Purpose:** Falsify or validate replaceability using a materially different Agent runtime.
-- **Architectural owner / plane:** Execution Plane architecture test.
-- **Entry criteria:** Stages 2–6 accepted; runtime selection approved by bounded decision and TaskSpec.
-- **Required deliverables:** Second driver/configuration/image, shared-contract compliance, comparable usage/error/telemetry mapping and architecture findings.
-- **Explicit non-goals:** Adapter-specific core hacks, premature third runtime, vendor selection by roadmap fiat and weakened isolation/verification.
-- **Major dependencies:** Stages 1–6 and the AgentDriver contract.
-- **Required ADR/design decisions:** Runtime selection and any genuine contract change; Hermes remains only a candidate until approved.
-- **Minimum test/evidence classes:** Cross-driver contract suite, equivalent workflow execution, failure normalization, cancellation/recovery and domain import/dependency checks.
-- **Human Review questions:** Was only adapter/config/image work needed; does any core redesign signal a failed abstraction?
-- **Exit criteria:** Two materially different runtime families execute through the same abstract boundaries without core orchestration redesign.
-- **What becomes authorized after exit:** Stage 8 may route among heterogeneous eligible resources.
-- **Expected repository artifacts:** Second adapter, shared conformance matrix, architecture review record and completed plan.
+- **Entry criteria:** G1–G5 accepted; one integration target selected by bounded decision.
+- **Purpose:** prove framework-neutral governance over an external system that owns how work is attempted.
+- **Required deliverables:** adapter/integration mapping attempt identity, claims, candidate outputs, evidence hooks and Effect requests into stable Symphony-K contracts.
+- **Non-goals:** moving framework-specific agent semantics into the core, making the external orchestrator authoritative.
+- **Exit criterion:** end-to-end governed work succeeds and adversarial integration cases cannot bypass authority/evidence/Effect rules.
 
-## Stage 8 — Router and Escalation
+## G7 — Reference Execution / Provider Path
 
 - **Status:** PLANNED.
-- **Purpose:** Select eligible execution routes from explicit capability, health, policy and value constraints.
-- **Architectural owner / plane:** Control Plane routing/scheduling.
-- **Entry criteria:** At least two runtime families and trustworthy operational telemetry exist; routing ADR/design accepted.
-- **Required deliverables:** Capability registry, `ExecutionProfile`/resolved route contract, substrate/capability health, rule-based eligibility, cost/reliability inputs, permission/budget compatibility, route/circuit health and escalation/degradation.
-- **Explicit non-goals:** Learned routing before Stage 10 evidence, hard-coded vendor preference and failover that replays uncertain Effects.
-- **Major dependencies:** Stages 2–7 and ADR-0006.
-- **Required ADR/design decisions:** Capability schema, route health model, circuit breaking, scoring precedence and escalation authority.
-- **Minimum test/evidence classes:** Eligibility matrices, unhealthy-route exclusion, policy incompatibility, cost/reliability tradeoffs, circuit behavior, no-route blocking and Effect-safe failover.
-- **Human Review questions:** Is every selection explainable; can health/model identity be confused; do constraints fail closed?
-- **Exit criteria:** Explicit governed constraints and health select routes; no Agent is hard-coded in orchestration core.
-- **What becomes authorized after exit:** Stage 9 may propose work that later governance can route after Task creation.
-- **Expected repository artifacts:** Registries/router, routing decision records, simulation tests, operational metrics and completed plan.
+- **Entry criteria:** provider/conformance contract selected; accepted ADR-0008/Stage 2 design reused where applicable.
+- **Purpose:** prove one execution path can provide sufficient isolation, identity, provenance and observations for governance.
+- **Required deliverables:** reference provider or external provider adapter, conformance mapping, evidence/provenance binding and operational diagnostics.
+- **Historical asset:** Stage 2 M1/M1C sandbox design at `77acfbdaf2bed6f0536873fafc8eb7a12599da83` remains valid as a security/conformance boundary.
+- **Non-goals:** requiring Symphony-K to own the production sandbox runtime or complete the old Stage 2 M2–M4 path.
+- **Exit criterion:** one reference execution/provider path proves the accepted boundary end to end.
 
-## Stage 9 — Planner
+## G8 — End-to-End Operational Safety and Governance Recovery
 
 - **Status:** PLANNED.
-- **Purpose:** Convert Objectives into bounded non-executable work proposals.
-- **Architectural owner / plane:** Control Plane planning and governance boundary.
-- **Entry criteria:** Governed execution, routing, budget/risk/permission inputs and proposal ADR/design exist.
-- **Required deliverables:** `TaskProposal` representation/lifecycle, Objective-to-proposal generation, dependency DAG, depth/budget limits, rationale/evidence, review/governance and promotion into a separate Task.
-- **Explicit non-goals:** Direct Worker launch, self-granted permissions/budget, direct Task lifecycle mutation and unbounded autonomous decomposition.
-- **Major dependencies:** Stages 1 and 6–8; Stage 1 deliberately deferred this concept.
-- **Required ADR/design decisions:** Proposal state/authority, DAG validity, bounded planning, duplicate/supersession and promotion transaction.
-- **Minimum test/evidence classes:** DAG cycle/depth/budget rejection, proposal immutability/history, authority negatives, promotion separation and cancellation/supersession.
-- **Human Review questions:** Can any proposal execute or create authority; are scope expansion and dependencies explicit and reviewable?
-- **Exit criteria:** Planning yields governed `TaskProposal` objects only; accepted promotion creates distinct executable Tasks.
-- **What becomes authorized after exit:** Stage 10 may learn from verified planning and execution history through governed promotion.
-- **Expected repository artifacts:** Proposal domain/design, planner interfaces, governance services, deterministic boundary tests and completed plan.
+- **Entry criteria:** G1–G7 accepted and R4 reference workflows reconciled.
+- **Purpose:** prove authority/history safety across realistic failure and recovery conditions.
+- **Required deliverables:** end-to-end scenario matrix, restart/reopen, failure injection, uncertain Effect recovery, compensation, Human escalation, correlation/observability and runbooks.
+- **Non-goals:** requiring Symphony-K to own generic workflow retry/scheduling engines.
+- **Exit criterion:** execution recovery may be external while authoritative attempt/evidence/Effect history remains correct and reconstructable.
 
-## Stage 10 — Learning and Reputation
+## G9 — Production Hardening and Release Engineering
 
 - **Status:** PLANNED.
-- **Purpose:** Improve decisions from delayed verified experience without contaminating policy from raw events.
-- **Architectural owner / plane:** Verification and Safety Plane policy-evolution boundary.
-- **Entry criteria:** Sufficient audited planning/routing/execution/evaluation history; learning ADR/design and data-governance rules accepted.
-- **Required deliverables:** Immutable audit source, delayed observation, verified experience pool, scoped agent/route/validator reliability views, asymmetric trust updates, policy candidates, shadow evaluation, canary rollout and reversible policy versions.
-- **Explicit non-goals:** Direct raw-event policy mutation, global undifferentiated trust scores, instant trust recovery and opaque learned routing.
-- **Major dependencies:** Stages 4, 6, 8 and 9.
-- **Required ADR/design decisions:** Admission criteria, calibration, feature provenance, policy candidate authority, rollout/rollback and retention/privacy.
-- **Minimum test/evidence classes:** Contamination/admission negatives, delayed labels, calibration, negative-evidence propagation, shadow comparison, canary rollback and audit reproducibility.
-- **Human Review questions:** Can raw or disputed history affect production; are policy changes attributable, explainable and reversible?
-- **Exit criteria:** Reputation influences decisions only via verified, versioned, auditable and reversible governance.
-- **What becomes authorized after exit:** Stage 11 may expose governed policy/learning controls to operators.
-- **Expected repository artifacts:** Experience pipeline, reliability views, policy rollout machinery, evaluation reports and completed plan.
+- **Entry criteria:** supported end-to-end product path accepted.
+- **Purpose:** make v1 deployable and operable within declared support limits.
+- **Required deliverables:** packaging/install, configuration validation, migrations, backup/restore, secrets boundary, logging/metrics, security/dependency gates, reproducible artifacts and operator documentation.
+- **Exit criterion:** fresh install, restart, backup/restore, upgrade/rollback and security drills pass without release-blocking defects.
 
-## Stage 11 — Application Control Plane and Human Governance Surface
+## G10 — v1 Acceptance and Final Delivery
 
 - **Status:** PLANNED.
-- **Purpose:** Turn the underlying planes into an operable orchestrator application.
-- **Architectural owner / plane:** Application service layer and Human Governance.
-- **Entry criteria:** Core execution, verification, recovery, Effects, routing, planning and learning services accepted; API/security ADRs approved.
-- **Required deliverables:** Application services, stable local API, CLI or equivalent operator entry point, Objective and proposal actions, Run/Outcome/Evaluation/Effect inspection, approvals, overrides, break-glass recording, initial identity/authorization and structured audit queries.
-- **Explicit non-goals:** Direct persistence mutation from handlers, unaudited admin shortcuts, rich graphical UI as a v1 requirement and distributed tenancy.
-- **Major dependencies:** Stages 1–10.
-- **Required ADR/design decisions:** Service/API boundary, command/query authorization, identity model, error contract and audit-query exposure.
-- **Minimum test/evidence classes:** API/CLI contracts, authorization matrices, end-user workflow tests, raw-state mutation negatives, approval/override audit and restart behavior.
-- **Human Review questions:** Can an operator complete governed workflows without internal calls or database edits; are all Human decisions scoped and audited?
-- **Exit criteria:** The complete governed workflow is operable through supported interfaces.
-- **What becomes authorized after exit:** Stage 12 system-level integration and failure proof.
-- **Expected repository artifacts:** Application services, API/CLI, operator-facing schemas, authorization tests, usage documentation and completed plan.
+- **Entry criteria:** G1–G9 complete; Product Contract and R4 workflows stable.
+- **Purpose:** independently demonstrate the complete accepted v1 product.
+- **Required deliverables:** acceptance matrix, known limitations, architecture/security review, install/operator/contributor guides, examples and reproducible release-candidate artifacts.
+- **Exit criterion:** a fresh maintainer can install, operate, inspect and reproduce the accepted product from repository documentation alone; all required Product Contract/workflow cases pass.
 
-## Stage 12 — End-to-End Integration and Operational Safety
+Publication of a tag/release is a separate remote Effect requiring explicit Human authorization.
 
-- **Status:** PLANNED.
-- **Purpose:** Prove the planes compose safely under normal and adverse conditions.
-- **Architectural owner / plane:** Cross-plane system integration and Safety.
-- **Entry criteria:** Supported operator workflow and every required plane exist; scenario matrix and failure-injection design accepted.
-- **Required deliverables:** Full success path; sandbox/agent recovery; verification arbitration; budget/permission handling; safe Effect commit/observation/remediation; network/substrate failure; idempotent replay; restart/reopen; correlated observability and runbooks.
-- **Explicit non-goals:** New major product features, distributed/HA claims and bypassing failures to achieve a green scenario.
-- **Major dependencies:** Stages 1–11.
-- **Required ADR/design decisions:** System correlation IDs, operational severity/escalation and any cross-plane consistency gaps discovered.
-- **Minimum test/evidence classes:** Scenario matrix, destructive/fault injection in safe environments, process restart, replay, invariant monitors, security abuse and runbook drills.
-- **Human Review questions:** Do representative failures preserve constitutional invariants, durable truth and safe Effect behavior?
-- **Exit criteria:** Required scenario families pass with traceable evidence and no release-blocking cross-plane safety gap.
-- **What becomes authorized after exit:** Stage 13 production hardening and release engineering.
-- **Expected repository artifacts:** End-to-end suite, observability correlation, operational runbooks, safety findings and completed plan.
+## Historical Stage 2 sandbox plan disposition
 
-## Stage 13 — Production Hardening and Release Engineering
+The historical Stage 2 parent and accepted technical design remain durable provenance. ADR-0008 and the cumulative M1/M1C design are not rejected or rewritten.
 
-- **Status:** PLANNED.
-- **Purpose:** Make the accepted single-node v1 scope installable, supportable, secure and reproducible.
-- **Architectural owner / plane:** Cross-cutting operations, security and release engineering.
-- **Entry criteria:** End-to-end behavior accepted; deployment scope and release/security policies approved.
-- **Required deliverables:** Packaging/install, configuration validation, migration policy, backup/restore, secrets boundary, logs/metrics/traces, security/dependency gates, CI release gates, artifacts/SBOM, resource baselines, crash durability, runbooks and upgrade/rollback.
-- **Explicit non-goals:** Unimplemented distributed or HA guarantees, uncontrolled auto-upgrade and feature expansion.
-- **Major dependencies:** Stages 1–12.
-- **Required ADR/design decisions:** Supported deployment, configuration/secrets, schema compatibility, artifact signing/SBOM, support and compatibility policies.
-- **Minimum test/evidence classes:** Clean install, migration and rollback, backup restore, crash/restart, security scans, dependency review, performance/load limits and reproducible build checks.
-- **Human Review questions:** Are supported environments and limits honest; can operators recover data and rollback safely; are release artifacts reproducible?
-- **Exit criteria:** No known production-readiness blocker for the accepted v1 scope; release gates and operational procedures pass.
-- **What becomes authorized after exit:** Stage 14 scope freeze and release-candidate acceptance.
-- **Expected repository artifacts:** Packaging/release configuration, SBOM/artifacts, deployment docs, runbooks, baselines and completed plan.
+Their post-transition role is an execution-provider security/conformance contract, an optional/reference implementation path and a source of evidence/provenance requirements for G7.
 
-## Stage 14 — v1.0 Release Candidate and Final Delivery
+The old Stage 2 runtime implementation path is superseded for current v1 sequencing. Runtime code was not started. Issue #79 remains BLOCKED / NOT RELEASED and must not be re-released under its old M2 scope.
 
-- **Status:** PLANNED.
-- **Purpose:** Freeze, verify, document and obtain Human acceptance for the first complete delivery.
-- **Architectural owner / plane:** Human Governance with cross-plane release ownership.
-- **Entry criteria:** Stage 13 accepted; v1 scope frozen; release-candidate TaskSpecs and final review plan approved.
-- **Required deliverables:** Install/setup, operator and contributor guides, architecture/security review, end-to-end acceptance matrix, known limitations, migration/backup/restore docs, examples, release notes, version/tag rules, metadata/license audit and reproducible candidate artifacts.
-- **Explicit non-goals:** Major new features, silent scope expansion and release publication without explicit Human authorization.
-- **Major dependencies:** Stages 0–13.
-- **Required ADR/design decisions:** Final compatibility/versioning and any release-blocking architecture/security remediation; no late decision may bypass higher authority.
-- **Minimum test/evidence classes:** Fresh-clone install, complete governed workflow, release reproduction, documentation drills, security review, acceptance matrix and critical-defect audit.
-- **Human Review questions:** Can a fresh maintainer operate the system from repository docs alone; are all critical constitutional/security findings resolved; are artifacts reproducible?
-- **Exit criteria:** `v1.0 Human Acceptance = ACCEPTED`, critical documentation complete, reproducible artifacts, and no unresolved release blocker.
-- **What becomes authorized after exit:** A separate explicitly authorized remote Effect may create the v1.0 tag/release; post-v1 planning may begin.
-- **Expected repository artifacts:** Final guides, acceptance/security reports, release notes, reproducible artifacts and completed Stage 14 plan.
+## Historical pre-transition stages
 
-## Final delivery definition
+The former Stage 2–14 chain (Sandbox -> AgentDriver -> Verification -> Recovery -> Effects -> second Agent -> Router -> Planner -> Learning -> application control plane -> E2E -> hardening -> release) is historical planning provenance only.
 
-A fresh maintainer can clone the repository, install the supported v1
-deployment, submit and govern bounded Objectives, execute work through sandboxed
-interchangeable AgentDrivers, independently verify Outcomes, recover from
-bounded failures, control external Effects, inspect complete audit history, and
-operate the system using repository documentation alone.
-
-## Post-v1 backlog — non-blocking
-
-- **Status:** POST-V1.
-- **Candidates:** Distributed workers, remote sandboxes, microVMs, GPU/local-model pools, advanced scheduling, richer UI, organization/multi-tenancy, external tracker adapters, self-hosted policy analytics, evidence-supported learned routing, HA clustering and additional specialized AgentDrivers.
-- **Governance:** These items are not v1 blockers and require Human roadmap amendment plus their own ADRs, plans and durable TaskSpecs before implementation.
+Completed or accepted historical artifacts keep their original truth. Planned stages do not become implemented, rejected technical work is not erased, and optional future Planner/Router/Learning/runtime work requires new bounded authority if revisited.

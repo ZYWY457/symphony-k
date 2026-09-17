@@ -4,166 +4,50 @@
 
 - **Project:** Symphony-K; **maturity:** pre-v1 development
 - **Completed stages:** Stage 0, Stage 1
-- **Stage 1:** **COMPLETE**; the final accepted implementation/governance
-  boundary is `987f927905cadcedd473f2ba3270f56908b7f6b9`, with Human Exit
-  acceptance recorded by GitHub Issue #75 and its ordered governance commits.
+- **Stage 1:** **COMPLETE**; the final accepted implementation/governance boundary is `987f927905cadcedd473f2ba3270f56908b7f6b9`, with Human Exit acceptance recorded by GitHub Issue #75 and its ordered governance commits.
 - **Latest accepted stage:** Stage 1 — Domain Kernel
-- **Current accepted constitutional baseline:** `constitution-v0.2`, accepted
-  with ADR-0009 at exact head
-  `9c842f18ffcdd51daef8f05d9367f571df677703` after independent technical
-  re-review **ACCEPT** on Issue #89 comment `5711016301` and explicit Human
-  **APPROVED / ACCEPTED** on Issue #89 comment `5711029647`.
-- **ADR-0009:** **ACCEPTED** — Framework-Neutral Agent Governance Kernel and
-  External Execution Boundary. It preserves accepted Stage 1 semantics while
-  narrowing v1 ownership of planning, routing, Agent runtime and sandbox
-  mechanisms.
-- **Accepted R2 product definition:** `VISION.md`, `ARCHITECTURE.md`,
-  `docs/V1_PRODUCT_CONTRACT.md` and root `README.md` at exact head
-  `2b54c2672c0c400aab1f35e0245c8c4e97a62321`, after independent review
-  **ACCEPT** on Issue #92 comment `5711134872` and explicit Human acceptance on
-  Issue #92 comment `5711951534`.
-- **Stage 2 M1 architecture/design:** **HUMAN ACCEPTED**. ADR-0008 remains
-  **ACCEPTED** and technically unchanged. The current cumulative accepted
-  sandbox design baseline is
-  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
-  (`docs(architecture): clarify unknown frozen salvage collection`).
-- The historical pre-erratum Human Accepted baseline remains
-  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
-  (`docs(architecture): resolve final sandbox contract review findings`). Issue
-  #79 r2 subsequently stopped before mutation on contradictory UNKNOWN
-  collection rules; the accepted M1C erratum corrects that ambiguity without
-  rewriting the prior acceptance.
-- **M1C acceptance:** the exact corrected baseline passed
-  [independent technical review with **ACCEPT**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706630764)
-  and received
-  [explicit Human erratum approval with **APPROVED**](https://github.com/ZYWY457/symphony-k/issues/83#issuecomment-5706652702).
-- Stage 2 runtime isolation evidence is **NOT YET ESTABLISHED** and runtime
-  implementation is **NOT YET STARTED**.
+- **Current accepted constitutional baseline:** `constitution-v0.2`, accepted with ADR-0009 at exact head `9c842f18ffcdd51daef8f05d9367f571df677703` after independent technical re-review **ACCEPT** on Issue #89 comment `5711016301` and explicit Human **APPROVED / ACCEPTED** on Issue #89 comment `5711029647`.
+- **ADR-0009:** **ACCEPTED** — Framework-Neutral Agent Governance Kernel and External Execution Boundary.
+- **Accepted R2 product definition:** `VISION.md`, `ARCHITECTURE.md`, `docs/V1_PRODUCT_CONTRACT.md` and root `README.md` at exact head `2b54c2672c0c400aab1f35e0245c8c4e97a62321`, after independent review **ACCEPT** on Issue #92 comment `5711134872` and explicit Human acceptance on Issue #92 comment `5711951534`.
+- **Stage 2 M1 architecture/design:** **HUMAN ACCEPTED**. ADR-0008 remains **ACCEPTED** and technically unchanged. The cumulative accepted sandbox design baseline remains `77acfbdaf2bed6f0536873fafc8eb7a12599da83` (`docs(architecture): clarify unknown frozen salvage collection`).
+- Stage 2 runtime isolation evidence is **NOT YET ESTABLISHED** and runtime implementation is **NOT YET STARTED**.
 
 ## Current governance status
 
-- **Human strategic decision:** the framework-neutral governance/control-plane
-  transition was explicitly **APPROVED** on Issue #87 in
-  [Human strategic approval comment `5710053258`](https://github.com/ZYWY457/symphony-k/issues/87#issuecomment-5710053258).
-  The approval authorizes bounded reconciliation, not production implementation
-  or release.
-- **Completed strategic-validation cycle:** Issue #85 produced the initial
-  falsification experiment and received
-  [independent **REQUEST CHANGES**](https://github.com/ZYWY457/symphony-k/issues/85#issuecomment-5707299068).
-  Issue #86 produced the bounded evidence correction, and its exact published
-  chain received
-  [independent **ACCEPT**](https://github.com/ZYWY457/symphony-k/issues/86#issuecomment-5709520565).
-- **Strategic evidence result:** gates A/B/C/D/E passed under the registered
-  experiment. That evidence supported consideration of an amendment; the later
-  Human approval is a separate governance decision.
-- **R1 architecture/constitution:** **COMPLETE AND HUMAN ACCEPTED** at exact head
-  `9c842f18ffcdd51daef8f05d9367f571df677703`. ADR-0009 and Constitution v0.2
-  are current accepted governance truth.
-- **R2 product definition:** **COMPLETE AND HUMAN ACCEPTED** at exact head
-  `2b54c2672c0c400aab1f35e0245c8c4e97a62321`. The accepted current product
-  identity is a framework-neutral governance/control-plane system for agentic
-  work; post-transition target capabilities are requirements, not implementation
-  claims.
-- **Current governance work:** R3 delivery-plan reconciliation is next.
-  `ROADMAP.md`, `docs/DEVELOPMENT_PATH.md` and the active Stage 2 delivery path
-  still encode historical pre-transition sequencing until R3 is materialized,
-  reviewed and accepted.
-- **Implementation hold:** Issue #79 remains **BLOCKED / NOT RELEASED**. Its old
-  Stage 2 M2 scope must not be re-released during strategic reconciliation.
-  R1/R2 acceptance does not authorize an implementation restart.
+- **Human strategic decision:** the framework-neutral governance/control-plane transition was explicitly **APPROVED** on Issue #87 comment `5710053258`.
+- **Strategic validation:** Issue #85 initial experiment -> independent **REQUEST CHANGES** -> Issue #86 correction -> independent **ACCEPT** comment `5709520565`; registered A/B/C/D/E gates passed. This evidence supported the later Human strategic decision; it was not itself product approval.
+- **R1 architecture/constitution:** **COMPLETE AND HUMAN ACCEPTED**. Constitution v0.2 and ADR-0009 are current accepted governance truth.
+- **R2 product definition:** **COMPLETE AND HUMAN ACCEPTED** at exact head `2b54c2672c0c400aab1f35e0245c8c4e97a62321`. The accepted product identity is a framework-neutral governance/control-plane system for agentic work.
+- **R2 acceptance reconciliation:** published as `771ad9bfc64ab43e624300ffffd9474eef560e77`, with independent governance review **ACCEPT** on Issue #93 comment `5711974055`.
+- **Current governance work:** Issue #94 R3 is the current delivery-plan reconciliation candidate. It proposes replacing the old mandatory Stage 2->14 full-orchestrator sequence with the governance v1 path centered on SDK/facade, evidence integration, Effect gateway, audit, conformance, integrations, operational safety, hardening and v1 acceptance.
+- **R3 acceptance status:** **PENDING independent review and explicit Human acceptance**. Until accepted, the R3 commit is a candidate and does not authorize implementation.
+- **Implementation hold:** Issue #79 remains **BLOCKED / NOT RELEASED**. No production implementation restart is authorized.
 
-## Current Stage 2 status
+## Stage 2 historical technical status
 
-- **Current stage:** Stage 2 — Sandbox Execution
-- **Stage 2 activity:** **ACTIVE** only as an accepted historical technical and
-  provider/conformance design asset; runtime implementation remains blocked
-  pending completion of strategic delivery-plan reconciliation.
-- **Current parent plan:**
-  [docs/exec-plans/active/stage-02-sandbox-execution.md](docs/exec-plans/active/stage-02-sandbox-execution.md)
-  remains historical delivery wording pending R3 disposition.
-- **Current Human Accepted Stage 2 technical design baseline:**
-  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`
-  (`docs(architecture): clarify unknown frozen salvage collection`)
-- **Historical pre-erratum accepted baseline:**
-  `b52df98530d8ce742b07d7f6c399ccd5b54e643b`
-  (`docs(architecture): resolve final sandbox contract review findings`)
-- **Correction lineage:** Issue #77 candidate -> Issue #78 / candidate
-  `613d71b90c36b573578f6fffb9a6c7dd9606478f` -> independent review ->
-  Issue #80 continuity governance -> Issue #81 M1B correction candidate ->
-  independent cumulative M1B technical review **ACCEPT** -> explicit Human M1
-  design approval -> Issue #82 governance reconciliation/review ACCEPT ->
-  Issue #79 r2 pre-mutation STOP -> Issue #79 r3 BLOCKED -> Issue #83 M1C
-  candidate -> independent M1C technical review **ACCEPT** -> explicit Human
-  M1C erratum approval **APPROVED** -> Issue #84 acceptance reconciliation.
-- **Independent cumulative M1B technical review:** **ACCEPT**, recorded on
-  Issue #81 against the exact technical baseline above.
-- **Previous durable review:**
-  [docs/reviews/stage-02-m1a-613d71b-review.md](docs/reviews/stage-02-m1a-613d71b-review.md)
-  remains **REQUEST CHANGES** against `613d71b90c36b573578f6fffb9a6c7dd9606478f`.
-- **Human disposition:** **APPROVED**, recorded on Issue #81 for ADR-0008 and
-  the cumulative sandbox design at the exact accepted baseline above.
-- **Historical governance reconciliation:** the Issue #82 reconciliation commit
-  records approval/status/history only; it does not replace or modify the
-  accepted technical design baseline.
-- **Issue #82 independent governance review:** **ACCEPT** against
-  `7ff155c29de83fbcc5487698c8b72b70b2dec075`, recorded on Issue #82. This is
-  historical approval lineage, not approval of the M1C correction.
-- **Historical accepted correction plan:**
-  [M1C UNKNOWN frozen salvage](docs/exec-plans/active/stage-02-correction-m1c-unknown-frozen-salvage-v1.md).
-- **Current accepted corrected design:**
-  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`, parent
-  `7ff155c29de83fbcc5487698c8b72b70b2dec075`. It permits one guarded read-only
-  frozen-salvage collect while retaining UNKNOWN/cleanup and prohibiting
-  reuse/export/rebinding before targeted destroy.
+- **Accepted technical asset:** ADR-0008 + cumulative Stage 2 M1/M1C design at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`.
+- **Historical pre-erratum accepted baseline:** `b52df98530d8ce742b07d7f6c399ccd5b54e643b`.
+- **M1C acceptance:** independent technical review **ACCEPT** on Issue #83 comment `5706630764`; explicit Human erratum approval **APPROVED** on comment `5706652702`.
 - **Runtime isolation evidence:** **NOT YET ESTABLISHED**.
-- **Stage 2 runtime code:** **NOT YET STARTED**
-- **Stage 2 complete:** **NO**
+- **Runtime code:** **NOT YET STARTED**.
+- **Issue #79:** `r3 - stage-02-m2-blocked-after-unknown-collection-stop`, **BLOCKED / NOT RELEASED**.
+- **R3 proposed delivery disposition:** retain the accepted Stage 2 design as an execution-provider security/conformance and optional/reference asset, while superseding the old runtime-first delivery sequencing. This disposition is not final until R3 is Human accepted.
 
 ## Dispatch / review queue
 
-- **Historical Stage 2 governance reconciliation:** Issue #84 reconciled the
-  independent M1C technical review **ACCEPT** and Human erratum approval
-  **APPROVED**. Its governance commit records acceptance/status/history only and
-  does not replace or modify the accepted technical baseline
-  `77acfbdaf2bed6f0536873fafc8eb7a12599da83`.
-- **Strategic-validation lineage:** Issue #85 initial experiment -> independent
-  **REQUEST CHANGES** comment `5707299068` -> Issue #86 bounded correction ->
-  independent **ACCEPT** comment `5709520565`. The accepted review classifies
-  gates A/B/C/D/E as PASS and reaches the registered GO gate for considering a
-  formal amendment; it does not itself approve that amendment.
-- **R1 acceptance lineage:** Issue #87 Human strategic approval -> Issue #89 R1
-  candidate -> independent REQUEST CHANGES comment `5710385425` -> Issue #90
-  narrow R1C correction -> corrected head `9c842f18...` -> independent technical
-  re-review **ACCEPT** comment `5711016301` -> explicit Human R1 acceptance
-  comment `5711029647` -> Issue #91 acceptance reconciliation.
-- **R2 acceptance lineage:** Issue #92 candidate at `2b54c267...` -> independent
-  product-definition review **ACCEPT** comment `5711134872` -> explicit Human R2
-  acceptance comment `5711951534` -> Issue #93 acceptance reconciliation.
-- **Issue #79:** **BLOCKED / NOT RELEASED**, revision
-  `r3 - stage-02-m2-blocked-after-unknown-collection-stop`. Its earlier r2 was
-  released but stopped before mutation; no M2 code or implementation commit was
-  produced. Do not reuse r2 execution authority or re-release its old M2 scope.
-- **Next action:** execute R3 delivery-plan reconciliation. Replace the old
-  mandatory orchestrator Stage 2->10 critical path with the accepted v1 path
-  centered on governance facade, evidence integration, governed Effect gateway,
-  audit export, conformance, reference integrations and production hardening.
-  R4 workflow/cold-start reconciliation follows. Implementation cannot restart
-  before strategic reconciliation completes and a fresh executable TaskSpec is
-  released.
-- **Stage 3:** historical planned stage under the old roadmap; not activated and
-  subject to R3 disposition.
+- **R1 lineage:** Issue #87 Human strategic approval -> Issue #89 R1 candidate -> REQUEST CHANGES `5710385425` -> Issue #90 R1C -> corrected head `9c842f18...` -> independent technical re-review **ACCEPT** `5711016301` -> explicit Human R1 acceptance `5711029647` -> Issue #91 acceptance reconciliation.
+- **R2 lineage:** Issue #92 candidate `2b54c267...` -> independent Product-Definition Review **ACCEPT** `5711134872` -> explicit Human R2 acceptance `5711951534` -> Issue #93 acceptance reconciliation `771ad9bf...` -> independent governance review **ACCEPT** `5711974055`.
+- **R3:** Issue #94 is the current bounded delivery-plan TaskSpec. Its candidate must receive independent review and explicit Human acceptance before R4.
+- **Issue #79:** remains **BLOCKED / NOT RELEASED**. Its old r2 authority cannot be reused and its r3 body authorizes no mutation.
+- **Next action:** complete R3 candidate review and Human acceptance. Then execute R4 reference-workflow/cold-start/handoff reconciliation. Implementation remains blocked until R1-R4 are accepted and R5 explicitly disposes the old implementation path and releases a fresh post-transition TaskSpec.
 
-An open or `READY` Issue does not prove that a Worker is executing it. Issue
-number order does not determine authority, readiness or the next task.
+An open or `READY` Issue does not prove that a Worker is executing it. Issue number order does not determine authority, readiness or the next task.
 
 ## Navigation
 
-- **Roadmap:** [ROADMAP.md](ROADMAP.md) and
-  [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
-- **v1 product target:**
-  [docs/V1_PRODUCT_CONTRACT.md](docs/V1_PRODUCT_CONTRACT.md)
-- **Canonical acceptance scenarios:**
-  [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
+- **Roadmap:** [ROADMAP.md](ROADMAP.md) and [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
+- **v1 product target:** [docs/V1_PRODUCT_CONTRACT.md](docs/V1_PRODUCT_CONTRACT.md)
+- **Canonical acceptance scenarios:** [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
 
 ## Reading order for a new maintainer or AI
 
@@ -177,13 +61,8 @@ number order does not determine authority, readiness or the next task.
 8. [docs/DEVELOPMENT_PATH.md](docs/DEVELOPMENT_PATH.md)
 9. [docs/REFERENCE_WORKFLOWS.md](docs/REFERENCE_WORKFLOWS.md)
 10. relevant core beliefs, accepted ADRs and designs
-11. the current active stage parent plan, when one exists
-12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md), including candidate/review and
-    bounded related-Issue discovery
+11. the current active/historical stage parent plan when relevant
+12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
 13. the concrete durable Issue TaskSpec
 
-Completed plans preserve historical status and commit counts; they do not
-override this file's current project summary. This file does not override the
-Constitution, core beliefs, accepted ADRs, Architecture or accepted designs. If
-any sources conflict, stop and reconcile them through the repository authority
-hierarchy rather than choosing silently.
+Completed plans preserve historical status and commit counts; they do not override this file's current project summary. This file does not override the Constitution, core beliefs, accepted ADRs, Architecture or accepted designs. If sources conflict, stop and reconcile them through the repository authority hierarchy rather than choosing silently.
