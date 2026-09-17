@@ -110,7 +110,7 @@ Humans MUST NOT use normal application flows to rewrite historical facts, erase 
 
 ### 4.9 Irreversible Effects Require Human Authorization
 
-Under Constitution v0.1, an irreversible external Effect MUST receive explicit human authorization before real commit.
+An irreversible external Effect MUST receive explicit Human authorization before real commit unless a future explicit constitutional amendment changes this rule.
 
 ### 4.10 History Is Append-Only in Meaning
 
