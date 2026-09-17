@@ -12,6 +12,13 @@ Recommended structure:
 
 Do not silently rewrite accepted ADR history. Supersede an ADR with a new ADR when the decision changes materially.
 
+## Proposed decisions
+
+- [ADR-0009: Framework-Neutral Agent Governance Kernel and External Execution Boundary](0009-framework-neutral-agent-governance-kernel.md)
+  — Proposed under Issue #89; pending independent review and explicit Human
+  acceptance. It does not release implementation or reconcile the Product
+  Contract/Roadmap.
+
 ## Accepted decisions
 
 - [ADR-0008: Stage 2 Sandbox Execution Boundary](0008-stage-2-sandbox-execution-boundary.md)
