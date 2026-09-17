@@ -1,6 +1,15 @@
 # G2 Trusted Evaluation and Evidence Boundary
 
-Status: **G2/M0 DESIGN CANDIDATE / NOT ACCEPTED / NO IMPLEMENTATION RELEASED**.
+Status: **G2/M0 COMPLETE / ACCEPTED DESIGN / NO IMPLEMENTATION RELEASED**.
+
+Accepted design boundary: `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
+
+Independent acceptance: [Issue #105 comment `5717950150`](https://github.com/ZYWY457/symphony-k/issues/105#issuecomment-5717950150)
+under Issue #106 — **ACCEPT**, findings none. This is independent design
+acceptance, not a claim of separate Human acceptance.
+
+Status reconciliation: Issue #107. **G2/M1 is PLANNED / NOT RELEASED**;
+a fresh bounded TaskSpec is required before source/test mutation.
 
 TaskSpec: Issue #105, revision `r2 - g2-m0-design-freeze-final-handoff`.
 
@@ -529,8 +538,8 @@ Human acceptance when required, then invoke existing Stage 1 disposition
 semantics. A verdict or resolver view alone is insufficient.
 
 Every milestone still requires a fresh durable TaskSpec, exact launch baseline,
-allowed paths and independent acceptance. This design candidate releases none of
-them.
+allowed paths and independent acceptance. Acceptance of this design releases
+none of them.
 
 ## 15. Unresolved questions
 

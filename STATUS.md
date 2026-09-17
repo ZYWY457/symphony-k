@@ -14,6 +14,7 @@
 - **Accepted G1/M1 governance facade implementation boundary:** `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`; Issue #102 independent acceptance review `5714651540`.
 - **G1 accepted-truth reconciliation:** `eaea5390a088a71fe4108c2b84812253032a287a`; Issues #100/#102/#103 are closed completed.
 - **Accepted G2 planning boundary:** `6434cecc2daae51d17182a7cf18184a9a8124a05`; Issue #104 planning review `5715084007`; Issue #104 is closed completed.
+- **G2/M0 design:** **COMPLETE / ACCEPTED** at `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`; independent acceptance on [Issue #105 comment `5717950150`](https://github.com/ZYWY457/symphony-k/issues/105#issuecomment-5717950150) under #106. This is design acceptance, not G2 implementation or a claim of separate Human acceptance.
 - **Stage 2 M1/M1C technical design:** **HUMAN ACCEPTED** at `77acfbdaf2bed6f0536873fafc8eb7a12599da83`; ADR-0008 remains **ACCEPTED**.
 - Stage 2 runtime code is **NOT STARTED** and runtime isolation evidence is **NOT ESTABLISHED**.
 
@@ -75,18 +76,20 @@ G1/M1 does not add new Stage 1 lifecycle semantics or G2 evidence-trust policy.
 
 ## Current delivery gate
 
-**G2 — Trusted Evaluation and Evidence Integration remains PLANNED. G2/M0 design freeze is the only milestone being prepared for release.**
+**G2/M0 is COMPLETE / ACCEPTED. G2/M1 is PLANNED / NOT RELEASED.** G2 implementation remains unreleased; M0 acceptance is design only.
 
 Accepted G2 parent planning contract: [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md), accepted planning boundary `6434cecc2daae51d17182a7cf18184a9a8124a05`.
 
-Current concrete TaskSpec: **Issue #105 — G2 / M0 — Trusted Evaluation and Evidence Contract / Threat-Boundary Freeze**.
+Accepted M0 contract: [`docs/design-docs/g2-trusted-evaluation-evidence-boundary.md`](docs/design-docs/g2-trusted-evaluation-evidence-boundary.md), exact design boundary `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`. Independent review under Issue #106: Issue #105 comment `5717950150` — **ACCEPT**, findings none.
 
-Issue #105 is design-only. It authorizes only the exact documentation paths and remote boundary stated in its body once the TaskSpec is revised to READY with an exact launch HEAD. It does not authorize `src/**`, `tests/**`, M1-M5 implementation, real Effect work, or Stage 1 semantic changes.
+Current concrete TaskSpec: **Issue #107 — G2 / M0R — Accepted-Truth Reconciliation and M1 Planning Boundary**. It authorizes bounded governance/documentation reconciliation from `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`, not `src/**`, `tests/**`, schema/API/runtime work or a change to M0 contract semantics.
+
+M1 requires a fresh bounded TaskSpec with an exact launch baseline before source/test mutation. Its scope starts with durable evidence provenance intake under the accepted M0 contract; it must not silently implement M2-M5. Issues #105/#106 preserve the design execution/review lineage and are not active implementation authority.
 
 The planned G2 path remains:
 
 ```text
-M0 contract / threat-boundary freeze
+M0 contract / threat-boundary freeze — COMPLETE / ACCEPTED
 -> M1 durable evidence provenance intake
 -> M2 trusted evaluator identity + assignment binding
 -> M3 trusted Evaluation execution/result intake
@@ -111,11 +114,13 @@ M0 contract / threat-boundary freeze
 - #102 — G1/M1A forward trust-boundary correction and final accepted implementation evidence; closed completed.
 - #103 — G1/M1 accepted-truth reconciliation; closed completed.
 - #104 — G2 parent planning identity; closed completed after accepted planning reconciliation.
-- #105 — current G2/M0 design-only TaskSpec.
+- #105 — historical G2/M0 design execution TaskSpec; produced accepted design `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
+- #106 — independent M0 review; ACCEPT recorded on #105 comment `5717950150`.
+- #107 — current bounded M0 accepted-truth reconciliation; no M1 implementation release.
 
 ## Next action
 
-Finalize the G2/M0 launch handoff, then revise Issue #105 to **READY** using that exact launch HEAD. The M0 executor may then produce only the design candidate defined by #105. M1-M5 remain NOT RELEASED.
+Complete the bounded #107 reconciliation/publication handoff, then prepare a fresh M1 TaskSpec for durable evidence provenance intake from the accepted M0 contract. M1-M5 remain NOT RELEASED. Issue closure follows successful publication and the authority in #107; a local reconciliation candidate does not establish publication or closure.
 
 ## Navigation / cold-start reading order
 
@@ -131,6 +136,6 @@ Finalize the G2/M0 launch handoff, then revise Issue #105 to **READY** using tha
 10. [docs/exec-plans/planned/g2-trusted-evaluation-evidence.md](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md)
 11. relevant core beliefs, accepted ADRs/designs
 12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-13. current concrete TaskSpec Issue #105
+13. current concrete TaskSpec Issue #107; #105/#106 as historical design/review evidence
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.

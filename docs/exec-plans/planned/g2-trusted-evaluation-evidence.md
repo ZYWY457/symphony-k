@@ -1,6 +1,19 @@
 # G2 — Trusted Evaluation and Evidence Integration
 
-Status: **PLANNED / NOT RELEASED**.
+Status: **G2 implementation PLANNED / NOT RELEASED; G2/M0 COMPLETE / ACCEPTED**.
+
+Accepted M0 design: [`g2-trusted-evaluation-evidence-boundary.md`](../../design-docs/g2-trusted-evaluation-evidence-boundary.md)
+at exact boundary `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
+Independent acceptance: [Issue #105 comment `5717950150`](https://github.com/ZYWY457/symphony-k/issues/105#issuecomment-5717950150)
+under Issue #106 — **ACCEPT**, findings none. This records independent design
+acceptance, not separate Human acceptance or implementation completion.
+Issue #105 preserves design execution; #106 preserves review; #107 is the
+bounded accepted-truth reconciliation TaskSpec.
+
+**G2/M1 is PLANNED / NOT RELEASED.** A fresh bounded TaskSpec with an exact
+launch baseline is required before source/test mutation. M1 starts with durable
+evidence provenance intake under the accepted M0 contract and must not silently
+implement M2-M5.
 
 Planning authority: Issue #104 — `G2 Planning — Trusted Evaluation and Evidence Delivery Path`.
 
@@ -83,6 +96,11 @@ The system must fail closed at these boundaries.
 ## Planned milestone path
 
 ### G2/M0 — Contract and threat-boundary freeze
+
+**Status: COMPLETE / ACCEPTED** at `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`,
+independently reviewed under #106 on #105 comment `5717950150`. The requirements
+below preserve the historical M0 delivery contract; acceptance releases no
+implementation milestone.
 
 **Purpose:** freeze the integration contract before implementation.
 
@@ -234,7 +252,7 @@ Only after M6 reconciliation may G3 be considered for release.
 
 | Order | Milestone | Primary contract | Depends on | Release condition |
 | ---: | --- | --- | --- | --- |
-| 0 | M0 Contract/threat freeze | trust model + public integration contract | accepted G1 | fresh M0 TaskSpec |
+| 0 | M0 Contract/threat freeze | trust model + public integration contract | accepted G1 | COMPLETE / ACCEPTED under #105/#106; design only |
 | 1 | M1 Evidence provenance | durable trusted evidence reference/catalog | M0 accepted | fresh M1 TaskSpec |
 | 2 | M2 Evaluator binding | trusted evaluator/assignment provider | M0, normally M1 | fresh M2 TaskSpec |
 | 3 | M3 Evaluation intake | exact evidence + assignment + result lifecycle binding | M1/M2 | fresh M3 TaskSpec |
