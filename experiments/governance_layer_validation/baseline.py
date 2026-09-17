@@ -20,6 +20,14 @@ class Candidate:
 
 
 @dataclass(frozen=True, slots=True)
+class ExecutionAttempt:
+    execution_id: str
+    version: int
+    worker: str
+    state: str = "RUNNING"
+
+
+@dataclass(frozen=True, slots=True)
 class Evaluation:
     evaluation_id: str
     candidate_id: str
@@ -54,12 +62,36 @@ class BaselineService:
     """Competent bounded service: exact checks, CAS and append-only-by-API log."""
 
     def __init__(self) -> None:
+        self._executions: dict[str, ExecutionAttempt] = {}
         self._candidates: dict[str, Candidate] = {}
         self._evaluations: dict[str, Evaluation] = {}
         self._effects: dict[str, Effect] = {}
         self._events: list[dict[str, object]] = []
         self._committed_keys: dict[str, tuple[str, str]] = {}
         self._lock = Lock()
+
+    def record_execution(self, attempt: ExecutionAttempt) -> ExecutionAttempt:
+        with self._lock:
+            if attempt.execution_id in self._executions:
+                raise BaselineRejection("execution identity already exists")
+            self._executions[attempt.execution_id] = attempt
+            self._append("execution_recorded", attempt.execution_id, attempt.version)
+            return attempt
+
+    def complete_execution(
+        self, execution_id: str, expected: int, actor: str
+    ) -> ExecutionAttempt:
+        with self._lock:
+            current = self._execution(execution_id)
+            self._require_version(current.version, expected)
+            if actor == current.worker or not actor.startswith("controller:"):
+                raise BaselineRejection(
+                    "worker cannot declare authoritative execution success"
+                )
+            completed = replace(current, version=current.version + 1, state="COMPLETED")
+            self._executions[execution_id] = completed
+            self._append("execution_completed", execution_id, completed.version)
+            return completed
 
     def record_candidate(self, candidate: Candidate) -> Candidate:
         with self._lock:
@@ -198,6 +230,12 @@ class BaselineService:
             return self._candidates[candidate_id]
         except KeyError as exc:
             raise BaselineRejection("unknown candidate") from exc
+
+    def _execution(self, execution_id: str) -> ExecutionAttempt:
+        try:
+            return self._executions[execution_id]
+        except KeyError as exc:
+            raise BaselineRejection("unknown execution") from exc
 
     def _effect(self, effect_id: str) -> Effect:
         try:

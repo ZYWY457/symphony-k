@@ -2,85 +2,105 @@
   {
     "sequence": 1,
     "kind": "candidate",
-    "identity": "outcome-A/v1",
-    "exact_binding": "run-17",
-    "fact": "Candidate A proposed."
+    "identity": "00000000-0000-0000-0000-000000000065/v10",
+    "exact_binding": "run=00000000-0000-0000-0000-000000000192",
+    "fact": "Candidate A entered the persisted validation history.",
+    "durable_source": "Stage1 entity_versions/events"
   },
   {
     "sequence": 2,
     "kind": "evaluation",
-    "identity": "evaluation-E1/v3",
-    "exact_binding": "outcome-A/v1",
-    "fact": "E1 supported candidate A."
+    "identity": "00000000-0000-0000-0000-0000000000c9/v11",
+    "exact_binding": "target=00000000-0000-0000-0000-000000000065/v10",
+    "fact": "E1 recorded candidate A supported with evidence:A-support.",
+    "durable_source": "Stage1 entity_versions/events"
   },
   {
     "sequence": 3,
     "kind": "supersession",
-    "identity": "outcome-B/v1",
-    "exact_binding": "prior=outcome-A/v1",
-    "fact": "Candidate B superseded A; E1 remains historical but targets A only."
+    "identity": "00000000-0000-0000-0000-000000000065/v11",
+    "exact_binding": "replacement=12345678-1234-4234-8234-123456789abc/v18",
+    "fact": "Candidate B superseded A. E1 remains historical and exact-bound to A, so it is non-effective for B.",
+    "durable_source": "Stage1 event operation provenance"
   },
   {
     "sequence": 4,
     "kind": "evaluation",
-    "identity": "evaluation-E2/v3",
-    "exact_binding": "outcome-B/v1",
-    "fact": "E2 supported candidate B with evidence evidence:B-support."
+    "identity": "87654321-4321-4321-8321-cba987654321/v31",
+    "exact_binding": "target=12345678-1234-4234-8234-123456789abc/v17",
+    "fact": "E2 supported B with evidence:B-support.",
+    "durable_source": "Stage1 entity_versions/events"
   },
   {
     "sequence": 5,
     "kind": "evaluation",
-    "identity": "evaluation-E3/v3",
-    "exact_binding": "outcome-B/v1",
-    "fact": "E3 conflicted with E2 using evidence evidence:B-conflict."
+    "identity": "00000000-0000-0000-0000-0000000000cb/v31",
+    "exact_binding": "target=12345678-1234-4234-8234-123456789abc/v17",
+    "fact": "E3 recorded a conflicting judgment with evidence:B-conflict.",
+    "durable_source": "Stage1 entity_versions/events"
   },
   {
     "sequence": 6,
     "kind": "arbitration",
-    "identity": "arbitration-AB/v1",
-    "exact_binding": "E2/v3+E3/v3",
-    "fact": "An independent Human arbitration upheld E2 and reversed E3 for effective use."
+    "identity": "11111111-2222-4333-8444-555555555555",
+    "exact_binding": "evaluation=87654321-4321-4321-8321-cba987654321/v31",
+    "fact": "An independent Stage 1 arbitration upheld E2 for effective use; E3 remains a separate conflicting historical judgment and was not erased.",
+    "durable_source": "Stage1 supporting_records and Evaluation event"
   },
   {
     "sequence": 7,
     "kind": "disposition",
-    "identity": "outcome-B/v2",
-    "exact_binding": "arbitration-AB/v1",
-    "fact": "Outcome B accepted from the current arbitrated effective judgment."
+    "identity": "12345678-1234-4234-8234-123456789abc/v19",
+    "exact_binding": "event=00000000-0000-0000-0000-0000000003eb;evaluation=87654321-4321-4321-8321-cba987654321/v32",
+    "fact": "Outcome B became ACCEPTED from the persisted exact-current effective E2 judgment.",
+    "durable_source": "Stage1 operations/events/supporting_records"
   },
   {
     "sequence": 8,
     "kind": "effect_request",
-    "identity": "effect-42/v1",
-    "exact_binding": "outcome-B/v2",
-    "fact": "A consequential publish Effect was requested."
+    "identity": "12345678-1234-4234-8234-123456789abc/v17",
+    "exact_binding": "target=target-a",
+    "fact": "A consequential Effect was durably PLANNED.",
+    "durable_source": "Stage1 entity_versions/events"
   },
   {
     "sequence": 9,
-    "kind": "human_authorization",
-    "identity": "human-auth-42",
-    "exact_binding": "effect-42/v1+target+payload+correlation",
-    "fact": "Human operator human-7 authorized the exact prepared operation."
+    "kind": "authorization_evidence_binding",
+    "identity": "authorization-binding:audit-v1",
+    "exact_binding": "disposition=00000000-0000-0000-0000-0000000003eb;evaluation=87654321-4321-4321-8321-cba987654321/v32",
+    "fact": "The trusted experimental binding verified and persisted the exact authorization, accepted disposition, effective judgment and evidence evidence:B-support.",
+    "durable_source": "strategic_authorization_bindings"
   },
   {
     "sequence": 10,
-    "kind": "external_receipt",
-    "identity": "receipt-42",
-    "exact_binding": "effect-42/v1+operation-key-42",
-    "fact": "The independent external system returned a commit receipt."
+    "kind": "human_authorization",
+    "identity": "authorization-binding:audit-v1",
+    "exact_binding": "effect=12345678-1234-4234-8234-123456789abc/v17",
+    "fact": "Human operator 00000000-0000-0000-0000-00000000012d authorized the exact prepared operation through the verified binding.",
+    "durable_source": "strategic_integration_records"
   },
   {
     "sequence": 11,
-    "kind": "occurrence",
-    "identity": "effect-42/v2",
-    "exact_binding": "receipt-42",
-    "fact": "Independent observation confirmed the external action occurred."
+    "kind": "external_receipt",
+    "identity": "operation:audit-publish-v1",
+    "exact_binding": "effect=12345678-1234-4234-8234-123456789abc",
+    "fact": "The independent fake external system returned a durable receipt.",
+    "durable_source": "strategic_integration_records"
   },
   {
     "sequence": 12,
+    "kind": "occurrence",
+    "identity": "12345678-1234-4234-8234-123456789abc/v18",
+    "exact_binding": "receipt=operation:audit-publish-v1",
+    "fact": "Independent observation confirmed that the external action occurred.",
+    "durable_source": "Stage1 Effect event and occurrence supporting records"
+  },
+  {
+    "sequence": 13,
     "kind": "compensation",
-    "identity": "effect-42/v4",
-    "exact_binding": "original-occurrence=effect-42/v2",
-    "fact": "Compensation completed; original occurrence remains historical."
+    "identity": "12345678-1234-4234-8234-123456789abc/v20",
+    "exact_binding": "original-occurrence=12345678-1234-4234-8234-123456789abc/v18",
+    "fact": "Compensation completed while the original committed occurrence remained in immutable history.",
+    "durable_source": "Stage1 Effect events/supporting_records"
   }
 ]

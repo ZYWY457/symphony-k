@@ -15,6 +15,7 @@ from experiments.governance_layer_validation.baseline import (  # noqa: E402
     Candidate,
     Effect,
     Evaluation,
+    ExecutionAttempt,
 )
 
 
@@ -37,7 +38,14 @@ def approval(version: int = 1, effect_id: str = "effect-a") -> Approval:
     return Approval(effect_id, version, "remote:a", "payload:a", "human:one", "corr:a")
 
 
-def test_baseline_g1_g2_self_success_and_self_accept_are_rejected() -> None:
+def test_baseline_g1_worker_cannot_complete_own_execution() -> None:
+    service = BaselineService()
+    service.record_execution(ExecutionAttempt("execution-a", 1, "worker:one"))
+    with pytest.raises(BaselineRejection, match="execution success"):
+        service.complete_execution("execution-a", 1, "worker:one")
+
+
+def test_baseline_g2_worker_cannot_accept_own_candidate() -> None:
     service = BaselineService()
     service.record_candidate(candidate())
     service.record_evaluation(evaluation())
@@ -79,7 +87,7 @@ def test_baseline_g6_sensitive_commit_needs_human_authorization() -> None:
         service.commit_effect("effect-a", 1, None, "key:a")
 
 
-def test_baseline_g7_occurrence_cannot_be_erased_through_api() -> None:
+def test_baseline_g7_direct_history_attack_has_no_structural_protection() -> None:
     service = BaselineService()
     service.request_effect(Effect("effect-a", 1, "remote:a", "payload:a"))
     service.commit_effect("effect-a", 1, approval(), "key:a")
@@ -90,6 +98,10 @@ def test_baseline_g7_occurrence_cannot_be_erased_through_api() -> None:
         "effect_committed",
         "effect_compensated",
     ]
+    service._events.clear()
+    service._effects["effect-a"] = Effect("effect-a", 1, "remote:a", "payload:a")
+    assert service.audit() == ()
+    assert service.effect("effect-a").occurred is False
 
 
 def test_baseline_g8_stale_concurrent_writer_has_one_winner() -> None:

@@ -17,13 +17,18 @@ from symphony_k.domain import (
     ActorId,
     ActorIdentity,
     ActorType,
-    EntityVersion,
+    Evaluation,
+    EvaluationConfidence,
+    EvaluationMethodRef,
+    EvaluationResult,
     OutcomeState,
+    RunState,
     UnauthorizedTransition,
 )
 from symphony_k.persistence.sqlite import SQLiteStore
 from tests import test_outcome_disposition_semantic_transitions as outcome_fx
-from tests.persistence_fixtures import seed_snapshot
+from tests import test_run_semantic_transitions as run_fx
+from tests.persistence_fixtures import advance_fixture, seed_snapshot
 
 
 def facade_with_ports() -> tuple[
@@ -36,17 +41,29 @@ def facade_with_ports() -> tuple[
 
 def test_g1_worker_self_declared_authoritative_success_is_rejected() -> None:
     facade, ports, store = facade_with_ports()
-    snapshot = outcome_fx.outcome()
+    snapshot = run_fx.run(RunState.RUNNING)
     seed_snapshot(store, snapshot)
-    request = outcome_fx.request(snapshot, OutcomeState.ACCEPTED)
+    request = run_fx.request(RunState.COMPLETED)
+    request = replace(
+        request,
+        actor=ActorIdentity(request.actor.actor_id, ActorType.WORKER),
+    )
     with pytest.raises(UnauthorizedTransition, match="Worker port"):
         facade.apply_transition(
             ports[0],
-            snapshot.outcome_id,
+            snapshot.run_id,
             request,
-            outcome_fx.context(snapshot, request),
+            run_fx.context(
+                snapshot,
+                request,
+                run_fx.canonical_guard(
+                    snapshot,
+                    RunState.COMPLETED,
+                    run_fx.direct_completion_semantics(),
+                ),
+            ),
         )
-    assert store.outcomes.load(snapshot.outcome_id) == snapshot
+    assert store.runs.load(snapshot.run_id) == snapshot
 
 
 def test_g2_worker_cannot_self_accept_by_relabeling_actor() -> None:
@@ -68,12 +85,33 @@ def test_g3_stale_evidence_cannot_dispose_current_candidate() -> None:
     facade, ports, store = facade_with_ports()
     snapshot = outcome_fx.outcome()
     seed_snapshot(store, snapshot)
-    stale = replace(snapshot, version=EntityVersion(snapshot.version.value - 1))
+    observed = outcome_fx.semantics(snapshot, OutcomeState.ACCEPTED).evaluation
+    assert observed.effective_use.original_judgement is not None
+    evaluation = Evaluation(
+        observed.evaluation_id,
+        observed.observed_state,
+        observed.observed_evaluation_version,
+        observed.target,
+        EvaluationMethodRef("strategic", "1"),
+        observed.verifier,
+        EvaluationResult(
+            observed.effective_use.original_judgement,
+            EvaluationConfidence("high"),
+            "Exact deterministic strategic fixture.",
+        ),
+    )
+    seed_snapshot(store, evaluation)
+    advance_fixture(store, evaluation.evaluation_id)
     request = outcome_fx.request(snapshot, OutcomeState.ACCEPTED)
     context = outcome_fx.context(snapshot, request)
-    stale_request = replace(request, expected_version=stale.version)
-    with pytest.raises(Exception, match="version|snapshot"):
-        facade.apply_transition(ports[2], snapshot.outcome_id, stale_request, context)
+    assert request.expected_version == snapshot.version
+    with pytest.raises(Exception, match="unchanged current Evaluation"):
+        facade.apply_transition(ports[2], snapshot.outcome_id, request, context)
+    assert store.outcomes.load(snapshot.outcome_id) == snapshot
+    assert (
+        store.evaluations.load(evaluation.evaluation_id).version.value
+        > evaluation.version.value
+    )
 
 
 def test_g4_cross_entity_authority_substitution_is_rejected() -> None:

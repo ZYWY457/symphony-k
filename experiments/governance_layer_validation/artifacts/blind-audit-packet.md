@@ -1,27 +1,29 @@
 # Blind Audit Packet — Strategic Governance-Layer Validation
 
-This packet contains exported deterministic records only. It does not contain the answer key.
+This packet was normalized from an executed deterministic scenario. Its sources are persisted Stage 1 events, versions, operation provenance and supporting records plus append-only trusted experimental integration records. It does not contain the answer key.
 
 ## Records
 
-1. **candidate** `outcome-A/v1` — binding: `run-17`. Candidate A proposed.
-2. **evaluation** `evaluation-E1/v3` — binding: `outcome-A/v1`. E1 supported candidate A.
-3. **supersession** `outcome-B/v1` — binding: `prior=outcome-A/v1`. Candidate B superseded A; E1 remains historical but targets A only.
-4. **evaluation** `evaluation-E2/v3` — binding: `outcome-B/v1`. E2 supported candidate B with evidence evidence:B-support.
-5. **evaluation** `evaluation-E3/v3` — binding: `outcome-B/v1`. E3 conflicted with E2 using evidence evidence:B-conflict.
-6. **arbitration** `arbitration-AB/v1` — binding: `E2/v3+E3/v3`. An independent Human arbitration upheld E2 and reversed E3 for effective use.
-7. **disposition** `outcome-B/v2` — binding: `arbitration-AB/v1`. Outcome B accepted from the current arbitrated effective judgment.
-8. **effect_request** `effect-42/v1` — binding: `outcome-B/v2`. A consequential publish Effect was requested.
-9. **human_authorization** `human-auth-42` — binding: `effect-42/v1+target+payload+correlation`. Human operator human-7 authorized the exact prepared operation.
-10. **external_receipt** `receipt-42` — binding: `effect-42/v1+operation-key-42`. The independent external system returned a commit receipt.
-11. **occurrence** `effect-42/v2` — binding: `receipt-42`. Independent observation confirmed the external action occurred.
-12. **compensation** `effect-42/v4` — binding: `original-occurrence=effect-42/v2`. Compensation completed; original occurrence remains historical.
+1. **candidate** `00000000-0000-0000-0000-000000000065/v10` — binding: `run=00000000-0000-0000-0000-000000000192`. Candidate A entered the persisted validation history. Source: `Stage1 entity_versions/events`.
+2. **evaluation** `00000000-0000-0000-0000-0000000000c9/v11` — binding: `target=00000000-0000-0000-0000-000000000065/v10`. E1 recorded candidate A supported with evidence:A-support. Source: `Stage1 entity_versions/events`.
+3. **supersession** `00000000-0000-0000-0000-000000000065/v11` — binding: `replacement=12345678-1234-4234-8234-123456789abc/v18`. Candidate B superseded A. E1 remains historical and exact-bound to A, so it is non-effective for B. Source: `Stage1 event operation provenance`.
+4. **evaluation** `87654321-4321-4321-8321-cba987654321/v31` — binding: `target=12345678-1234-4234-8234-123456789abc/v17`. E2 supported B with evidence:B-support. Source: `Stage1 entity_versions/events`.
+5. **evaluation** `00000000-0000-0000-0000-0000000000cb/v31` — binding: `target=12345678-1234-4234-8234-123456789abc/v17`. E3 recorded a conflicting judgment with evidence:B-conflict. Source: `Stage1 entity_versions/events`.
+6. **arbitration** `11111111-2222-4333-8444-555555555555` — binding: `evaluation=87654321-4321-4321-8321-cba987654321/v31`. An independent Stage 1 arbitration upheld E2 for effective use; E3 remains a separate conflicting historical judgment and was not erased. Source: `Stage1 supporting_records and Evaluation event`.
+7. **disposition** `12345678-1234-4234-8234-123456789abc/v19` — binding: `event=00000000-0000-0000-0000-0000000003eb;evaluation=87654321-4321-4321-8321-cba987654321/v32`. Outcome B became ACCEPTED from the persisted exact-current effective E2 judgment. Source: `Stage1 operations/events/supporting_records`.
+8. **effect_request** `12345678-1234-4234-8234-123456789abc/v17` — binding: `target=target-a`. A consequential Effect was durably PLANNED. Source: `Stage1 entity_versions/events`.
+9. **authorization_evidence_binding** `authorization-binding:audit-v1` — binding: `disposition=00000000-0000-0000-0000-0000000003eb;evaluation=87654321-4321-4321-8321-cba987654321/v32`. The trusted experimental binding verified and persisted the exact authorization, accepted disposition, effective judgment and evidence evidence:B-support. Source: `strategic_authorization_bindings`.
+10. **human_authorization** `authorization-binding:audit-v1` — binding: `effect=12345678-1234-4234-8234-123456789abc/v17`. Human operator 00000000-0000-0000-0000-00000000012d authorized the exact prepared operation through the verified binding. Source: `strategic_integration_records`.
+11. **external_receipt** `operation:audit-publish-v1` — binding: `effect=12345678-1234-4234-8234-123456789abc`. The independent fake external system returned a durable receipt. Source: `strategic_integration_records`.
+12. **occurrence** `12345678-1234-4234-8234-123456789abc/v18` — binding: `receipt=operation:audit-publish-v1`. Independent observation confirmed that the external action occurred. Source: `Stage1 Effect event and occurrence supporting records`.
+13. **compensation** `12345678-1234-4234-8234-123456789abc/v20` — binding: `original-occurrence=12345678-1234-4234-8234-123456789abc/v18`. Compensation completed while the original committed occurrence remained in immutable history. Source: `Stage1 Effect events/supporting_records`.
 
 ## Scope and limitations
 
-- Occurrence uncertainty was not exercised in this narrative; no QUARANTINED/UNCERTAIN interval is claimed.
-- Stage 1 represents supersession, immutable Evaluations, conflict membership, arbitration, disposition, Effect occurrence and compensation. It does not execute an external service itself.
-- The experimental trusted gateway performed the fake external commit. Its exact Human authorization and receipt are durable experimental integration records; confirmed occurrence and compensation are Stage 1 records.
+- Occurrence uncertainty was not exercised; no QUARANTINED/UNCERTAIN interval is claimed.
+- Stage 1 does not dispatch external services. The bounded trusted experimental gateway performed the fake commit.
+- E3 is a persisted conflicting judgment, but it was not made a member of a Stage 1 conflict set. The implemented effective resolution used for B is the exact persisted direct arbitration of E2; the packet does not claim broader conflict-set resolution.
+- The authorization-to-evidence association is experimental adapter storage, not accepted production Stage 1 semantics.
 
 ## Blind-review questions
 

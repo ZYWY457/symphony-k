@@ -32,6 +32,7 @@ from symphony_k.domain import (  # noqa: E402
     EvaluationResult,
     EvaluationState,
     EventId,
+    EvidenceRef,
     Outcome,
     OutcomeState,
     UnauthorizedTransition,
@@ -78,26 +79,48 @@ def human_authorization(current: Effect) -> HumanAuthorization:
     )
 
 
-def seed_disposition_evaluation(store: SQLiteStore, snapshot: Outcome) -> None:
+def seed_disposition_evaluation(store: SQLiteStore, snapshot: Outcome) -> Evaluation:
     observed = outcome_fx.semantics(snapshot, OutcomeState.ACCEPTED).evaluation
     assert observed.effective_use.original_judgement is not None
     result = EvaluationResult(
         observed.effective_use.original_judgement,
         EvaluationConfidence("high"),
         "Exact deterministic strategic fixture.",
+        frozenset({EvidenceRef("evidence:strategic-binding")}),
     )
-    seed_snapshot(
-        store,
-        Evaluation(
-            observed.evaluation_id,
-            observed.observed_state,
-            observed.observed_evaluation_version,
-            observed.target,
-            EvaluationMethodRef("strategic", "1"),
-            observed.verifier,
-            result,
-        ),
+    evaluation = Evaluation(
+        observed.evaluation_id,
+        observed.observed_state,
+        observed.observed_evaluation_version,
+        observed.target,
+        EvaluationMethodRef("strategic", "1"),
+        observed.verifier,
+        result,
     )
+    seed_snapshot(store, evaluation)
+    return evaluation
+
+
+def bind_human_authorization(
+    facade: GovernanceFacade,
+    ports: tuple[Port, Port, Port, Port],
+    store: SQLiteStore,
+    effect: Effect,
+) -> HumanAuthorization:
+    outcome = outcome_fx.outcome()
+    seed_snapshot(store, outcome)
+    evaluation = seed_disposition_evaluation(store, outcome)
+    request = replace(
+        outcome_fx.request(outcome, OutcomeState.ACCEPTED), event_id=EventId.new()
+    )
+    facade.apply_transition(
+        ports[2], outcome.outcome_id, request, outcome_fx.context(outcome, request)
+    )
+    authorization = human_authorization(effect)
+    facade.bind_authorization_evidence(
+        ports[3], authorization, outcome.outcome_id, evaluation.evaluation_id
+    )
+    return authorization
 
 
 def test_g5_replay_returns_original_receipt_without_fresh_authority() -> None:
@@ -139,6 +162,30 @@ def test_g6_commit_without_exact_human_authorization_is_rejected() -> None:
     assert fake.state(current.target_ref.value) is None
 
 
+def test_nonblank_but_unbound_authorization_evidence_is_rejected() -> None:
+    facade, ports, store = setup()
+    current = occurrence_fx.effect(EffectState.PLANNED)
+    seed_snapshot(store, current)
+    request = occurrence_fx.request(current, EffectState.COMMITTED)
+    fake = FakeExternalSystem()
+    with pytest.raises(UnauthorizedTransition, match="trusted evidence binding"):
+        facade.commit_effect(
+            ports[3],
+            fake,
+            human_authorization(current),
+            "operation:unbound",
+            request,
+            occurrence_fx.context(
+                current,
+                request,
+                occurrence_fx.confirmed_semantics(
+                    current, EffectAuthorizationStatus.AUTHORIZED
+                ),
+            ),
+        )
+    assert fake.state(current.target_ref.value) is None
+
+
 def test_g7_confirmed_occurrence_cannot_be_rewritten_out_of_history() -> None:
     facade, ports, store = setup()
     current = occurrence_fx.effect(EffectState.PLANNED)
@@ -154,7 +201,7 @@ def test_g7_confirmed_occurrence_cannot_be_rewritten_out_of_history() -> None:
     facade.commit_effect(
         ports[3],
         FakeExternalSystem(),
-        human_authorization(current),
+        bind_human_authorization(facade, ports, store, current),
         "operation:a",
         request,
         context,
@@ -283,7 +330,7 @@ def test_h4_human_authorized_gateway_commit_has_receipt_and_occurrence(
     result = facade.commit_effect(
         ports[3],
         external,
-        human_authorization(current),
+        bind_human_authorization(facade, ports, store, current),
         "operation:a",
         request,
         context,
@@ -295,9 +342,12 @@ def test_h4_human_authorized_gateway_commit_has_receipt_and_occurrence(
     records = packet["integration_records"]
     assert isinstance(records, tuple)
     assert {item["kind"] for item in records if isinstance(item, dict)} == {
+        "authorization_evidence_binding",
         "human_authorization",
         "external_receipt",
     }
+    bindings = packet["authorization_bindings"]
+    assert isinstance(bindings, tuple) and len(bindings) == 1
     store.close()
     reopened = SQLiteStore(database)
     reopened_facade = GovernanceFacade(reopened, ports)
@@ -318,7 +368,7 @@ def test_h5_compensation_preserves_original_occurrence() -> None:
     committed_result = facade.commit_effect(
         ports[3],
         FakeExternalSystem(),
-        human_authorization(planned),
+        bind_human_authorization(facade, ports, store, planned),
         "operation:compensate",
         commit_request,
         occurrence_fx.context(

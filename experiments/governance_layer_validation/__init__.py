@@ -2,6 +2,7 @@
 
 from .facade import (
     AuthorityLane,
+    AuthorizationEvidenceBinding,
     ExternalReceipt,
     FakeExternalSystem,
     GovernanceFacade,
@@ -11,6 +12,7 @@ from .facade import (
 )
 
 __all__ = [
+    "AuthorizationEvidenceBinding",
     "AuthorityLane",
     "ExternalReceipt",
     "FakeExternalSystem",
