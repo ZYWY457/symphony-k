@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime
 from enum import Enum
@@ -20,10 +22,14 @@ from symphony_k.domain import (
     EntityNotFound,
     EntityVersion,
     EvidenceRef,
+    InvalidDomainValue,
+    InvalidRelationship,
+    InvalidTransition,
     InvariantViolation,
     OutcomeId,
     RunId,
     Timestamp,
+    UnauthorizedTransition,
 )
 
 from .errors import (
@@ -33,6 +39,7 @@ from .errors import (
     GovernanceInvariantError,
     InvalidRequestError,
     NotFoundError,
+    UnsupportedOperationError,
     translate_domain_error,
 )
 from .types import EffectRef, OutcomeRef, RunRef
@@ -573,6 +580,10 @@ class TrustedEvidenceCollector(Protocol):
 
 
 class EvidenceStore(Protocol):
+    def _evidence_read_snapshot(self) -> AbstractContextManager[None]:
+        """Keep all evidence records/findings reads in one durable observation."""
+        ...
+
     def _evidence_load_exact(
         self, evidence_ref: str, record_fingerprint: str
     ) -> str: ...
@@ -629,6 +640,38 @@ def _record_from_draft(draft: TrustedEvidenceDraft) -> TrustedEvidenceRecord:
     return TrustedEvidenceRecord(semantics, _fingerprint(semantics))
 
 
+@contextmanager
+def _provider_boundary() -> Iterator[None]:
+    """Provider exception text is private, even for domain/facade errors."""
+    try:
+        yield
+    except Exception as exc:
+        error_type: type[GovernanceFacadeError]
+        if isinstance(
+            exc,
+            (
+                InvalidRequestError,
+                InvalidDomainValue,
+                InvalidRelationship,
+                InvalidTransition,
+            ),
+        ):
+            error_type = InvalidRequestError
+        elif isinstance(exc, (AuthorityDeniedError, UnauthorizedTransition)):
+            error_type = AuthorityDeniedError
+        elif isinstance(exc, (ConflictError, ConcurrencyConflict)):
+            error_type = ConflictError
+        elif isinstance(exc, (NotFoundError, EntityNotFound)):
+            error_type = NotFoundError
+        elif isinstance(exc, UnsupportedOperationError):
+            error_type = UnsupportedOperationError
+        else:
+            error_type = GovernanceInvariantError
+        raise error_type(
+            "Trusted evidence provider could not complete the operation"
+        ) from exc
+
+
 class EvidenceProvenanceService:
     """Register and resolve evidence without acquiring lifecycle authority."""
 
@@ -649,8 +692,10 @@ class EvidenceProvenanceService:
         if not isinstance(claim, EvidenceSubmissionClaim):
             raise InvalidRequestError("Expected EvidenceSubmissionClaim")
         try:
-            draft = self._collector.collect(claim)
+            with _provider_boundary():
+                draft = self._collector.collect(claim)
             self._validate_draft(draft)
+            self._require_requested_target(claim, draft)
             record = _record_from_draft(draft)
             self._validate_links(record)
             operation_fingerprint = _fingerprint((claim, record.semantics))
@@ -731,7 +776,8 @@ class EvidenceProvenanceService:
         if not isinstance(claim, EvidenceTrustFindingClaim):
             raise InvalidRequestError("Expected EvidenceTrustFindingClaim")
         try:
-            finding = self._collector.establish_finding(claim)
+            with _provider_boundary():
+                finding = self._collector.establish_finding(claim)
             if not isinstance(finding, EvidenceTrustFindingRecord):
                 raise AuthorityDeniedError(
                     "Trusted provider returned an invalid finding"
@@ -788,21 +834,31 @@ class EvidenceProvenanceService:
         *,
         expected_target: ExactEvidenceTarget | None = None,
     ) -> EvidenceProvenanceView:
-        view = (
-            self.read(reference)
-            if isinstance(reference, EvidenceRecordRef)
-            else self.lookup(reference)
-        )
-        if (
-            expected_target is not None
-            and view.record.semantics.target != expected_target
-        ):
-            raise AuthorityDeniedError(
-                "Evidence is not scoped to the required exact target"
-            )
-        self._resolve_chain(view.record, set())
-        self._require_current_trust(view)
-        return view
+        try:
+            with self._store._evidence_read_snapshot():
+                view = (
+                    self.read(reference)
+                    if isinstance(reference, EvidenceRecordRef)
+                    else self.lookup(reference)
+                )
+                if (
+                    expected_target is not None
+                    and view.record.semantics.target != expected_target
+                ):
+                    raise AuthorityDeniedError(
+                        "Evidence is not scoped to the required exact target"
+                    )
+                self._resolve_chain(view.record, set())
+                self._require_current_trust(view)
+                return view
+        except GovernanceFacadeError:
+            raise
+        except DomainError as exc:
+            raise translate_domain_error(exc) from exc
+        except Exception as exc:
+            raise GovernanceInvariantError(
+                "Evidence trusted resolution failed"
+            ) from exc
 
     def _resolve_chain(
         self, record: TrustedEvidenceRecord, visited: set[EvidenceRecordRef]
@@ -811,6 +867,7 @@ class EvidenceProvenanceService:
         if reference in visited:
             raise AuthorityDeniedError("Cyclic evidence target is not trusted")
         visited.add(reference)
+        self._require_digest_policy(record.semantics.integrity_anchor)
         target = record.semantics.target
         if isinstance(target, EvidenceRecordRef):
             try:
@@ -897,13 +954,7 @@ class EvidenceProvenanceService:
             raise AuthorityDeniedError("Supersession provenance is invalid")
         anchor = draft.integrity_anchor
         if isinstance(anchor, ContentDigestAnchor):
-            if (
-                anchor.algorithm,
-                anchor.algorithm_version,
-            ) not in self._allowed_content_digests:
-                raise AuthorityDeniedError(
-                    "Content digest algorithm/version is not allowed"
-                )
+            self._require_digest_policy(anchor)
             if anchor.algorithm == "sha256" and (
                 len(anchor.digest) != 64
                 or any(
@@ -925,6 +976,32 @@ class EvidenceProvenanceService:
         else:
             raise AuthorityDeniedError(
                 "Trusted collector did not establish an integrity anchor"
+            )
+
+    def _require_requested_target(
+        self, claim: EvidenceSubmissionClaim, draft: TrustedEvidenceDraft
+    ) -> None:
+        # The caller constrains request scope; only the provider establishes facts.
+        requested: ExactEvidenceTarget
+        if isinstance(claim.target, EvidenceRef):
+            if claim.target == draft.evidence_ref:
+                raise AuthorityDeniedError("Evidence cannot target itself")
+            requested = self.lookup(claim.target).record.exact_ref
+        else:
+            requested = claim.target
+        if type(draft.target) is not type(requested) or draft.target != requested:
+            raise AuthorityDeniedError(
+                "Trusted evidence provider changed the requested exact target"
+            )
+
+    def _require_digest_policy(self, anchor: IntegrityAnchor) -> None:
+        if (
+            isinstance(anchor, ContentDigestAnchor)
+            and (anchor.algorithm, anchor.algorithm_version)
+            not in self._allowed_content_digests
+        ):
+            raise AuthorityDeniedError(
+                "Content digest algorithm/version is not allowed"
             )
 
 

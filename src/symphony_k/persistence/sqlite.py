@@ -519,6 +519,24 @@ class SQLiteStore:
                 (*key, encoded, str(event_id)),
             )
 
+    @contextmanager
+    def _evidence_read_snapshot(self) -> Iterator[None]:
+        """Defer the read snapshot until the first SELECT; acquire no writer lock.
+
+        The service owns chain/trust semantics and keeps every read inside this
+        scope. Never borrow an existing transaction or commit caller-owned work.
+        """
+        if self._connection.in_transaction:
+            raise ConcurrencyConflict("Evidence snapshot requires an idle connection")
+        try:
+            self._connection.execute("BEGIN")
+            yield
+        except sqlite3.OperationalError as exc:
+            raise ConcurrencyConflict("Evidence snapshot could not be read") from exc
+        finally:
+            if self._connection.in_transaction:
+                self._connection.execute("ROLLBACK")
+
     def _evidence_load_exact(self, evidence_ref: str, record_fingerprint: str) -> str:
         row = self._connection.execute(
             "SELECT record_fingerprint,record FROM evidence_records "

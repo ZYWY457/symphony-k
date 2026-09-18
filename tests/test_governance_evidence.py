@@ -1,5 +1,6 @@
 """G2/M1 trusted evidence boundary and adversarial service contracts."""
 
+from contextlib import nullcontext
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -9,8 +10,12 @@ from symphony_k.domain import (
     ActorId,
     ActorIdentity,
     ActorType,
+    DomainError,
+    EffectId,
     EntityVersion,
     EvidenceRef,
+    InvalidDomainValue,
+    OutcomeId,
     RunId,
     Timestamp,
 )
@@ -19,6 +24,7 @@ from symphony_k.governance import (
     ConflictError,
     ContentDigestAnchor,
     ContentDigestClaim,
+    EffectRef,
     EvidenceProvenanceService,
     EvidenceRecordRef,
     EvidenceSource,
@@ -28,6 +34,7 @@ from symphony_k.governance import (
     EvidenceTrustStatus,
     ExternalAnchorClaim,
     ExternalImmutableAnchor,
+    GovernanceFacadeError,
     GovernanceInvariantError,
     InvalidRequestError,
     MaterialProvenance,
@@ -91,7 +98,7 @@ class Collector:
 def claim(
     *,
     key: str = "operation:1",
-    target: RunRef | EvidenceRef = RUN,
+    target: RunRef | OutcomeRef | EffectRef | EvidenceRef = RUN,
     requested: EvidenceRef | None = CALLER_REQUESTED,
 ) -> EvidenceSubmissionClaim:
     return EvidenceSubmissionClaim(
@@ -121,7 +128,7 @@ def claim(
 def draft(
     evidence_ref: EvidenceRef = EVIDENCE_ONE,
     *,
-    target: RunRef | OutcomeRef | EvidenceRecordRef = RUN,
+    target: RunRef | OutcomeRef | EffectRef | EvidenceRecordRef = RUN,
     anchor: ContentDigestAnchor | ExternalImmutableAnchor | None = None,
     supersedes: EvidenceRecordRef | None = None,
 ) -> TrustedEvidenceDraft:
@@ -247,7 +254,9 @@ def test_same_evidence_id_with_altered_target_or_version_is_collision() -> None:
     collector.result = draft(target=replace(RUN, version=EntityVersion(8)))
 
     with pytest.raises(ConflictError, match="another immutable record"):
-        service.register(claim(key="operation:2"))
+        service.register(
+            claim(key="operation:2", target=replace(RUN, version=EntityVersion(8)))
+        )
     store.close()
 
 
@@ -409,7 +418,7 @@ def test_evidence_on_evidence_resolves_exact_record_without_substitution() -> No
     assert service.resolve_trusted(second).record.semantics.target == first
     wrong = replace(first, record_fingerprint="b" * 64)
     collector.result = draft(EvidenceRef("evidence:three"), target=wrong)
-    with pytest.raises(ConflictError):
+    with pytest.raises(AuthorityDeniedError, match="requested exact target"):
         service.register(claim(key="operation:3", target=first.evidence_ref))
     store.close()
 
@@ -419,7 +428,9 @@ def test_cyclic_evidence_target_from_corrupt_store_fails_closed() -> None:
     service, collector = service_for(store, draft())
     first = service.register(claim()).record
     collector.result = draft(EvidenceRef("evidence:two"), target=first.exact_ref)
-    second = service.register(claim(key="operation:2")).record
+    second = service.register(
+        claim(key="operation:2", target=first.exact_ref.evidence_ref)
+    ).record
     store.close()
 
     first_semantics = replace(first.semantics, target=second.exact_ref)
@@ -434,6 +445,9 @@ def test_cyclic_evidence_target_from_corrupt_store_fails_closed() -> None:
     )
 
     class CyclicStore:
+        def _evidence_read_snapshot(self):
+            return nullcontext()
+
         def _evidence_load_exact(self, evidence_ref: str, fingerprint: str) -> str:
             reference = EvidenceRecordRef(EvidenceRef(evidence_ref), fingerprint)
             if reference == first_cycle.exact_ref:
@@ -598,4 +612,119 @@ def test_provider_failure_is_caller_safe() -> None:
     with pytest.raises(GovernanceInvariantError) as captured:
         service.register(claim())
     assert "secret provider credential" not in str(captured.value)
+    store.close()
+
+
+@pytest.mark.parametrize(
+    "requested",
+    [
+        RUN,
+        OutcomeRef(OutcomeId.new(), RUN.version),
+        EffectRef(EffectId.new(), RUN.version),
+    ],
+)
+@pytest.mark.parametrize("change", ["version", "identity", "family"])
+def test_registration_rejects_provider_target_substitution_without_writes(
+    requested: RunRef | OutcomeRef | EffectRef, change: str
+) -> None:
+    if change == "version":
+        substituted = replace(requested, version=EntityVersion(8))
+    elif change == "identity":
+        if isinstance(requested, RunRef):
+            substituted = replace(requested, run_id=RunId.new())
+        elif isinstance(requested, OutcomeRef):
+            substituted = replace(requested, outcome_id=OutcomeId.new())
+        else:
+            substituted = replace(requested, effect_id=EffectId.new())
+    else:
+        substituted = (
+            OutcomeRef(OutcomeId.new(), RUN.version)
+            if isinstance(requested, RunRef)
+            else RUN
+        )
+    store = SQLiteStore()
+    service, collector = service_for(store, draft(target=substituted))
+    request = claim(target=requested)
+    with pytest.raises(AuthorityDeniedError, match="requested exact target"):
+        service.register(request)
+    for table in ("evidence_records", "evidence_operations", "events", "heads"):
+        assert store._connection.execute(
+            f"SELECT COUNT(*) FROM {table}"
+        ).fetchone() == (0,)
+    # Rejection did not consume the operation key; exact target succeeds and replays.
+    collector.result = draft(target=requested)
+    original = service.register(request)
+    assert service.register(request) == original
+    assert service.resolve_trusted(original.record.exact_ref) == original
+    store.close()
+
+
+@pytest.mark.parametrize("requested_exists", [False, True])
+def test_evidence_target_identity_cannot_be_replaced_by_existing_record(
+    requested_exists: bool,
+) -> None:
+    store = SQLiteStore()
+    service, collector = service_for(store, draft(EvidenceRef("target:Y")))
+    other = service.register(claim()).record.exact_ref
+    requested = EvidenceRef("target:X")
+    if requested_exists:
+        collector.result = draft(requested)
+        service.register(claim(key="target:X"))
+    before = store._connection.total_changes
+    collector.result = draft(EvidenceRef("child"), target=other)
+    with pytest.raises(AuthorityDeniedError if requested_exists else NotFoundError):
+        service.register(claim(key="child", target=requested))
+    assert store._connection.total_changes == before
+    assert store._connection.execute(
+        "SELECT COUNT(*) FROM evidence_operations WHERE operation_key='child'"
+    ).fetchone() == (0,)
+    with pytest.raises(NotFoundError):
+        service.lookup(EvidenceRef("child"))
+    assert store._connection.execute("SELECT COUNT(*) FROM events").fetchone() == (0,)
+    store.close()
+
+
+@pytest.mark.parametrize("operation", ["collect", "establish_finding"])
+@pytest.mark.parametrize(
+    "provider_error,public_error",
+    [
+        (InvalidDomainValue, InvalidRequestError),
+        (AuthorityDeniedError, AuthorityDeniedError),
+        (DomainError, GovernanceInvariantError),
+        (GovernanceFacadeError, GovernanceInvariantError),
+        (RuntimeError, GovernanceInvariantError),
+    ],
+)
+def test_provider_boundary_sanitizes_all_exception_families(
+    operation: str,
+    provider_error: type[Exception],
+    public_error: type[GovernanceFacadeError],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = SQLiteStore()
+    service, collector = service_for(store, draft())
+    original = service.register(claim())
+    failure = provider_error("SENTINEL-private-provider-assertion")
+
+    def fail(request: object) -> None:
+        raise failure
+
+    monkeypatch.setattr(collector, operation, fail)
+    before = store._connection.total_changes
+    with pytest.raises(public_error) as caught:
+        if operation == "collect":
+            service.register(claim(key="failure"))
+        else:
+            service.append_trust_finding(
+                finding_claim(
+                    original.record.exact_ref,
+                    EvidenceTrustStatus.ADVERSE,
+                    finding_id="failure",
+                )
+            )
+    assert type(caught.value) is public_error
+    assert "SENTINEL" not in str(caught.value)
+    assert caught.value.__cause__ is failure
+    assert store._connection.total_changes == before
+    assert service.resolve_trusted(original.record.exact_ref) == original
     store.close()
