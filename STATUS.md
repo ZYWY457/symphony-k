@@ -105,7 +105,9 @@ The #112 reviewer completed exact source/diff review and accepted the correction
 
 Accepted-truth reconciliation: `67f91f00ed3d6491f4451b801a19ae20ac409905`, finalized **ACCEPTED** in [Issue #113 comment `5724156994`](https://github.com/ZYWY457/symphony-k/issues/113#issuecomment-5724156994) after independent review under #114, durable review record [comment `5724140703`](https://github.com/ZYWY457/symphony-k/issues/113#issuecomment-5724140703), findings none. This reconciliation boundary does not replace the M1 implementation boundary.
 
-Current released TaskSpec: [#111 — strategic narrative, external simplicity and cold-start truth refresh](https://github.com/ZYWY457/symphony-k/issues/111), revision `r4 - strategic-narrative-cold-start-refresh-path-correction`, execution handoff [comment `5724161554`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724161554) and durable path correction [comment `5724343805`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724343805). It authorizes a repository/docs/metadata candidate only. Acceptance remains pending independent review under #115; candidate existence is not acceptance.
+Repository-refresh lineage: [#111 — strategic narrative, external simplicity and cold-start truth refresh](https://github.com/ZYWY457/symphony-k/issues/111), revision `r4 - strategic-narrative-cold-start-refresh-path-correction`, execution handoff [comment `5724161554`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724161554), durable path correction [comment `5724343805`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724343805), candidate evidence [comment `5724416091`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724416091). #111 produced the original repository-refresh candidate `f8ccac552e5b48d5b7a4df86683844d242bc8221` (parent `67f91f00ed3d6491f4451b801a19ae20ac409905`). The independent review under #115 is complete: disposition **CORRECTION REQUIRED**, durable record [#111 comment `5724524204`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724524204), completion pointer [#115 comment `5724525447`](https://github.com/ZYWY457/symphony-k/issues/115#issuecomment-5724525447). The only blocking finding (F1) was the internally contradictory cold-start current review/execution-gate wording in `STATUS.md` / `docs/AI_HANDOFF.md`; strategic identity, historical integrity, accepted G2 truth, integration principles and validation otherwise passed (reviewer-independent rerun on the exact candidate: 3394 tests passed, `git diff --check` clean, 69 local Markdown links / 0 broken). `f8ccac55...` remains a historical **not accepted** candidate; candidate existence was never acceptance. Do not rerun the #111 broad repository refresh.
+
+Current correction authority: [#116 — bounded forward correction of the cold-start review-gate state](https://github.com/ZYWY457/symphony-k/issues/116), limited to `STATUS.md` and `docs/AI_HANDOFF.md` from exact baseline `f8ccac552e5b48d5b7a4df86683844d242bc8221`. Independent correction-review authority: [#117](https://github.com/ZYWY457/symphony-k/issues/117). Whether correction implementation (#116) or independent review (#117) is the current phase must be determined by reading the durable state/candidate records of #116/#117, per the state-discovery rule in `Next action`; it must not be inferred from transient wording in this file.
 
 The planned G2 path remains:
 
@@ -144,16 +146,36 @@ M0 contract / threat-boundary freeze — COMPLETE / ACCEPTED
 - #112 — completed independent correction review, ACCEPT, findings none.
 - #113 — completed G2/M1 accepted-truth reconciliation, accepted at `67f91f00ed3d6491f4451b801a19ae20ac409905`.
 - #114 — completed independent reconciliation review, ACCEPT, findings none.
-- #111 — current released repository-refresh TaskSpec; candidate acceptance pending #115.
-- #115 — future independent review gate for the exact #111 candidate; not executed by the #111 Worker.
+- #111 — repository refresh; produced original candidate `f8ccac552e5b48d5b7a4df86683844d242bc8221`; received **CORRECTION REQUIRED** under #115. Lineage only; do not rerun.
+- #115 — completed independent review of the exact #111 candidate; **CORRECTION REQUIRED**, durable record #111 comment `5724524204`; blocking finding limited to cold-start current-gate wording.
+- #116 — bounded forward-correction authority for the cold-start review-gate state; `STATUS.md` / `docs/AI_HANDOFF.md` only.
+- #117 — independent correction-review authority for the exact #116 candidate.
 
 ## Next action
 
-Execute only the bounded repository refresh under #111 from exact accepted
-baseline `67f91f00ed3d6491f4451b801a19ae20ac409905`, then submit its exact local
-candidate for independent review under #115. Do not self-review or resume
-historical #108/#110/#113 work. M2-M6 and G3 remain NOT RELEASED; no M2 TaskSpec
-or launch baseline is established here.
+The original #111 candidate `f8ccac552e5b48d5b7a4df86683844d242bc8221` remains
+**CORRECTION REQUIRED / not accepted** under the #115 finding (F1, cold-start
+current-gate wording). Current repository-refresh acceptance remains blocked
+by that finding until the bounded forward-correction path under #116/#117
+reaches its durable disposition. Do not rerun the #111 broad repository
+refresh from `67f91f...`; that work is done and its candidate was already
+independently reviewed.
+
+Follow the durable #116/#117 state — Issue bodies plus candidate-evidence and
+review comments — to determine the current phase:
+
+- if #116 has no exact correction candidate recorded, #116 is the executable
+  correction TaskSpec; execute it from its exact required baseline
+  `f8ccac552e5b48d5b7a4df86683844d242bc8221`;
+- if #116 has an exact candidate recorded and #117 is active/pending review,
+  do NOT rerun #116; #117 independent review/finalization is the current gate;
+- if #117 has a final substantive disposition recorded, follow that durable
+  disposition and any explicitly authorized forward correction/finalization.
+
+Never infer release of M2-M6 or G3 from roadmap order, candidate existence or
+any review disposition. Do not self-review and do not resume historical
+#108/#110/#113 work. M2-M6 and G3 remain NOT RELEASED; no M2 TaskSpec or
+launch baseline is established here.
 
 ## Navigation / cold-start reading order
 
@@ -169,6 +191,6 @@ or launch baseline is established here.
 10. [docs/exec-plans/planned/g2-trusted-evaluation-evidence.md](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md)
 11. relevant core beliefs, accepted ADRs/designs
 12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-13. Issue #111 and execution handoff `5724161554`; #113/#114 as completed reconciliation/review authority; #108/#109/#110/#112 as historical M1 implementation/correction/acceptance evidence; #105/#106/#107 as historical M0 evidence; #115 only after an exact #111 candidate is produced and handed to an independent reviewer
+13. Issue #116 and Issue #117 durable state/candidate records as the discovery source for the current correction/review phase; Issue #111 (original refresh candidate `f8ccac55...`; handoff `5724161554`; candidate evidence `5724416091`) and #115 (completed independent review, **CORRECTION REQUIRED**, #111 comment `5724524204`) as refresh lineage; #113/#114 as completed reconciliation/review authority; #108/#109/#110/#112 as historical M1 implementation/correction/acceptance evidence; #105/#106/#107 as historical M0 evidence
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.

@@ -20,15 +20,49 @@ artifacts alone.
 10. Read the accepted M0 design
     `docs/design-docs/g2-trusted-evaluation-evidence-boundary.md` and its
     acceptance record, then the accepted M1 lineage described below.
-11. Read Issue #111 in full, execution handoff comment `5724161554`, and r4
-    path-correction comment `5724343805` for the current repository refresh.
-    Treat #115 only as the required future independent review gate for an exact
-    #111 candidate.
+11. Read Issue #116 and Issue #117 in full, with their durable
+    candidate-evidence/review records, and apply the `Current correction/review
+    discovery` rule below to determine the current phase. Read Issue #111 (r4
+    TaskSpec, execution handoff comment `5724161554`, r4 path-correction
+    comment `5724343805`, candidate evidence comment `5724416091`) and the
+    completed #115 review (durable record: #111 comment `5724524204`;
+    completion pointer: #115 comment `5724525447`) as refresh lineage only,
+    never as current execution instructions.
 12. Verify repository identity, exact launch baseline, clean worktree, allowed
     paths, readiness and remote authority before mutation.
 
 If a required source cannot be read or the baseline conflicts with the current
 TaskSpec, stop before mutation.
+
+## Current correction/review discovery
+
+The current phase must never be inferred from chat, model memory or transient
+prose that goes stale as soon as a candidate exists. Discover it from durable
+Issue state instead:
+
+1. Read Issue #116 (bounded forward correction of the cold-start review-gate
+   state).
+2. Read Issue #117 (independent correction-review gate).
+3. Inspect their durable candidate-evidence and review records.
+
+```text
+If #116 has no exact candidate recorded:
+    #116 is the executable correction TaskSpec;
+    execute #116 from its exact required baseline
+    f8ccac552e5b48d5b7a4df86683844d242bc8221.
+
+If #116 has an exact candidate recorded
+and #117 is active/pending review:
+    do NOT rerun #116;
+    #117 independent review/finalization is the current gate.
+
+If #117 has a final substantive disposition:
+    follow that disposition and any explicitly authorized
+    forward correction/finalization.
+```
+
+Roadmap order or candidate presence never releases M2. No disposition in this
+correction lineage implies release of M2-M6 or G3.
 
 ## Product identity and strategic continuity
 
@@ -114,9 +148,18 @@ occurrence.
 - G2/M2-M6 are NOT RELEASED.
 - G3 is NOT RELEASED.
 - Issue #111 revision
-  `r4 - strategic-narrative-cold-start-refresh-path-correction` is the current
-  released repository-refresh TaskSpec. Its candidate is not accepted until
-  independent review under #115.
+  `r4 - strategic-narrative-cold-start-refresh-path-correction` produced the
+  repository-refresh candidate `f8ccac552e5b48d5b7a4df86683844d242bc8221`.
+  The #115 independent review of that exact candidate is complete with
+  disposition **CORRECTION REQUIRED** (durable record: #111 comment
+  `5724524204`); the only blocking finding was cold-start current-gate
+  wording. That exact candidate is not accepted and must not be treated as
+  accepted truth; #111 implementation must not be rerun.
+- Issue #116 is the bounded forward-correction authority for that finding
+  (`STATUS.md` and `docs/AI_HANDOFF.md` only). Issue #117 is the independent
+  correction-review gate for the exact #116 candidate. Discover the current
+  phase from durable #116/#117 state per `Current correction/review
+  discovery`.
 
 ## Accepted G1/M1 facade boundary
 
@@ -201,15 +244,44 @@ Current and historical lineage:
   is #113 comment `5724156994`.
 - Issues #108, #110, #113 and #114 are completed historical lineage, not
   current execution authority.
-- Issue #111 r4 is the current released repository/docs/metadata refresh from
-  exact baseline `67f91f00ed3d6491f4451b801a19ae20ac409905`, with handoff comment
-  `5724161554` and durable path-correction comment `5724343805`.
-- Issue #115 is the required independent review gate after an exact #111
-  candidate exists. The #111 Worker must not execute or pre-claim that review.
+- Issue #111 r4 is the repository/docs/metadata refresh TaskSpec lineage that
+  produced candidate `f8ccac552e5b48d5b7a4df86683844d242bc8221` from exact
+  baseline `67f91f00ed3d6491f4451b801a19ae20ac409905`, with handoff comment
+  `5724161554`, durable path-correction comment `5724343805` and candidate
+  evidence comment `5724416091`. It is lineage, not a current instruction to
+  run the #111 implementation again.
+- Issue #115 is the completed independent review of that exact candidate:
+  disposition **CORRECTION REQUIRED**, durable record #111 comment
+  `5724524204`, completion pointer #115 comment `5724525447`. Do not treat
+  that review as pending or unexecuted.
+- Issue #116 is the bounded forward-correction authority for the #115 F1
+  cold-start gate finding.
+- Issue #117 is the independent correction-review authority for the exact
+  #116 correction candidate.
 
 ## Current TaskSpec boundary
 
-Issue #111 authorizes changes only to:
+The bounded forward-correction authority is Issue #116. It authorizes changes
+only to:
+
+```text
+STATUS.md
+docs/AI_HANDOFF.md
+```
+
+and exactly one local candidate commit with message
+`docs(project): correct cold-start review gate`, parent exactly
+`f8ccac552e5b48d5b7a4df86683844d242bc8221`. It does not authorize a push,
+remote ref update, Issue/PR mutation, tag/release, self-review, #117 review,
+source/test change, any broader #111 rerun, or M2-M6/G3 release. A fresh
+Worker must read Issue #116 and its execution handoff comment `5724659426`
+directly for execution authority; this section is orientation only. Which
+phase is currently executable must be discovered per `Current
+correction/review discovery`.
+
+### Historical #111 r4 boundary
+
+Issue #111 r4 authorized changes only to:
 
 ```text
 README.md
@@ -227,10 +299,11 @@ docs/design-docs/g2-trusted-evaluation-evidence-boundary.md
 docs/exec-plans/planned/g2-trusted-evaluation-evidence.md
 ```
 
-It authorizes one local candidate with message
-`docs(project): refresh strategic narrative and cold-start truth`. It does not
-authorize a push, remote ref update, Issue/PR mutation, tag/release, #115 review,
-source/test change or M2/G3 release.
+with one local candidate `docs(project): refresh strategic narrative and
+cold-start truth`, produced as
+`f8ccac552e5b48d5b7a4df86683844d242bc8221` and reviewed under #115 with
+disposition **CORRECTION REQUIRED**. This boundary is historical record and
+authorizes no new work.
 
 If a current-facing contradiction requires another path, report `TASKSPEC PATH
 CORRECTION REQUIRED`. If the narrative can only be made true by changing the
@@ -257,8 +330,15 @@ With only repository read access, a fresh maintainer must be able to report:
 - which semantics Symphony-K owns and which mechanisms it normally reuses;
 - accepted Stage 1, G1/M1, G2/M0 and G2/M1 boundaries;
 - the rejected original M1 candidate and accepted forward correction;
-- that #113/#114 are completed and #111 is the current released TaskSpec;
-- that #115 is a future independent review gate;
+- that #113/#114 are completed reconciliation/review lineage;
+- that #111 produced refresh candidate
+  `f8ccac552e5b48d5b7a4df86683844d242bc8221`, and that the #115 independent
+  review of it completed with disposition CORRECTION REQUIRED (blocking
+  finding: cold-start current-gate wording);
+- that #116 is the bounded forward-correction authority and #117 is the
+  independent correction-review authority;
+- that the current phase must be discovered from durable #116/#117 state per
+  `Current correction/review discovery`, never from transient wording;
 - that M2-M6 and G3 are NOT RELEASED;
 - exact allowed paths, baseline and remote-mutation boundary; and
 - that no private chat or model memory is required.
