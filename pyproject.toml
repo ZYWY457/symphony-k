@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "symphony-k"
 version = "0.1.0"
-description = "Outcome-oriented AI work orchestrator"
+description = "Framework-neutral governance and trust control plane for agentic work"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []

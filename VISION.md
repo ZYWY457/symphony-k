@@ -14,6 +14,22 @@ Agents, models, orchestrators, workflow engines, skills, tools, sandboxes and ex
 
 The governance layer should remain useful as those external systems improve, disappear or are replaced. Provider-, framework-, model- and runtime-specific details therefore remain outside core governance semantics.
 
+## Strategic Continuity
+
+Symphony-K's mission did not fundamentally change during the strategic
+transition. Reliable agentic work remains the problem: work should be
+governable, verifiable, attributable and reconstructable even when executors
+are fallible or replaceable.
+
+What changed is the ownership boundary. The pre-transition direction leaned
+toward Symphony-K owning planning, routing, scheduling, Agent/runtime
+execution, sandbox infrastructure and retry/failover mechanics. The current
+direction lets external systems own how work is attempted while Symphony-K
+owns the durable governance and trust semantics that determine what may become
+authoritative and consequential. Historical runtime and orchestration designs
+remain evidence and optional/reference assets; they were not an erroneous
+project and are not rewritten as if the current boundary always existed.
+
 ## Desired Interaction Model
 
 An external agent/orchestrator or Human may provide:
@@ -61,6 +77,28 @@ The intended posture is **embedded-first and service-capable**.
 A Python SDK/facade may be the simplest first integration surface. The same governance kernel may also be exposed through a stable local service/API and CLI for cross-process or non-Python consumers.
 
 All surfaces must preserve one semantic authority model. The Vision does not select HTTP, gRPC, an application framework, a CLI library, a vendor, a persistence engine or a deployment topology.
+
+## Integration Philosophy
+
+**Internal rigor, external simplicity.** Symphony-K may need exact references,
+immutable fingerprints, trusted provenance, conflict history, replay,
+concurrency control, authorization/occurrence separation and causal audit
+records internally. An ordinary integrator should reach those guarantees
+through a small supported surface rather than reconstruct the complete domain
+and persistence graph. External simplicity never permits caller-controlled
+trust or weaker exactness.
+
+**Own the semantics; reuse the mechanisms.** The durable product identity is
+in guarantees such as claim != fact, capability != authority, Evaluation !=
+disposition, authorization != occurrence, uncertainty != failure and
+compensation != erasure. IAM, storage engines, queues, transports, workflow and
+Agent runtimes, sandbox providers, secret management and observability are
+replaceable mechanisms that should normally remain behind thin adapters.
+
+Mechanisms are replaceable; semantics are durable. An adapter translates
+mechanism identity, evidence and receipts into the governance boundary. It
+does not let a provider define authoritative disposition, promote trust,
+establish Effect occurrence without sufficient evidence or rewrite history.
 
 ## Human Role
 
@@ -128,6 +166,8 @@ They may exist as external systems, optional modules, reference integrations or 
 
 The long-term system may govern work performed by coding agents, research agents, browser/computer-use agents, deterministic programs, external workflow engines, domain-specific tools, APIs, local/frontier models and Human specialists.
 
-The durable asset is not ownership of every executor. It is trustworthy causal governance across:
+The long-term direction is Symphony-K as governance/trust infrastructure, not
+as the runtime in which every agent must execute. The durable asset is not
+ownership of every executor. It is trustworthy causal governance across:
 
 `claim -> evidence -> Evaluation -> authority -> Effect -> occurrence -> reconciliation -> audit`.

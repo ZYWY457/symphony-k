@@ -2,11 +2,56 @@
 
 ## What Symphony-K is
 
-Symphony-K is a **framework-neutral governance/control-plane system for agentic work**.
+Symphony-K is a **framework-neutral governance and trust control plane for
+agentic work**. It is not another generic Agent orchestrator.
 
-External agents, orchestrators and execution runtimes may decide how work is attempted. Symphony-K governs what becomes authoritative truth, which evidence can justify a decision, who may authorize consequential Effects, how external actions cross the trusted boundary, and how historical facts remain attributable and reconstructable.
+External agents, orchestrators and execution runtimes decide how work is
+attempted. Symphony-K determines what may become authoritative, which evidence
+is admissible for the exact scope under judgment, which consequential action is
+allowed, what happened, and how the causal history can be reconstructed.
+
+```text
+external agent / orchestrator / runtime
+        -> attempts work
+        -> claims / evidence / requested Effects
+        -> Symphony-K governance boundary
+        -> authority / trusted evidence / Evaluation
+        -> Effect governance / occurrence / reconciliation
+        -> causal audit history
+```
 
 The accepted Stage 1 domain kernel remains the product core: Objective, Task, Run, Outcome, Evaluation and Effect stay semantically distinct; Worker claims are not facts; independent Evaluation/evidence is required for authoritative disposition; replay/concurrency/history semantics remain governed; and Effect occurrence is distinct from authorization.
+
+Two principles shape the product:
+
+- **Internal rigor, external simplicity.** Exact references, immutable
+  fingerprints, trusted provenance, replay, concurrency, occurrence and causal
+  history may require strict internals. Common integrations should still use a
+  small supported surface and stable typed references. Simplicity must hide
+  complexity behind trusted boundaries, never weaken governance invariants.
+- **Own the semantics; reuse the mechanisms.** Symphony-K owns claim-versus-fact,
+  authority, Evaluation, Effect occurrence, uncertainty and append-only-history
+  semantics. It normally reuses IAM, databases, storage, queues, transports,
+  workflow/Agent runtimes, sandbox providers, secret managers and observability
+  through thin adapters.
+
+Reusing a mechanism does not outsource semantic authority. IAM may establish
+who authenticated; it does not decide which Outcome is authoritative. A
+database persists records; it does not define trust eligibility. Runtime or API
+success is neither Outcome acceptance nor proof that an Effect occurred.
+
+## Strategic continuity
+
+The long-term goal has remained substantially continuous: make agentic work
+reliable, governable, evidence-backed, attributable and reconstructable. The
+strategic transition changed the ownership boundary, not that goal.
+
+The pre-transition direction leaned toward owning planning, routing,
+scheduling, Agent/runtime execution, sandboxing and retry/failover mechanics.
+That work remains valid historical design evidence. The current product focus
+is the governance layer around exact identity/version, trusted evidence and
+Evaluation, authoritative disposition, consequential Effects, uncertainty and
+reconciliation, and append-only causal history.
 
 ## v1 direction
 
@@ -51,27 +96,19 @@ Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 - Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned; its old Stage 2 M2 authority is historical only and cannot be reused as post-transition execution authority.
 - **G1 / M1 — Governance SDK / Facade Foundation is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`; Issue #102 independent acceptance review is comment `5714651540`.
 - The original Issue #100 candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` remains historical **NOT ACCEPTED** evidence; Issue #102 contains the forward correction lineage.
-- **G2 — Trusted Evaluation and Evidence Integration is PLANNED / NOT RELEASED.** It requires a fresh durable TaskSpec before implementation mutation.
+- **G2/M0 is COMPLETE / ACCEPTED** at `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
+- **G2/M1 is COMPLETE / ACCEPTED** at implementation boundary `83a67c9fc98b1de7b42ad65772d8956f9b721915`; accepted-truth reconciliation is `67f91f00ed3d6491f4451b801a19ae20ac409905`.
+- The original G2/M1 candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` remains historical **NOT ACCEPTED / CORRECTION REQUIRED** evidence.
+- **G2/M2-M6 are NOT RELEASED. G3 is NOT RELEASED.**
+- Issue #111 revision
+  `r4 - strategic-narrative-cold-start-refresh-path-correction` is the current
+  released repository-refresh TaskSpec. Its candidate does not become accepted
+  truth until independent review under #115.
 - Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
 
 The accepted G1 facade exposes typed exact entity/version references, caller-controlled submission DTOs separated from trusted authority/context construction, supported Run/Outcome/Evaluation mutations through an injected trusted binder, exact/current reads, caller-safe errors, replay/concurrency preservation and explicit unsupported real Effect dispatch. It does not add public Run completion or Outcome acceptance and does not define G2 trust policy.
 
 Read [STATUS.md](STATUS.md) for the compact authoritative current summary.
-
-## Architectural boundary
-
-```text
-external agent / orchestrator / runtime
-        |
-        | claims, candidate outcomes, evidence, requested Effects
-        v
-Symphony-K governance boundary
-        |
-        +--> authoritative state / exact authority
-        +--> trusted independent Evaluation/evidence
-        +--> governed Effect authorization/occurrence/reconciliation
-        +--> durable causal audit
-```
 
 External execution may be powerful, autonomous or provider-managed. It still cannot self-promote claims into authoritative truth, substitute stale evidence, grant itself consequential authority, erase occurrence history or bypass governed Effects.
 

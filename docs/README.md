@@ -4,11 +4,30 @@ Start with the root [project status](../STATUS.md), then follow the authority an
 
 The accepted current product identity is a framework-neutral governance/control-plane system for agentic work. Constitution v0.2 and ADR-0009 are accepted; R2 product definition, R3 delivery path, R4 workflows/cold-start truth and R5 final disposition are Human accepted. Repository-level strategic transition R1-R5 is complete.
 
+The strategic goal remains reliable, governable, verifiable, attributable and
+reconstructable agentic work; the ownership boundary now centers Symphony-K on
+governance/trust semantics rather than the entire execution stack. Internal
+rigor supports external simplicity. Mature IAM, persistence, transport,
+workflow/Agent runtime, sandbox, secrets and observability mechanisms normally
+remain replaceable behind adapters and cannot define authoritative truth.
+
 Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`, independently ACCEPTed on Issue #99 comment `5712355215`.
 
 **G1/M1 Governance SDK / Facade is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`. Issue #100 preserves the original TaskSpec and rejected initial candidate lineage; Issue #102 carries the forward correction lineage and final independent acceptance review `5714651540`. G1 accepted-truth reconciliation is `eaea5390a088a71fe4108c2b84812253032a287a`.
 
-**G2 Trusted Evaluation and Evidence Integration is PLANNED / NOT RELEASED.** Issue #104 is the current G2 planning identity. Its parent planning contract is [G2 — Trusted Evaluation and Evidence Integration](exec-plans/planned/g2-trusted-evaluation-evidence.md). Neither Issue #104 nor that planned Exec Plan authorizes source/test implementation.
+**G2/M0 and G2/M1 are COMPLETE / ACCEPTED.** M0 design boundary is
+`9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`; M1 implementation boundary is
+`83a67c9fc98b1de7b42ad65772d8956f9b721915`; accepted-truth reconciliation is
+`67f91f00ed3d6491f4451b801a19ae20ac409905`. The original M1 candidate
+`e5402b6415ab76a7fed5635949cfea335db2b5c6` remains historical **NOT ACCEPTED /
+CORRECTION REQUIRED** evidence. **M2-M6 and G3 are NOT RELEASED.**
+
+Issue #111 revision
+`r4 - strategic-narrative-cold-start-refresh-path-correction` is the current
+released repository strategic-narrative,
+external-simplicity and cold-start refresh TaskSpec. Its candidate is not
+accepted truth until independent review under #115. Historical #108, #110 and
+#113 work is complete lineage, not current execution authority.
 
 ## Constitution and core beliefs
 
@@ -43,7 +62,7 @@ Issue #79 is closed **SUPERSEDED / NOT RELEASED** as not planned. Its old r2/r3 
 - [Canonical roadmap](../ROADMAP.md)
 - [Development path](DEVELOPMENT_PATH.md)
 - [Canonical reference workflows](REFERENCE_WORKFLOWS.md)
-- [Planned G2 trusted Evaluation/evidence path](exec-plans/planned/g2-trusted-evaluation-evidence.md)
+- [G2 trusted Evaluation/evidence parent path](exec-plans/planned/g2-trusted-evaluation-evidence.md) — M0/M1 accepted; M2-M6 not released
 
 The accepted v1 critical path centers on governance facade, trusted evidence/Evaluation, governed Effect gateway and reconciliation, audit reconstruction, conformance, integrations, operational safety, hardening and v1 acceptance.
 
@@ -51,19 +70,23 @@ Generic Planner, Router, learned routing/reputation, multiple complete Agent run
 
 G1/M1 accepted capabilities include typed exact references for all six core entities, caller-controlled DTOs separated from trusted Stage 1 authority/context construction, supported Run/Outcome/Evaluation mutation paths through an injected trusted binder, exact/current reads, caller-safe errors, replay/concurrency preservation and explicit unsupported real Effect dispatch. It does not add public Run completion or Outcome acceptance and does not define G2 trust policy.
 
-The planned G2 path is:
+The G2 path and current status are:
 
 ```text
-M0 contract/threat-boundary freeze
--> M1 durable evidence provenance intake
--> M2 trusted evaluator identity/assignment binding
--> M3 trusted Evaluation execution/result intake
--> M4 authoritative durable effective-use resolver/query
--> M5 evidence-backed Outcome disposition bridge
--> M6 stage acceptance/reconciliation
+M0 contract/threat-boundary freeze — COMPLETE / ACCEPTED
+-> M1 durable evidence provenance intake — COMPLETE / ACCEPTED
+-> M2 trusted evaluator identity/assignment binding — NOT RELEASED
+-> M3 trusted Evaluation execution/result intake — NOT RELEASED
+-> M4 authoritative durable effective-use resolver/query — NOT RELEASED
+-> M5 evidence-backed Outcome disposition bridge — NOT RELEASED
+-> M6 stage acceptance/reconciliation — NOT RELEASED
 ```
 
-This sequence is planning truth, not execution authority. Each G2 implementation milestone requires its own freshly released TaskSpec. G2 does not add a universal judge, new core entity, real Effect dispatch, provider runtime, G4 audit export or G5 general conformance framework.
+Roadmap order and the parent plan are not execution authority. Each remaining
+G2 implementation milestone requires its own freshly released TaskSpec. M1
+acceptance does not release M2. G2 does not add a universal judge, new core
+entity, real Effect dispatch, provider runtime, G4 audit export or G5 general
+conformance framework.
 
 ## Exec Plans
 
@@ -72,7 +95,12 @@ This sequence is planning truth, not execution authority. Each G2 implementation
 - [Active plans](exec-plans/active/) — may contain historically accepted technical assets; current authority must be confirmed through `STATUS.md` and the current TaskSpec
 - [Completed plans](exec-plans/completed/) — accepted historical plans
 
-The G2 parent plan deliberately remains under `planned/` until milestone-specific implementation authority exists. The historical Stage 2 active plan preserves accepted M1/M1C provenance but the old runtime-first implementation sequence is superseded for v1 delivery. Issue #79 is historical only; future sandbox/provider reuse requires a fresh TaskSpec, normally under G7.
+The G2 parent plan remains under `planned/` as a parent contract; its location
+does not negate accepted M0/M1 or release M2-M6. The historical Stage 2 active
+plan preserves accepted M1/M1C provenance but the old runtime-first
+implementation sequence is superseded for v1 delivery. Issue #79 is historical
+only; future sandbox/provider reuse requires a fresh TaskSpec, normally under
+G7.
 
 ## Handoff and governance templates
 

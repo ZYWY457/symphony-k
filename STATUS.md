@@ -42,6 +42,13 @@ Stage 1 governance kernel
 
 A generic Planner, generic Router, learned routing/reputation, multiple complete Agent runtimes and ownership of a production sandbox runtime are not mandatory v1 release blockers.
 
+The durable strategic goal remains reliable, governable, evidence-backed,
+attributable and reconstructable agentic work. The transition changed the
+ownership boundary: external systems may own attempt mechanics, while
+Symphony-K owns the governing semantics. Internal rigor should support external
+simplicity, and mature infrastructure mechanisms should normally be reused
+behind adapters without outsourcing semantic authority.
+
 ## Legacy Stage 2 / Issue #79 disposition
 
 - ADR-0008 and accepted Stage 2 M1/M1C design remain valid execution-provider security/conformance assets and an optional/reference implementation path.
@@ -96,7 +103,9 @@ M1 does not provide evaluator assignment, G2 Evaluation create/start/complete in
 
 The #112 reviewer completed exact source/diff review and accepted the correction semantics, with independent SQLite snapshot/interleaving and transaction-cleanup probes. The 78 focused and 3394 full-suite tests in #110 comment `5723804820` are Worker-reported evidence, not reviewer reruns. The reviewer could not materialize the checkout because its container could not resolve GitHub hosts; no independent repository-suite rerun is claimed.
 
-Current bounded TaskSpec: [#113 accepted-truth reconciliation](https://github.com/ZYWY457/symphony-k/issues/113), with [execution handoff `5723917776`](https://github.com/ZYWY457/symphony-k/issues/113#issuecomment-5723917776). This local documentation candidate awaits independent review under #114. Next is **#111 — repository strategic narrative / external simplicity / cold-start truth refresh**, blocked until #113 is independently accepted and its own release preconditions are satisfied.
+Accepted-truth reconciliation: `67f91f00ed3d6491f4451b801a19ae20ac409905`, finalized **ACCEPTED** in [Issue #113 comment `5724156994`](https://github.com/ZYWY457/symphony-k/issues/113#issuecomment-5724156994) after independent review under #114, durable review record [comment `5724140703`](https://github.com/ZYWY457/symphony-k/issues/113#issuecomment-5724140703), findings none. This reconciliation boundary does not replace the M1 implementation boundary.
+
+Current released TaskSpec: [#111 — strategic narrative, external simplicity and cold-start truth refresh](https://github.com/ZYWY457/symphony-k/issues/111), revision `r4 - strategic-narrative-cold-start-refresh-path-correction`, execution handoff [comment `5724161554`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724161554) and durable path correction [comment `5724343805`](https://github.com/ZYWY457/symphony-k/issues/111#issuecomment-5724343805). It authorizes a repository/docs/metadata candidate only. Acceptance remains pending independent review under #115; candidate existence is not acceptance.
 
 The planned G2 path remains:
 
@@ -133,12 +142,18 @@ M0 contract / threat-boundary freeze — COMPLETE / ACCEPTED
 - #109 — historical independent CORRECTION REQUIRED review, #108 comment `5723629306`.
 - #110 — historical M1A forward correction and durable ACCEPT record `5723875385`.
 - #112 — completed independent correction review, ACCEPT, findings none.
-- #113 — bounded M1 accepted-truth reconciliation candidate, awaiting #114 independent review.
-- #111 — next repository refresh, blocked until reconciliation acceptance.
+- #113 — completed G2/M1 accepted-truth reconciliation, accepted at `67f91f00ed3d6491f4451b801a19ae20ac409905`.
+- #114 — completed independent reconciliation review, ACCEPT, findings none.
+- #111 — current released repository-refresh TaskSpec; candidate acceptance pending #115.
+- #115 — future independent review gate for the exact #111 candidate; not executed by the #111 Worker.
 
 ## Next action
 
-Submit the local #113 reconciliation candidate for separate independent review under #114. #111 remains blocked until reconciliation acceptance and its own release preconditions are satisfied. Do not resume historical #108/#110 execution. M2-M6 and G3 remain NOT RELEASED; no M2 TaskSpec or launch baseline is established here.
+Execute only the bounded repository refresh under #111 from exact accepted
+baseline `67f91f00ed3d6491f4451b801a19ae20ac409905`, then submit its exact local
+candidate for independent review under #115. Do not self-review or resume
+historical #108/#110/#113 work. M2-M6 and G3 remain NOT RELEASED; no M2 TaskSpec
+or launch baseline is established here.
 
 ## Navigation / cold-start reading order
 
@@ -154,6 +169,6 @@ Submit the local #113 reconciliation candidate for separate independent review u
 10. [docs/exec-plans/planned/g2-trusted-evaluation-evidence.md](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md)
 11. relevant core beliefs, accepted ADRs/designs
 12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-13. Issue #113 and execution handoff for this reconciliation; #108/#109/#110/#112 as historical M1 implementation/correction/acceptance evidence; #105/#106/#107 as historical M0 evidence; verify separate review/release gates before any next task
+13. Issue #111 and execution handoff `5724161554`; #113/#114 as completed reconciliation/review authority; #108/#109/#110/#112 as historical M1 implementation/correction/acceptance evidence; #105/#106/#107 as historical M0 evidence; #115 only after an exact #111 candidate is produced and handed to an independent reviewer
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.

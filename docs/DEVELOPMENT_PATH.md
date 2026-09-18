@@ -8,14 +8,26 @@ The accepted Constitution v0.2, ADR-0009 and R2 Product Contract define the curr
 
 Strategic transition R1-R5 is COMPLETE AND HUMAN ACCEPTED. Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb3e18ea56f3`. G1/M1 accepted-truth reconciliation is `eaea5390a088a71fe4108c2b84812253032a287a`.
 
+The delivery rule is **own semantics; reuse mechanisms**. Before adding a
+subsystem, ask:
+
+1. Is this a Symphony-K semantic responsibility?
+2. Or is it a mature mechanism that should remain behind an adapter?
+
+The default is to own semantic responsibilities and reuse mechanisms unless an
+accepted architecture decision requires a Symphony-K implementation. Internal
+rigor may grow to preserve correctness, but supported integration ceremony and
+exposure of internal concepts should trend downward without weakening trust,
+exactness or history.
+
 ## Current dependency graph
 
 ```text
 Stage 0 repository/constitutional harness — COMPLETE
    -> Stage 1 governance Domain Kernel — COMPLETE
       -> G1 governance SDK/facade — COMPLETE / ACCEPTED
-         -> G2 trusted Evaluation/evidence integration — PLANNED / NOT RELEASED
-            -> G3 governed Effect gateway + occurrence reconciliation
+         -> G2 trusted Evaluation/evidence integration — M0/M1 COMPLETE / ACCEPTED; M2-M6 NOT RELEASED
+            -> G3 governed Effect gateway + occurrence reconciliation — NOT RELEASED
                -> G4 audit export / causal reconstruction
                   -> G5 adversarial + conformance suite
                      -> G6 external agent/orchestrator integration
@@ -67,10 +79,11 @@ No stage may infer authority from roadmap order alone. A planned parent Exec Pla
 
 ## G2 — Trusted Evaluation and Evidence Integration
 
-- **Status:** PLANNED / NOT RELEASED.
+- **Status:** IN PROGRESS — M0 and M1 COMPLETE / ACCEPTED; M2-M6 NOT RELEASED.
 - **Planning authority:** Issue #104.
 - **Parent plan:** [`exec-plans/planned/g2-trusted-evaluation-evidence.md`](exec-plans/planned/g2-trusted-evaluation-evidence.md).
-- **Implementation entry criteria:** accepted G1 facade plus a fresh milestone-specific released G2 TaskSpec with exact baseline, bounded paths, validation/adversarial evidence and remote-mutation boundary. The parent plan and Issue #104 do not release implementation.
+- **Accepted boundaries:** M0 design `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`; M1 implementation `83a67c9fc98b1de7b42ad65772d8956f9b721915`; accepted-truth reconciliation `67f91f00ed3d6491f4451b801a19ae20ac409905`.
+- **Later implementation entry criteria:** a fresh milestone-specific released G2 TaskSpec with exact baseline, bounded paths, validation/adversarial evidence and remote-mutation boundary. The parent plan, Issue #104 and M1 acceptance do not release M2.
 - **Purpose:** make external/independent evidence and Evaluation a supported trusted governance boundary, then connect authoritative effective-use state to existing Outcome disposition semantics without allowing callers to manufacture trust or history completeness.
 
 ### G2 delivery contracts
@@ -111,11 +124,12 @@ No stage may infer authority from roadmap order alone. A planned parent Exec Pla
 
 G2 exits only when a supported integration can register/resolve independently attributable evidence for an exact target/version, establish trusted evaluator assignment, complete an exact evidence-backed Evaluation, query authoritative effective-use without supplying private history slices, demonstrate conflict/arbitration/invalidation effects, and disposition an Outcome only through exact effective-use + policy + required Human authority, with stale/superseded/cross-entity/tampered/replayed substitutions failing closed.
 
-G2/M0 through M6 remain individually **NOT RELEASED** until their own TaskSpecs are explicitly released.
+G2/M0 and M1 are COMPLETE / ACCEPTED. G2/M2 through M6 remain individually
+**NOT RELEASED** until their own TaskSpecs are explicitly released.
 
 ## G3 — Governed Effect Gateway and Occurrence Reconciliation
 
-- **Status:** PLANNED.
+- **Status:** PLANNED / NOT RELEASED.
 - **Entry criteria:** G1/G2 accepted and Effect gateway design approved.
 - **Purpose:** govern consequential external actions across the trusted boundary.
 - **Required deliverables:** Effect request/prepare, verification, authorization, dispatch/commit, receipt/observation, occurrence status, uncertainty/quarantine, idempotency, reconciliation, remediation and compensation; exact Human authorization where constitutionally required.
@@ -146,9 +160,9 @@ G2/M0 through M6 remain individually **NOT RELEASED** until their own TaskSpecs 
 - **Status:** PLANNED.
 - **Entry criteria:** G1–G5 accepted; one integration target selected by bounded decision.
 - **Purpose:** prove framework-neutral governance over an external system that owns how work is attempted.
-- **Required deliverables:** adapter/integration mapping attempt identity, claims, candidate outputs, evidence hooks and Effect requests into stable Symphony-K contracts.
+- **Required deliverables:** adapter/integration mapping attempt identity, claims, candidate outputs, evidence hooks and Effect requests into stable Symphony-K contracts, plus measured integration ceremony, required caller code and internal concepts exposed.
 - **Non-goals:** moving framework-specific agent semantics into the core, making the external orchestrator authoritative.
-- **Exit criterion:** end-to-end governed work succeeds and adversarial integration cases cannot bypass authority/evidence/Effect rules.
+- **Exit criterion:** a real external orchestrator integrates without reimplementing Symphony-K internals; end-to-end governed work succeeds, framework neutrality is preserved and adversarial cases cannot bypass authority/evidence/Effect rules.
 
 ## G7 — Reference Execution / Provider Path
 
@@ -157,7 +171,9 @@ G2/M0 through M6 remain individually **NOT RELEASED** until their own TaskSpecs 
 - **Purpose:** prove one execution path can provide sufficient isolation, identity, provenance and observations for governance.
 - **Required deliverables:** reference provider or external provider adapter, conformance mapping, evidence/provenance binding and operational diagnostics.
 - **Historical asset:** Stage 2 M1/M1C sandbox design at `77acfbdaf2bed6f0536873fafc8eb7a12599da83` remains valid as a security/conformance boundary.
-- **Non-goals:** requiring Symphony-K to own the production sandbox runtime or complete the old Stage 2 M2–M4 path.
+- **Non-goals:** requiring Symphony-K to own the production sandbox runtime or complete the old Stage 2 M2-M4 path.
+- **Identity boundary:** the provider proves the semantic/conformance boundary;
+  it does not become the product identity.
 - **Exit criterion:** one reference execution/provider path proves the accepted boundary end to end.
 
 ## G8 — End-to-End Operational Safety and Governance Recovery
@@ -174,7 +190,7 @@ G2/M0 through M6 remain individually **NOT RELEASED** until their own TaskSpecs 
 - **Status:** PLANNED.
 - **Entry criteria:** supported end-to-end product path accepted.
 - **Purpose:** make v1 deployable and operable within declared support limits.
-- **Required deliverables:** packaging/install, configuration validation, migrations, backup/restore, secrets boundary, logging/metrics, security/dependency gates, reproducible artifacts and operator documentation.
+- **Required deliverables:** packaging/install, configuration validation, migrations, backup/restore, secrets boundary, logging/metrics, security/dependency gates, reproducible artifacts and operator documentation. Reuse mature IAM, database, queue, secret-management, observability and deployment mechanisms behind adapters by default.
 - **Exit criterion:** fresh install, restart, backup/restore, upgrade/rollback and security drills pass without release-blocking defects.
 
 ## G10 — v1 Acceptance and Final Delivery

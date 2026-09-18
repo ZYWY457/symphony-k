@@ -18,8 +18,8 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 | 0 | Constitution and Repository Harness | COMPLETE |
 | 1 | Domain Kernel | COMPLETE — Human Exit ACCEPTED |
 | G1 | Governance SDK / Facade | COMPLETE / ACCEPTED — M1 at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` |
-| G2 | Trusted Evaluation and Evidence Integration | PLANNED / NOT RELEASED — path planning via Issue #104 |
-| G3 | Governed Effect Gateway and Occurrence Reconciliation | PLANNED |
+| G2 | Trusted Evaluation and Evidence Integration | IN PROGRESS — M0/M1 COMPLETE / ACCEPTED; M2-M6 NOT RELEASED |
+| G3 | Governed Effect Gateway and Occurrence Reconciliation | NOT RELEASED |
 | G4 | Audit Export and Causal Reconstruction | PLANNED |
 | G5 | Adversarial and Conformance Suite | PLANNED |
 | G6 | External Agent / Orchestrator Integration | PLANNED |
@@ -31,6 +31,12 @@ The accepted Constitution v0.2 and ADR-0009 define Symphony-K as a framework-neu
 G1/M1 accepted implementation lineage is preserved through Issue #100 and Issue #102. The original Issue #100 candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was not accepted; Issue #102 carried the forward trusted-boundary and exact-version corrections; final candidate `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1` was independently accepted on comment `5714651540`. Accepted-truth reconciliation is `eaea5390a088a71fe4108c2b84812253032a287a`.
 
 Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is historical only. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not an implementation TaskSpec for any current stage.
+
+Current repository work is the documentation/metadata refresh released by
+Issue #111 from accepted reconciliation baseline
+`67f91f00ed3d6491f4451b801a19ae20ac409905`. Its candidate requires independent
+review under #115 before becoming accepted truth. This work does not release
+G2/M2-M6 or G3.
 
 ## Stage 0 — Constitution and Repository Harness
 
@@ -57,9 +63,10 @@ Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is histor
 
 ## G2 — Trusted Evaluation and Evidence Integration
 
-- **Status:** PLANNED / NOT RELEASED.
+- **Status:** IN PROGRESS — M0 and M1 COMPLETE / ACCEPTED; M2-M6 NOT RELEASED.
 - **Planning authority:** Issue #104; parent path at [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md).
-- **Entry criteria for implementation:** accepted G1 facade plus a fresh milestone-specific durable TaskSpec that explicitly releases implementation from an exact baseline. Issue #104 and the parent plan do not release code mutation.
+- **Accepted boundaries:** M0 design `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`; M1 implementation `83a67c9fc98b1de7b42ad65772d8956f9b721915`; accepted-truth reconciliation `67f91f00ed3d6491f4451b801a19ae20ac409905`.
+- **Entry criteria for later implementation:** each remaining milestone requires a fresh milestone-specific durable TaskSpec that explicitly releases implementation from an exact baseline. Issue #104, the parent plan, and M1 acceptance do not release M2.
 - **Goal:** make independent Evaluation/evidence a supported trusted integration boundary rather than a caller-supplied assertion or private-history exercise.
 - **Core sequence:** evidence provenance -> trusted evaluator assignment -> exact Evaluation result intake -> authoritative effective-use resolution -> evidence-backed Outcome disposition -> stage acceptance/reconciliation.
 - **Required outcome:** exact candidate/entity/version/method/policy binding; durable evidence provenance; evaluator identity/assignment provenance; stale/superseded/cross-entity/tamper rejection; authoritative conflict/arbitration/invalidation-aware effective-use resolution; policy-separated Outcome disposition.
@@ -70,19 +77,20 @@ Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is histor
 
 | Milestone | Name | Exit focus | Release state |
 | --- | --- | --- | --- |
-| M0 | Contract and threat-boundary freeze | reviewed trust/data-flow contract + adversarial matrix | PLANNED / NOT RELEASED |
-| M1 | Durable evidence provenance intake | immutable/stable provenance, exact scope and tamper/substitution negatives | PLANNED / NOT RELEASED |
+| M0 | Contract and threat-boundary freeze | reviewed trust/data-flow contract + adversarial matrix | COMPLETE / ACCEPTED |
+| M1 | Durable evidence provenance intake | immutable/stable provenance, exact scope and tamper/substitution negatives | COMPLETE / ACCEPTED |
 | M2 | Trusted evaluator identity and assignment binding | no caller-fabricated evaluator/independence/assignment authority | PLANNED / NOT RELEASED |
 | M3 | Trusted Evaluation execution/result intake | exact target/method/evidence/principal binding through Stage 1 lifecycle authority | PLANNED / NOT RELEASED |
 | M4 | Durable effective-use resolver/query | authoritative complete current history, conflict/arbitration/invalidation aware | PLANNED / NOT RELEASED |
 | M5 | Evidence-backed Outcome disposition bridge | effective use + policy + required Human input -> existing Stage 1 disposition | PLANNED / NOT RELEASED |
 | M6 | Stage acceptance and reconciliation | adversarial review + durable accepted-truth reconciliation | PLANNED / NOT RELEASED |
 
-Roadmap order, Issue #104, and the existence of this plan do not authorize any G2 implementation milestone.
+Roadmap order, Issue #104, and the existence of this plan do not authorize any
+remaining G2 implementation milestone.
 
 ## G3 — Governed Effect Gateway and Occurrence Reconciliation
 
-- **Status:** PLANNED.
+- **Status:** PLANNED / NOT RELEASED.
 - **Goal:** govern consequential external actions across authorization, dispatch, receipts, occurrence uncertainty, reconciliation and remediation.
 - **Required outcome:** request/prepare -> verify -> authorize -> dispatch/commit -> receipt/observe -> reconcile -> remediate/compensate; irreversible Effects retain exact Human authorization.
 - **Critical proof:** external-success/local-recording crash windows and lost/ambiguous receipts cannot cause blind replay or false non-occurrence claims.
@@ -106,13 +114,20 @@ Roadmap order, Issue #104, and the existence of this plan do not authorize any G
 - **Status:** PLANNED.
 - **Goal:** prove Symphony-K can govern a real external agent/orchestrator without owning its planning, routing or runtime loop.
 - **Required outcome:** at least one supported integration provides stable attempt identity, claims, evidence hooks and governed Effect requests.
-- **Exit proof:** no framework-specific semantics leak into the core governance model and the integration cannot self-promote authority.
+- **Quality measures:** integration ceremony, required caller code, number of
+  internal concepts exposed and demonstrated framework neutrality.
+- **Exit proof:** a real external orchestrator integrates without reimplementing
+  Symphony-K internals; no framework-specific semantics leak into the core and
+  the integration cannot self-promote authority.
 
 ## G7 — Reference Execution / Provider Path
 
 - **Status:** PLANNED.
 - **Goal:** prove the execution/provider boundary end to end with one reference path.
 - **Required outcome:** an external or Symphony-K reference provider supplies isolation, provenance and execution observations sufficient for governance conformance.
+- **Identity boundary:** the reference provider proves the boundary; it does
+  not become Symphony-K's product identity or create a provider-specific core
+  semantic model.
 - **Stage 2 asset reuse:** accepted ADR-0008 and the cumulative Stage 2 sandbox design at `77acfbdaf2bed6f0536873fafc8eb7a12599da83` remain valid provider/security/conformance assets. Owning a production sandbox runtime is not a v1 prerequisite.
 
 ## G8 — End-to-End Operational Safety and Governance Recovery
@@ -126,7 +141,7 @@ Roadmap order, Issue #104, and the existence of this plan do not authorize any G
 
 - **Status:** PLANNED.
 - **Goal:** make the accepted v1 scope installable, observable, recoverable, upgradeable and reproducible within declared support limits.
-- **Required outcome:** packaging, configuration validation, migrations, backup/restore, secrets boundary, observability, dependency/security gates, reproducible artifacts and operator runbooks.
+- **Required outcome:** packaging, configuration validation, migrations, backup/restore, secrets boundary, observability, dependency/security gates, reproducible artifacts and operator runbooks. Prefer mature IAM, database, queue, secret-management, observability and deployment infrastructure behind thin adapters rather than rebuilding those mechanisms.
 - **Exit proof:** fresh install, restart, migration/rollback, backup/restore and security drills pass without release-blocking defects.
 
 ## G10 — v1 Acceptance and Final Delivery

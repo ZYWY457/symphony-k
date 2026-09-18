@@ -8,6 +8,46 @@ It governs authoritative work state, evidence, decisions, consequential Effects 
 
 The accepted Stage 1 Domain Kernel remains the semantic core. Planning, routing, Agent runtime and sandbox ownership are replaceable integration concerns rather than mandatory v1 product identity.
 
+### Internal rigor, external simplicity
+
+Internal complexity may grow as needed to preserve correctness; external
+integration complexity should trend downward. Exact identity/version,
+immutable fingerprints, trusted provenance, conflict history, replay,
+concurrency, authorization/occurrence separation, reconciliation and causal
+audit remain strict inside the boundary. Common callers should use small
+supported operations, stable typed references and caller-safe errors rather
+than understand the full domain graph, persistence schema or supporting-record
+model.
+
+External simplicity MUST NOT weaken governance invariants. Complexity is hidden
+behind SDK, service and adapter boundaries; trust and exactness are not removed.
+
+### Own the semantics; reuse the mechanisms
+
+Symphony-K owns the semantic guarantees that define the product: claim is not
+fact, capability is not authority, Evaluation is not disposition,
+authorization is not occurrence, execution failure is not non-occurrence,
+uncertainty is not failure, compensation is not erasure, evidence exact-binds
+identity/version, and history remains causally reconstructable.
+
+It should normally reuse mature infrastructure mechanisms:
+
+```text
+IAM / database / object storage / queue / RPC or HTTP framework /
+workflow or Agent runtime / sandbox / secrets / observability
+                              |
+                              v
+                    thin adapters/providers
+                              |
+                              v
+               Symphony-K governance semantics
+```
+
+An adapter translates mechanism identity, evidence, observations and receipts
+into stable Symphony-K inputs. It MUST NOT redefine authoritative disposition,
+promote caller/provider claims to trusted fact, declare Effect occurrence
+without admissible evidence or rewrite historical meaning.
+
 ## 2. Primary Architectural Boundaries
 
 ### Governance Kernel
@@ -41,6 +81,10 @@ Conceptually it must support operations equivalent to:
 - export causal audit information.
 
 Exact API shape remains a later bounded design.
+
+The listed operations are a conceptual target surface, not a claim that v1 or
+all later milestones are implemented. Current accepted capability is tracked
+in `STATUS.md`.
 
 ### Verification and Evidence Boundary
 
@@ -126,6 +170,13 @@ The same governance semantics must be usable through:
 These surfaces must share one semantic authority model rather than implement parallel weaker rules.
 
 This architecture does not select HTTP, gRPC, a web framework, a CLI library, an authentication mechanism, a queue or a deployment vendor. Service-mode identity, authentication, authorization and process-trust boundaries require later bounded design.
+
+Authentication infrastructure may establish a principal, but Symphony-K still
+decides what that identity is authorized to do in governance semantics.
+Persistence engines store authoritative records but do not decide claim versus
+fact or current trust eligibility. Workflow/Agent runtimes execute attempts but
+cannot accept Outcomes. Provider API success is evidence input, not automatic
+proof of Effect occurrence.
 
 ## 5. Core Domain Objects
 

@@ -36,8 +36,29 @@ Before mutation, read in this order unless the current TaskSpec narrows the scop
 - **G1/M1 Governance SDK / Facade is COMPLETE / ACCEPTED** at `62133cdfc7abac6bf7d1ce4666b5953192ffc9d1`.
 - Issue #100 preserves the original G1/M1 TaskSpec and initial candidate lineage; its candidate `36cb145fa666fa9a2218028d2d3828f28c0ed352` was NOT ACCEPTED.
 - Issue #102 contains the forward M1A correction lineage and independent final acceptance review `5714651540`.
-- **G2 is PLANNED / NOT RELEASED.** A fresh durable G2 TaskSpec is required before implementation mutation.
-- Current governance-only reconciliation is Issue #103. It does not authorize G2 implementation.
+- **G2/M0 is COMPLETE / ACCEPTED** at design boundary `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
+- **G2/M1 is COMPLETE / ACCEPTED** at implementation boundary `83a67c9fc98b1de7b42ad65772d8956f9b721915`.
+- G2/M1 accepted-truth reconciliation is `67f91f00ed3d6491f4451b801a19ae20ac409905`; it does not replace the implementation boundary.
+- Original M1 candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` remains historical **NOT ACCEPTED / CORRECTION REQUIRED** evidence.
+- Issues #108, #110, #113 and #114 are completed historical execution/review/reconciliation lineage and MUST NOT be treated as current execution authority.
+- **Issue #111 r4 is the current released repository-refresh TaskSpec.** Its candidate requires independent review under #115 and does not become accepted truth merely by existing.
+- **G2/M2-M6 and G3 are NOT RELEASED.** Do not infer M2 authority from M1 acceptance or roadmap order.
+
+## Product and integration principles
+
+- Strategic goal continuity, ownership-boundary change: reliable, governable,
+  verifiable, attributable and reconstructable agentic work remains the goal;
+  current ownership focuses on governance/trust semantics rather than the whole
+  planning/routing/runtime stack.
+- Internal rigor, external simplicity: keep exactness, provenance, replay,
+  concurrency, occurrence and causal history strict internally while exposing
+  small supported operations and stable typed references.
+- Own the semantics; reuse the mechanisms: own claim/fact, authority,
+  Evaluation, Effect and history guarantees; normally reuse IAM, persistence,
+  queue/transport, workflow/Agent runtime, sandbox, secrets and observability
+  mechanisms behind thin adapters.
+- Mechanism providers do not receive authoritative disposition, trust
+  promotion, Effect-occurrence or history-rewrite authority.
 
 ## Accepted G1/M1 boundary
 
@@ -73,7 +94,7 @@ Conversation-only instructions, draft titles, future Issue numbers and placehold
 
 A discovered TaskSpec is not executable when it is blocked, unreleased, baseline-mismatched, superseded, overlapping known active work or otherwise fails its stated preconditions.
 
-Do not infer G2 authority from the completed G1 stage or roadmap order. Freshly read the current concrete TaskSpec named by `STATUS.md` before mutation.
+Do not infer G2/M2 authority from accepted M1 or roadmap order. Freshly read the current concrete TaskSpec named by `STATUS.md` before mutation.
 
 Final Worker evidence must report:
 
@@ -99,7 +120,10 @@ Historical accepted artifacts and rejected candidates must not be rewritten to i
 
 Repository-local work and remote effects are separate authorities. Unless explicitly authorized by the current TaskSpec or Human instruction, a Worker MUST NOT push, mutate remote refs, create/merge/close PRs, publish releases, rewrite remote history or mutate Issues.
 
-Completed Issue #100/#102 work does not authorize broader G1/G2 mutation. Issue #103 authorizes only bounded governance/documentation reconciliation and its stated Issue-state closure.
+Completed #108/#110/#113/#114 work does not authorize new G2 mutation. Issue
+#111 r4 authorizes only its 13 documentation/metadata paths, one local candidate
+and the validation stated in that TaskSpec. It does not authorize remote
+mutation, #115 review or M2 release.
 
 If remote mutation occurs, report the exact action, repository/branch, affected object, authorization source and resulting reference.
 

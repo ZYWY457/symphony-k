@@ -14,7 +14,7 @@ bounded M0 accepted-truth reconciliation.
 
 Original #108 candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` remains **NOT ACCEPTED / CORRECTION REQUIRED** under #109 / [#108 comment `5723629306`](https://github.com/ZYWY457/symphony-k/issues/108#issuecomment-5723629306). #110 produced the forward correction above, independently **ACCEPTED** under #112, findings none, in [#110 comment `5723875385`](https://github.com/ZYWY457/symphony-k/issues/110#issuecomment-5723875385).
 
-Current reconciliation: #113 documentation candidate, awaiting #114 independent review. Next is #111 repository strategic narrative / external simplicity / cold-start truth refresh, blocked until reconciliation acceptance. M1 acceptance does not release M2-M6 or G3. No M2 TaskSpec or launch baseline is established here.
+Current reconciliation: #113/#114 are COMPLETE / ACCEPTED at `67f91f00ed3d6491f4451b801a19ae20ac409905`; that reconciliation boundary does not replace the M1 implementation boundary. #111 is the current READY / released repository strategic-narrative, external-simplicity and cold-start refresh TaskSpec, with candidate acceptance pending independent review under #115. M1 acceptance and roadmap order do not release M2-M6 or G3. No M2 TaskSpec or launch baseline is established here.
 
 Planning authority: Issue #104 — `G2 Planning — Trusted Evaluation and Evidence Delivery Path`.
 

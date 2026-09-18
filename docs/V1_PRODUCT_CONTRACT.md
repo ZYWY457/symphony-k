@@ -38,6 +38,55 @@ A rich graphical interface is not required for v1.
 
 All supported surfaces must preserve one semantic authority model. This contract does not select HTTP, gRPC, an application framework, a CLI library, authentication mechanism, process supervisor, vendor or deployment topology.
 
+## Integration Simplicity Contract
+
+Strict internals should collapse into simple supported operations. A normal
+integrator should receive a small, stable governance surface with typed exact
+references, trusted adapter boundaries and caller-safe errors. Internal rigor
+may increase to preserve correctness while the amount of ceremony and internal
+knowledge required from callers should decrease.
+
+A normal integrator must not be required to:
+
+- directly construct trusted evidence, Evaluation or authority records;
+- understand or mutate the persistence schema or manage SQLite transactions;
+- supply an authoritative complete history slice for effective-use decisions;
+- implement arbitration, invalidation or reconciliation internals;
+- understand every supporting record merely to query authoritative state; or
+- treat a provider-specific object as a core semantic object.
+
+The supported surface should converge on bounded operations conceptually like
+submitting a candidate, registering evidence through a trusted boundary,
+evaluating, requesting an Effect, observing/reconciling occurrence, and
+inspecting/exporting audit history. This is a target interaction model, not a
+claim that every operation is currently implemented; `STATUS.md` records the
+accepted implementation boundary.
+
+Simplicity does not allow caller-controlled trust, weaker exactness, omitted
+history or transport-specific authority. SDK, service, CLI and provider
+adapters must all preserve the same governance semantics.
+
+## Mechanism Reuse Contract
+
+Symphony-K owns its semantic guarantees and normally reuses mature mechanisms
+for authentication/SSO/IAM, databases, object and durable storage, queues/event
+buses, RPC/HTTP, workflow and Agent runtimes, sandbox execution, secrets,
+logging, tracing, metrics and cloud scheduling.
+
+The integration pattern is:
+
+```text
+existing infrastructure
+        -> thin adapter/provider
+        -> Symphony-K semantic boundary
+```
+
+Mechanism reuse does not outsource authority. An IAM provider establishes an
+authenticated identity but does not decide Outcome disposition, evidence
+eligibility or Effect authorization. A database preserves records but does not
+define governance truth. Runtime success is not Outcome acceptance, and an
+HTTP/SDK success response is not by itself proof of Effect occurrence.
+
 ## Canonical governance boundary
 
 The observable v1 flow is conceptually:
