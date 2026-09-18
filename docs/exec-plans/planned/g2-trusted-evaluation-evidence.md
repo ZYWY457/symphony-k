@@ -1,19 +1,20 @@
 # G2 — Trusted Evaluation and Evidence Integration
 
-Status: **G2 implementation PLANNED / NOT RELEASED; G2/M0 COMPLETE / ACCEPTED**.
+Status: **G2/M0 and G2/M1 COMPLETE / ACCEPTED; G2/M2-M6 and G3 NOT RELEASED**. The whole G2 stage is not complete.
 
 Accepted M0 design: [`g2-trusted-evaluation-evidence-boundary.md`](../../design-docs/g2-trusted-evaluation-evidence-boundary.md)
 at exact boundary `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
 Independent acceptance: [Issue #105 comment `5717950150`](https://github.com/ZYWY457/symphony-k/issues/105#issuecomment-5717950150)
 under Issue #106 — **ACCEPT**, findings none. This records independent design
 acceptance, not separate Human acceptance or implementation completion.
-Issue #105 preserves design execution; #106 preserves review; #107 is the
-bounded accepted-truth reconciliation TaskSpec.
+Issue #105 preserves design execution; #106 preserves review; #107 completed the
+bounded M0 accepted-truth reconciliation.
 
-**G2/M1 is PLANNED / NOT RELEASED.** A fresh bounded TaskSpec with an exact
-launch baseline is required before source/test mutation. M1 starts with durable
-evidence provenance intake under the accepted M0 contract and must not silently
-implement M2-M5.
+**G2/M1 is COMPLETE / ACCEPTED** at `83a67c9fc98b1de7b42ad65772d8956f9b721915`.
+
+Original #108 candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` remains **NOT ACCEPTED / CORRECTION REQUIRED** under #109 / [#108 comment `5723629306`](https://github.com/ZYWY457/symphony-k/issues/108#issuecomment-5723629306). #110 produced the forward correction above, independently **ACCEPTED** under #112, findings none, in [#110 comment `5723875385`](https://github.com/ZYWY457/symphony-k/issues/110#issuecomment-5723875385).
+
+Current reconciliation: #113 documentation candidate, awaiting #114 independent review. Next is #111 repository strategic narrative / external simplicity / cold-start truth refresh, blocked until reconciliation acceptance. M1 acceptance does not release M2-M6 or G3. No M2 TaskSpec or launch baseline is established here.
 
 Planning authority: Issue #104 — `G2 Planning — Trusted Evaluation and Evidence Delivery Path`.
 
@@ -125,6 +126,16 @@ Exit: reviewed contract only. No later milestone is released automatically.
 
 ### G2/M1 — Durable evidence provenance intake
 
+**Status: COMPLETE / ACCEPTED** at `83a67c9fc98b1de7b42ad65772d8956f9b721915`, under #108/#110 with independent ACCEPT under #112 on #110 comment `5723875385`.
+
+Accepted M1 provides caller-claim/trusted-provider separation through an injected trusted collector/verifier; immutable provenance with exact `EvidenceRef` + record fingerprint identity; exact target identity/version binding and evidence-on-evidence resolution; current use-time digest policy; a coherent durable snapshot for trusted evidence-chain resolution; append-only trust findings and correction/supersession provenance; exact replay/idempotency and altered replay/identity collision rejection; atomic SQLite record + replay-operation registration without fake lifecycle `DomainEvent` rows; and caller-safe provider error sanitization.
+
+M1 does not provide evaluator assignment, G2 Evaluation create/start/complete integration, the M4 effective-use resolver, Outcome disposition, Human acceptance, or Effect dispatch/occurrence/reconciliation. Registration is not lifecycle or acceptance authority.
+
+The #112 reviewer completed exact source/diff review and accepted the correction semantics, with independent SQLite snapshot/interleaving and transaction-cleanup probes. The 78 focused and 3394 full-suite tests in #110 comment `5723804820` are Worker-reported evidence, not reviewer reruns. The reviewer could not materialize the checkout because its container could not resolve GitHub hosts; no independent repository-suite rerun is claimed.
+
+The requirements below preserve the original M1 delivery contract.
+
 **Purpose:** create a supported governance-layer intake/catalog for evidence provenance.
 
 The milestone should support, at minimum:
@@ -150,6 +161,8 @@ Adversarial evidence:
 
 ### G2/M2 — Trusted evaluator identity and assignment binding
 
+**Status: NOT RELEASED.**
+
 **Purpose:** make evaluator identity/assignment an authenticated or boundary-produced fact rather than a caller claim.
 
 The milestone should define/inject a trusted provider that can bind:
@@ -168,6 +181,8 @@ Adversarial evidence:
 - assignment for one Evaluation/target cannot be replayed for another.
 
 ### G2/M3 — Trusted Evaluation execution/result intake
+
+**Status: NOT RELEASED.**
 
 **Purpose:** connect G1 Evaluation create/start/complete surfaces to durable evidence and evaluator provenance.
 
@@ -189,6 +204,8 @@ Adversarial evidence:
 - identical exact replay preserves existing idempotency semantics.
 
 ### G2/M4 — Durable effective-use resolver/query
+
+**Status: NOT RELEASED.**
 
 **Purpose:** expose authoritative effective-use state without requiring callers to provide or understand complete private history.
 
@@ -213,6 +230,8 @@ Adversarial evidence:
 
 ### G2/M5 — Evidence-backed Outcome disposition bridge
 
+**Status: NOT RELEASED.**
+
 **Purpose:** provide a supported trusted integration path from current effective Evaluation state into the existing Outcome disposition semantics.
 
 Required behavior:
@@ -235,6 +254,8 @@ Adversarial evidence:
 
 ### G2/M6 — Stage acceptance and reconciliation
 
+**Status: NOT RELEASED.**
+
 **Purpose:** independently prove the whole G2 boundary before G3 release.
 
 Required evidence:
@@ -253,12 +274,12 @@ Only after M6 reconciliation may G3 be considered for release.
 | Order | Milestone | Primary contract | Depends on | Release condition |
 | ---: | --- | --- | --- | --- |
 | 0 | M0 Contract/threat freeze | trust model + public integration contract | accepted G1 | COMPLETE / ACCEPTED under #105/#106; design only |
-| 1 | M1 Evidence provenance | durable trusted evidence reference/catalog | M0 accepted | fresh M1 TaskSpec |
-| 2 | M2 Evaluator binding | trusted evaluator/assignment provider | M0, normally M1 | fresh M2 TaskSpec |
-| 3 | M3 Evaluation intake | exact evidence + assignment + result lifecycle binding | M1/M2 | fresh M3 TaskSpec |
-| 4 | M4 Effective-use resolver | authoritative durable history -> effective-use view | M3 + existing Stage 1 history | fresh M4 TaskSpec |
-| 5 | M5 Outcome disposition bridge | effective use + policy + optional Human acceptance -> Stage 1 disposition | M4 | fresh M5 TaskSpec |
-| 6 | M6 Exit/reconciliation | adversarial evidence + accepted-truth reconciliation | M1-M5 accepted | explicit exit/reconciliation authority |
+| 1 | M1 Evidence provenance | durable trusted evidence reference/catalog | M0 accepted | COMPLETE / ACCEPTED at `83a67c9fc98b1de7b42ad65772d8956f9b721915`; #110/#112 |
+| 2 | M2 Evaluator binding | trusted evaluator/assignment provider | M0, normally M1 | NOT RELEASED; fresh M2 TaskSpec required |
+| 3 | M3 Evaluation intake | exact evidence + assignment + result lifecycle binding | M1/M2 | NOT RELEASED; fresh M3 TaskSpec required |
+| 4 | M4 Effective-use resolver | authoritative durable history -> effective-use view | M3 + existing Stage 1 history | NOT RELEASED; fresh M4 TaskSpec required |
+| 5 | M5 Outcome disposition bridge | effective use + policy + optional Human acceptance -> Stage 1 disposition | M4 | NOT RELEASED; fresh M5 TaskSpec required |
+| 6 | M6 Exit/reconciliation | adversarial evidence + accepted-truth reconciliation | M1-M5 accepted | NOT RELEASED; explicit exit/reconciliation authority required |
 
 Parallelism is allowed only when a future TaskSpec proves that shared contracts and protected paths do not overlap unsafely. Roadmap order does not imply automatic release.
 

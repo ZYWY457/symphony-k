@@ -3,7 +3,7 @@
 ## Accepted baseline
 
 - **Project:** Symphony-K; **maturity:** pre-v1 development
-- **Completed implementation stages:** Stage 0, Stage 1, G1/M1
+- **Completed implementation stages/milestones:** Stage 0, Stage 1, G1/M1, G2/M1
 - **Stage 1:** **COMPLETE**; final accepted implementation/governance boundary `987f927905cadcedd473f2ba3270f56908b7f6b9`.
 - **Current accepted constitutional baseline:** Constitution v0.2 + ADR-0009, accepted at exact R1 head `9c842f18ffcdd51daef8f05d9367f571df677703`.
 - **Accepted R2 product definition:** exact head `2b54c2672c0c400aab1f35e0245c8c4e97a62321`; independent review **ACCEPT** `5711134872`; Human acceptance `5711951534`.
@@ -76,26 +76,38 @@ G1/M1 does not add new Stage 1 lifecycle semantics or G2 evidence-trust policy.
 
 ## Current delivery gate
 
-**G2/M0 is COMPLETE / ACCEPTED. G2/M1 is RELEASED FOR IMPLEMENTATION under Issue #108.** M1 is limited to durable evidence provenance intake; M2-M6 and G3 remain NOT RELEASED.
+**G2/M0 and G2/M1 are COMPLETE / ACCEPTED. G2/M2-M6 and G3 remain NOT RELEASED.** M1 acceptance is not whole-stage G2 acceptance.
 
 Accepted G2 parent planning contract: [`docs/exec-plans/planned/g2-trusted-evaluation-evidence.md`](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md), accepted planning boundary `6434cecc2daae51d17182a7cf18184a9a8124a05`.
 
 Accepted M0 contract: [`docs/design-docs/g2-trusted-evaluation-evidence-boundary.md`](docs/design-docs/g2-trusted-evaluation-evidence-boundary.md), exact design boundary `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`. Independent review under Issue #106: Issue #105 comment `5717950150` — **ACCEPT**, findings none.
 
-Current concrete TaskSpec: **Issue #108 — G2 / M1 — Durable Evidence Provenance Intake**. It is the only current G2 implementation authority and is limited to the exact paths, tests, trust boundary and remote-mutation rules stated in that Issue.
+Accepted M1 implementation boundary: `83a67c9fc98b1de7b42ad65772d8956f9b721915` (`fix(governance): harden evidence provenance trust boundary`). This is distinct from the M0 design boundary above.
 
-M1 may implement caller evidence claims, trusted collector/verifier binding, immutable trusted evidence records/references, append-only trust findings, typed evidence query/read surfaces and bounded SQLite persistence. It must not silently implement M2 evaluator assignment, M3 Evaluation intake, M4 effective-use resolution, M5 Outcome disposition, or G3 Effect behavior.
+Historical implementation lineage:
+
+- #108 is the original M1 TaskSpec. Candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` remains **NOT ACCEPTED / CORRECTION REQUIRED**, per independent review #109 on [#108 comment `5723629306`](https://github.com/ZYWY457/symphony-k/issues/108#issuecomment-5723629306).
+- #110 supplied the forward M1A correction `83a67c9fc98b1de7b42ad65772d8956f9b721915`; candidate evidence is [comment `5723804820`](https://github.com/ZYWY457/symphony-k/issues/110#issuecomment-5723804820).
+- #112 independently **ACCEPTED** the correction, findings **none**, in [#110 comment `5723875385`](https://github.com/ZYWY457/symphony-k/issues/110#issuecomment-5723875385); [#112 closure record `5723875761`](https://github.com/ZYWY457/symphony-k/issues/112#issuecomment-5723875761) preserves completion.
+
+Accepted M1 provides caller-claim/trusted-provider separation through an injected trusted collector/verifier; immutable provenance with exact `EvidenceRef` + record fingerprint identity; exact target identity/version binding and evidence-on-evidence resolution; current use-time digest policy; a coherent durable snapshot for trusted evidence-chain resolution; append-only trust findings and correction/supersession provenance; exact replay/idempotency and altered replay/identity collision rejection; atomic SQLite record + replay-operation registration without fake lifecycle `DomainEvent` rows; and caller-safe provider error sanitization.
+
+M1 does not provide evaluator assignment, G2 Evaluation create/start/complete integration, the M4 effective-use resolver, Outcome disposition, Human acceptance, or Effect dispatch/occurrence/reconciliation. Registration is not lifecycle or acceptance authority.
+
+The #112 reviewer completed exact source/diff review and accepted the correction semantics, with independent SQLite snapshot/interleaving and transaction-cleanup probes. The 78 focused and 3394 full-suite tests in #110 comment `5723804820` are Worker-reported evidence, not reviewer reruns. The reviewer could not materialize the checkout because its container could not resolve GitHub hosts; no independent repository-suite rerun is claimed.
+
+Current bounded TaskSpec: [#113 accepted-truth reconciliation](https://github.com/ZYWY457/symphony-k/issues/113), with [execution handoff `5723917776`](https://github.com/ZYWY457/symphony-k/issues/113#issuecomment-5723917776). This local documentation candidate awaits independent review under #114. Next is **#111 — repository strategic narrative / external simplicity / cold-start truth refresh**, blocked until #113 is independently accepted and its own release preconditions are satisfied.
 
 The planned G2 path remains:
 
 ```text
 M0 contract / threat-boundary freeze — COMPLETE / ACCEPTED
--> M1 durable evidence provenance intake
--> M2 trusted evaluator identity + assignment binding
--> M3 trusted Evaluation execution/result intake
--> M4 durable authoritative effective-use resolver/query
--> M5 evidence-backed Outcome disposition bridge
--> M6 stage acceptance + accepted-truth reconciliation
+-> M1 durable evidence provenance intake — COMPLETE / ACCEPTED
+-> M2 trusted evaluator identity + assignment binding — NOT RELEASED
+-> M3 trusted Evaluation execution/result intake — NOT RELEASED
+-> M4 durable authoritative effective-use resolver/query — NOT RELEASED
+-> M5 evidence-backed Outcome disposition bridge — NOT RELEASED
+-> M6 stage acceptance + accepted-truth reconciliation — NOT RELEASED
 ```
 
 ## Strategic lineage
@@ -117,11 +129,16 @@ M0 contract / threat-boundary freeze — COMPLETE / ACCEPTED
 - #105 — historical G2/M0 design execution TaskSpec; produced accepted design `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
 - #106 — independent M0 review; ACCEPT recorded on #105 comment `5717950150`.
 - #107 — M0 accepted-truth reconciliation; closed completed.
-- #108 — current G2/M1 durable evidence provenance implementation TaskSpec.
+- #108 — historical original M1 TaskSpec and rejected initial candidate.
+- #109 — historical independent CORRECTION REQUIRED review, #108 comment `5723629306`.
+- #110 — historical M1A forward correction and durable ACCEPT record `5723875385`.
+- #112 — completed independent correction review, ACCEPT, findings none.
+- #113 — bounded M1 accepted-truth reconciliation candidate, awaiting #114 independent review.
+- #111 — next repository refresh, blocked until reconciliation acceptance.
 
 ## Next action
 
-Execute Issue #108 from its exact launch HEAD. Produce a local M1 candidate only, with no remote mutation by the Worker. After candidate validation, perform separate independent review before publication. M2-M6 and G3 remain NOT RELEASED.
+Submit the local #113 reconciliation candidate for separate independent review under #114. #111 remains blocked until reconciliation acceptance and its own release preconditions are satisfied. Do not resume historical #108/#110 execution. M2-M6 and G3 remain NOT RELEASED; no M2 TaskSpec or launch baseline is established here.
 
 ## Navigation / cold-start reading order
 
@@ -137,6 +154,6 @@ Execute Issue #108 from its exact launch HEAD. Produce a local M1 candidate only
 10. [docs/exec-plans/planned/g2-trusted-evaluation-evidence.md](docs/exec-plans/planned/g2-trusted-evaluation-evidence.md)
 11. relevant core beliefs, accepted ADRs/designs
 12. [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md)
-13. current concrete TaskSpec Issue #108; #105/#106/#107 as historical M0 design/review/reconciliation evidence
+13. Issue #113 and execution handoff for this reconciliation; #108/#109/#110/#112 as historical M1 implementation/correction/acceptance evidence; #105/#106/#107 as historical M0 evidence; verify separate review/release gates before any next task
 
 Historical accepted artifacts remain historical truth but do not override the current accepted Constitution, ADR-0009, product definition, delivery path or explicit TaskSpec readiness.

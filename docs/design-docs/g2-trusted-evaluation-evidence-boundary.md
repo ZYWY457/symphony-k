@@ -1,6 +1,6 @@
 # G2 Trusted Evaluation and Evidence Boundary
 
-Status: **G2/M0 COMPLETE / ACCEPTED DESIGN / NO IMPLEMENTATION RELEASED**.
+Status: **G2/M0 COMPLETE / ACCEPTED DESIGN**. Design acceptance itself released no implementation.
 
 Accepted design boundary: `9c36fbcfac3854271af8eb15dca08f6a9ec2eca2`.
 
@@ -8,8 +8,13 @@ Independent acceptance: [Issue #105 comment `5717950150`](https://github.com/ZYW
 under Issue #106 — **ACCEPT**, findings none. This is independent design
 acceptance, not a claim of separate Human acceptance.
 
-Status reconciliation: Issue #107. **G2/M1 is PLANNED / NOT RELEASED**;
-a fresh bounded TaskSpec is required before source/test mutation.
+Historical status reconciliation: Issue #107 recorded M1 as planned and unreleased before implementation. This document was accepted as the M0 design boundary before M1; the semantic contract below remains that historical design, not a description of all currently implemented capabilities.
+
+Current implementation-status reconciliation: Issue #113. **G2/M1 is COMPLETE / ACCEPTED** at `83a67c9fc98b1de7b42ad65772d8956f9b721915` (`fix(governance): harden evidence provenance trust boundary`). This is the M1 implementation boundary, not the M0 design commit.
+
+Original M1 candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` under #108 remains **NOT ACCEPTED / CORRECTION REQUIRED**, per #109 / [#108 comment `5723629306`](https://github.com/ZYWY457/symphony-k/issues/108#issuecomment-5723629306). #110 supplied the forward correction; #112 independently **ACCEPTED** it, findings none, in [#110 comment `5723875385`](https://github.com/ZYWY457/symphony-k/issues/110#issuecomment-5723875385).
+
+The accepted correction preserves exact target binding, current use-time digest policy, coherent evidence-chain snapshots and caller-safe provider errors. It does not release evaluator assignment, Evaluation integration, M4 effective-use, Outcome disposition/Human acceptance or G3 Effect behavior. **M2-M6 and G3 remain NOT RELEASED.** #113 awaits independent review under #114; #111 is the next repository refresh, blocked until reconciliation acceptance. These notes update status only; sections 1-16 retain the accepted M0 design semantics.
 
 TaskSpec: Issue #105, revision `r2 - g2-m0-design-freeze-final-handoff`.
 
