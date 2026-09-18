@@ -62,6 +62,14 @@ class EventRepository(Protocol):
     def for_entity(self, entity_id: LifecycleEntityId) -> tuple[DomainEvent, ...]: ...
 
 
+class EvidenceQueryPort[ReferenceT, IdentityT, ViewT](Protocol):
+    """Typed read-only access to immutable evidence provenance and findings."""
+
+    def read(self, reference: ReferenceT) -> ViewT: ...
+
+    def lookup(self, identity: IdentityT) -> ViewT: ...
+
+
 class UnitOfWork(Protocol):
     """One call commits a domain-approved snapshot, history, event and receipt.
 

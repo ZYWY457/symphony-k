@@ -139,6 +139,34 @@ CREATE TABLE IF NOT EXISTS observed_occurrences (
     FOREIGN KEY(kind,entity_id) REFERENCES heads(kind,entity_id)
         DEFERRABLE INITIALLY DEFERRED
 );
+CREATE TABLE IF NOT EXISTS evidence_records (
+    evidence_ref TEXT PRIMARY KEY NOT NULL,
+    record_fingerprint TEXT NOT NULL,
+    record TEXT NOT NULL,
+    UNIQUE(evidence_ref,record_fingerprint)
+);
+CREATE TABLE IF NOT EXISTS evidence_operations (
+    operation_key TEXT PRIMARY KEY NOT NULL,
+    operation_fingerprint TEXT NOT NULL,
+    evidence_ref TEXT NOT NULL,
+    record_fingerprint TEXT NOT NULL,
+    claim TEXT NOT NULL,
+    FOREIGN KEY(evidence_ref,record_fingerprint)
+        REFERENCES evidence_records(evidence_ref,record_fingerprint)
+);
+CREATE TABLE IF NOT EXISTS evidence_trust_findings (
+    finding_id TEXT PRIMARY KEY NOT NULL,
+    evidence_ref TEXT NOT NULL,
+    record_fingerprint TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN
+        ('VERIFIED','ADVERSE','UNRESOLVED','INCOMPLETE')),
+    supersedes_finding_id TEXT UNIQUE,
+    record TEXT NOT NULL,
+    FOREIGN KEY(evidence_ref,record_fingerprint)
+        REFERENCES evidence_records(evidence_ref,record_fingerprint),
+    FOREIGN KEY(supersedes_finding_id)
+        REFERENCES evidence_trust_findings(finding_id)
+);
 CREATE TRIGGER IF NOT EXISTS heads_identity BEFORE UPDATE ON heads
 WHEN NEW.kind != OLD.kind OR NEW.entity_id != OLD.entity_id
 BEGIN SELECT RAISE(ABORT, 'immutable identity'); END;
@@ -232,6 +260,9 @@ class SQLiteStore:
             "operations",
             "supporting_records",
             "observed_occurrences",
+            "evidence_records",
+            "evidence_operations",
+            "evidence_trust_findings",
         ):
             for action in ("UPDATE", "DELETE"):
                 self._connection.execute(
@@ -486,4 +517,132 @@ class SQLiteStore:
             self._connection.execute(
                 "INSERT INTO supporting_records VALUES (?,?,?,?,?)",
                 (*key, encoded, str(event_id)),
+            )
+
+    def _evidence_load_exact(self, evidence_ref: str, record_fingerprint: str) -> str:
+        row = self._connection.execute(
+            "SELECT record_fingerprint,record FROM evidence_records "
+            "WHERE evidence_ref=?",
+            (evidence_ref,),
+        ).fetchone()
+        if row is None:
+            raise EntityNotFound("Evidence record is not recorded")
+        if row[0] != record_fingerprint:
+            raise ConcurrencyConflict("Evidence record fingerprint differs")
+        return cast(str, row[1])
+
+    def _evidence_load_identity(self, evidence_ref: str) -> tuple[str, str]:
+        row = self._connection.execute(
+            "SELECT record_fingerprint,record FROM evidence_records "
+            "WHERE evidence_ref=?",
+            (evidence_ref,),
+        ).fetchone()
+        if row is None:
+            raise EntityNotFound("Evidence record is not recorded")
+        return cast(tuple[str, str], row)
+
+    def _evidence_findings(
+        self, evidence_ref: str, record_fingerprint: str
+    ) -> tuple[str, ...]:
+        self._evidence_load_exact(evidence_ref, record_fingerprint)
+        rows = self._connection.execute(
+            "SELECT record FROM evidence_trust_findings "
+            "WHERE evidence_ref=? AND record_fingerprint=? ORDER BY rowid",
+            (evidence_ref, record_fingerprint),
+        ).fetchall()
+        return tuple(cast(str, row[0]) for row in rows)
+
+    def _evidence_register(
+        self,
+        evidence_ref: str,
+        record_fingerprint: str,
+        record: str,
+        operation_key: str,
+        operation_fingerprint: str,
+        claim: str,
+        linked_records: tuple[tuple[str, str], ...],
+    ) -> str:
+        with self._transaction():
+            operation = self._connection.execute(
+                "SELECT operation_fingerprint,evidence_ref,record_fingerprint "
+                "FROM evidence_operations WHERE operation_key=?",
+                (operation_key,),
+            ).fetchone()
+            if operation is not None:
+                if operation[0] != operation_fingerprint:
+                    raise ConcurrencyConflict(
+                        "Evidence operation key was already used differently"
+                    )
+                replay = self._evidence_load_exact(operation[1], operation[2])
+                if replay != record:
+                    raise ConcurrencyConflict("Evidence replay semantic record differs")
+                return replay
+
+            existing = self._connection.execute(
+                "SELECT record_fingerprint,record FROM evidence_records "
+                "WHERE evidence_ref=?",
+                (evidence_ref,),
+            ).fetchone()
+            if existing is not None:
+                if existing[0] != record_fingerprint or existing[1] != record:
+                    raise ConcurrencyConflict(
+                        "Evidence identity is bound to another immutable record"
+                    )
+            else:
+                for linked_ref, linked_fingerprint in linked_records:
+                    self._evidence_load_exact(linked_ref, linked_fingerprint)
+                self._connection.execute(
+                    "INSERT INTO evidence_records VALUES (?,?,?)",
+                    (evidence_ref, record_fingerprint, record),
+                )
+            self._connection.execute(
+                "INSERT INTO evidence_operations VALUES (?,?,?,?,?)",
+                (
+                    operation_key,
+                    operation_fingerprint,
+                    evidence_ref,
+                    record_fingerprint,
+                    claim,
+                ),
+            )
+            return record
+
+    def _evidence_append_finding(
+        self,
+        finding_id: str,
+        evidence_ref: str,
+        record_fingerprint: str,
+        status: str,
+        supersedes_finding_id: str | None,
+        record: str,
+    ) -> None:
+        with self._transaction():
+            self._evidence_load_exact(evidence_ref, record_fingerprint)
+            if supersedes_finding_id is not None:
+                row = self._connection.execute(
+                    "SELECT evidence_ref,record_fingerprint "
+                    "FROM evidence_trust_findings WHERE finding_id=?",
+                    (supersedes_finding_id,),
+                ).fetchone()
+                if row is None:
+                    raise InvalidRelationship(
+                        "Superseded evidence finding is not recorded"
+                    )
+                if row != (
+                    evidence_ref,
+                    record_fingerprint,
+                ):
+                    raise InvalidRelationship(
+                        "Finding supersession crosses evidence records"
+                    )
+            self._connection.execute(
+                "INSERT INTO evidence_trust_findings VALUES (?,?,?,?,?,?)",
+                (
+                    finding_id,
+                    evidence_ref,
+                    record_fingerprint,
+                    status,
+                    supersedes_finding_id,
+                    record,
+                ),
             )
