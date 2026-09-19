@@ -101,9 +101,16 @@ Stage 0 and Stage 1 are complete. The Human Stage 1 Exit Review is accepted.
 - The original G2/M1 candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` remains historical **NOT ACCEPTED / CORRECTION REQUIRED** evidence.
 - **G2/M2-M6 are NOT RELEASED. G3 is NOT RELEASED.**
 - Issue #111 revision
-  `r4 - strategic-narrative-cold-start-refresh-path-correction` is the current
-  released repository-refresh TaskSpec. Its candidate does not become accepted
-  truth until independent review under #115.
+  `r4 - strategic-narrative-cold-start-refresh-path-correction` is completed
+  lineage: it produced repository-refresh candidate
+  `f8ccac552e5b48d5b7a4df86683844d242bc8221`, which the independent review
+  under #115 disposed **CORRECTION REQUIRED** (durable record: #111 comment
+  `5724524204`). The bounded forward correction under #116,
+  `c5eb696f9f84087c996c5ae3bb03da21a7e6d54c`, was independently **ACCEPTED**
+  under #117 (durable record: #116 comment `5731074937`) and is the accepted
+  corrected refresh boundary. The current phase is always discovered from
+  durable Issue state per `STATUS.md` ("Next action") and `docs/AI_HANDOFF.md`
+  ("Current correction/review discovery"), never from this file.
 - Stage 2 runtime isolation evidence is not established and Stage 2 runtime code has not started.
 
 The accepted G1 facade exposes typed exact entity/version references, caller-controlled submission DTOs separated from trusted authority/context construction, supported Run/Outcome/Evaluation mutations through an injected trusted binder, exact/current reads, caller-safe errors, replay/concurrency preservation and explicit unsupported real Effect dispatch. It does not add public Run completion or Outcome acceptance and does not define G2 trust policy.

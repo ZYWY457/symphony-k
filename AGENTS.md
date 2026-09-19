@@ -41,7 +41,7 @@ Before mutation, read in this order unless the current TaskSpec narrows the scop
 - G2/M1 accepted-truth reconciliation is `67f91f00ed3d6491f4451b801a19ae20ac409905`; it does not replace the implementation boundary.
 - Original M1 candidate `e5402b6415ab76a7fed5635949cfea335db2b5c6` remains historical **NOT ACCEPTED / CORRECTION REQUIRED** evidence.
 - Issues #108, #110, #113 and #114 are completed historical execution/review/reconciliation lineage and MUST NOT be treated as current execution authority.
-- **Issue #111 r4 is the current released repository-refresh TaskSpec.** Its candidate requires independent review under #115 and does not become accepted truth merely by existing.
+- **Issue #111 r4 is completed lineage, not current execution authority:** it produced refresh candidate `f8ccac552e5b48d5b7a4df86683844d242bc8221`, which #115 reviewed with disposition CORRECTION REQUIRED (durable record: #111 comment `5724524204`). The #116 forward correction `c5eb696f9f84087c996c5ae3bb03da21a7e6d54c` was independently ACCEPTED under #117 (durable record: #116 comment `5731074937`) and is the accepted corrected refresh boundary. No candidate becomes accepted truth merely by existing; acceptance follows the recorded review gates.
 - **G2/M2-M6 and G3 are NOT RELEASED.** Do not infer M2 authority from M1 acceptance or roadmap order.
 
 ## Product and integration principles
@@ -121,9 +121,14 @@ Historical accepted artifacts and rejected candidates must not be rewritten to i
 Repository-local work and remote effects are separate authorities. Unless explicitly authorized by the current TaskSpec or Human instruction, a Worker MUST NOT push, mutate remote refs, create/merge/close PRs, publish releases, rewrite remote history or mutate Issues.
 
 Completed #108/#110/#113/#114 work does not authorize new G2 mutation. Issue
-#111 r4 authorizes only its 13 documentation/metadata paths, one local candidate
-and the validation stated in that TaskSpec. It does not authorize remote
-mutation, #115 review or M2 release.
+#111 r4 authorized only its 13 documentation/metadata paths and one local
+candidate (produced: `f8ccac55...`, disposed CORRECTION REQUIRED under #115);
+Issue #116 authorized only `STATUS.md` and `docs/AI_HANDOFF.md` and one local
+candidate (produced: `c5eb696f...`, ACCEPTED under #117). Historical TaskSpec
+boundaries authorize no new work: the executable boundary is always the one
+stated by the current TaskSpec Issue, discovered per `STATUS.md` /
+`docs/AI_HANDOFF.md`. No historical boundary authorizes remote mutation,
+self-review or M2 release.
 
 If remote mutation occurs, report the exact action, repository/branch, affected object, authorization source and resulting reference.
 

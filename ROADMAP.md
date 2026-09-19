@@ -32,11 +32,16 @@ G1/M1 accepted implementation lineage is preserved through Issue #100 and Issue 
 
 Issue #79 is **SUPERSEDED / NOT RELEASED**, closed as not planned, and is historical only. Its old Stage 2 M2 authority is obsolete for the post-transition product and is not an implementation TaskSpec for any current stage.
 
-Current repository work is the documentation/metadata refresh released by
-Issue #111 from accepted reconciliation baseline
-`67f91f00ed3d6491f4451b801a19ae20ac409905`. Its candidate requires independent
-review under #115 before becoming accepted truth. This work does not release
-G2/M2-M6 or G3.
+The documentation/metadata refresh released by Issue #111 from accepted
+reconciliation baseline `67f91f00ed3d6491f4451b801a19ae20ac409905` produced
+candidate `f8ccac552e5b48d5b7a4df86683844d242bc8221`; #115 reviewed it with
+disposition CORRECTION REQUIRED (durable record: #111 comment `5724524204`),
+and the bounded forward correction #116
+(`c5eb696f9f84087c996c5ae3bb03da21a7e6d54c`) was independently ACCEPTED under
+#117 (durable record: #116 comment `5731074937`) as the accepted corrected
+refresh boundary. This lineage does not release G2/M2-M6 or G3; the current
+phase is discovered from durable Issue state per `STATUS.md` /
+`docs/AI_HANDOFF.md`.
 
 ## Stage 0 — Constitution and Repository Harness
 

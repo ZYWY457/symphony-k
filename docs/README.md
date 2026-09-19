@@ -23,11 +23,16 @@ Final strategic accepted-truth reconciliation is `b5ee78f7febae1346c771fa6060fcb
 CORRECTION REQUIRED** evidence. **M2-M6 and G3 are NOT RELEASED.**
 
 Issue #111 revision
-`r4 - strategic-narrative-cold-start-refresh-path-correction` is the current
-released repository strategic-narrative,
-external-simplicity and cold-start refresh TaskSpec. Its candidate is not
-accepted truth until independent review under #115. Historical #108, #110 and
-#113 work is complete lineage, not current execution authority.
+`r4 - strategic-narrative-cold-start-refresh-path-correction` is completed
+lineage: it produced refresh candidate
+`f8ccac552e5b48d5b7a4df86683844d242bc8221`, reviewed under #115 with
+disposition CORRECTION REQUIRED (durable record: #111 comment `5724524204`).
+The bounded forward correction #116 produced
+`c5eb696f9f84087c996c5ae3bb03da21a7e6d54c`, independently ACCEPTED under #117
+(durable record: #116 comment `5731074937`) as the accepted corrected refresh
+boundary. Historical #108, #110 and #113 work is complete lineage, not current
+execution authority; the current phase is discovered from durable Issue state
+per `STATUS.md` / `docs/AI_HANDOFF.md`.
 
 ## Constitution and core beliefs
 
